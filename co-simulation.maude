@@ -1,0 +1,94 @@
+fmod NAT-LIST is protecting NAT .
+ sort List .
+ subsorts Nat < List .
+ op nil : -> List .
+ op _;_ : List List -> List [assoc id: nil] .
+ op length : List -> Nat .
+ var L : List .
+ var N : Nat .
+ eq length(nil) = 0 .
+ eq length(N ; L) = s(length(L)) . 
+endfm
+
+
+mod CO-SIMULATION is 
+   protecting NAT-LIST .
+   protecting  QID .'
+   sorts Oid Cid Att Atts Configuration Connection Connections .
+   sorts Mode Class .
+   subsort Oid < Qid .
+   subsort Connection < Connections < Configuration .
+   subsort Att < Atts .     *** Atts is set of attribute-value pairs
+   subsort Object < Configuration . 
+
+   op none : -> Connections [ctor] .
+   op _ _ : Configuration Configuration -> Configuration
+                       [ctor config assoc comm id: none] .
+   op _ _ : Connections Connections -> Connections
+
+   op [_,_] : Oid Oid -> Connection [ctor] . *** Input port x Output port
+
+   op null : -> Atts .		       
+   op _,_ : Atts Atts -> Atts [ctor assoc comm id: null] .
+
+   op inputU:_ : List -> Att [ctor] . *** inputD that have not been set
+   op inputD:_ : List -> Att [ctor] . *** inputD that have been set
+   op outputU:_ : List -> Att [ctor] . *** Output that have not been get
+   op outputD:_ : List -> Att [ctor] .  *** Output that have been get
+   op time:_ : Nat -> Att [ gather ( & ) ] . 
+   op canReject:_ : Bool -> Att [ gather ( & ) ] . 
+   op feedthrough:_ : List -> Att[ctor] .
+
+   ***Classes
+   ops Input Output SU : -> Class [ctor] .
+   op <_:_|_> : Oid Class Atts -> Object [ctor] .
+
+   op {_} : Configuration -> State [ctor] . 
+
+   op SU : -> SU . 
+
+   ops d u : -> Mode .   *** d = defined, u = undefined.
+
+   op init : -> Configuration .
+
+   vars ID1 ID2 I1 O I: Oid .
+   vars N M T1 T2 : Nat .
+   vars L Q H J : List . 
+   var C : Configuration .
+   var Con : Connections .
+
+   *** Maybe two cases - one with feed-through and one without
+   rl [get] :  {< ID1 : SU | inputU: L, inputD: Q, outputU: <O : Output | time: T1> ; H, outputD: J, time: T1 > C}
+             => {< ID1 : SU | inputU: L, inputD: Q, outputU: H, outputD:  <O : Output | time: N> ; J, time: T1 > C}. *** if feed throguh allows this
+
+   crl [set-reactive] :  {< ID1 : SU | inputU: <I : Input | time : T1> ; L, inputD: Q, outputU: H, outputD: J, time: T1 > 
+                         < ID2 : SU | inputU: L, inputD: Q, outputU: H, outputD: <O : Output | time: T2> ; J, time: T2 > ([O , I] ; Con) C }
+                        => < ID1 : SU | inputU: L, inputD: <I : Input | time : T2> ; Q, outputU: H, outputD: J, time: T1 >  if T2 > T1 . *** If value obtained at a greater time
+
+   crl [set-delayed] :  {< ID1 : SU | inputU: <I : Input | time : T1> ; L, inputD: Q, outputU: H, outputD: J, time: T1 > 
+                         < ID2 : SU | inputU: L, inputD: Q, outputU: H, outputD: <O : Output | time: T1> ; J, time: T1 > ([O , I] ; Con) C }
+                        => < ID1 : SU | inputU: L, inputD: <I : Input | time : T1> ; Q, outputU: H, outputD: J, time: T1 >  . *** If value from same time
+
+   *** A step makes the SU stepped and sets all output ports to not get
+   rl [step] :  < ID1 : SU | inputU: nil, inputD: Q, outputU: H, outputD: J, time: T1 >
+             => < ID1 : SU | inputU: L, inputD: Q, outputU: H ; J, outputD: nil, time: T2 > . *** If all inputD are set
+
+  ***Complex scenarios with save and restore - this should 
+  crl [saveStep] : 
+
+  crl [restore]
+
+  *** Definition of system
+  op externalConnection : ->  Connections .    *** External Connections - all ports have unique name
+  op internalConnection : ->  Connections .    *** Internal Connections - all ports have unique name
+  op simulationUnits : SU List  List -> SU .      *** SUs - ID * input ports * and outports
+
+  eq externalConnection = [1,2] [1,3] [1,5] [2,4] [2,6] [2,10] [3,6] [3,9] [3,15] .
+  eq internalConnection = [1,2]  .
+
+  eq simulationUnits(N, L, Q) = 
+    < [M] : SU | inputU: L, inputD: nil, outputU: H, outputD: nil, stepped: false > .
+
+
+
+endm

@@ -1,0 +1,251 @@
+% Comments
+
+\newcommand{\simon}[1]{%
+    {\scriptsize
+        \textbf{\textcolor{red}{Simon: #1}}
+    }%
+}%
+
+\newcommand{\jaco}[1]{%
+    {\scriptsize
+        \textbf{\textcolor{blue}{Jaco: #1}}
+    }%
+}%
+
+\newcommand{\claudio}[1]{%
+    {\scriptsize
+        \textbf{\textcolor{magenta}{Claudio: #1}}
+    }%
+}%
+
+
+
+% Paper specific notation
+
+\setlength{\intextsep}{10pt}
+
+\crefname{problem}{problem}{problems}
+
+\newcommand{\inputV}{v}
+\newcommand{\consistent}{\ensuremath{\mathit{Consistent}}}
+\newcommand{\remaining}{\ensuremath{\mathit{Remaining}}}
+\newcommand{\dontcare}{\_}
+\newcommand{\defined}{\ensuremath{\mathit{defined}}}
+\newcommand{\undefined}{\ensuremath{\mathit{undefined}}}
+\newcommand{\properties}{P}
+\newcommand{\satisfies}{\vDash}
+\newcommand{\simulator}{\mathcal{A}}
+\newcommand{\Induced}[2]{\llbracket #1 \rrbracket_{#2}}
+\newcommand{\timebase}{\setreal_{\geq 0}}
+\newcommand{\stepbase}{\setreal_{> 0}}
+\newcommand{\backtrack}{B}
+
+\newcommand{\stateset}[1]{S_{#1}}
+\newcommand{\runstate}[1]{S^{R}_{#1}}
+\newcommand{\state}[1]{s_{#1}}
+\newcommand{\inputs}[1]{U_{#1}}
+\newcommand{\inputvar}[1]{u_{#1}}
+\newcommand{\outputs}[1]{Y_{#1}}
+\newcommand{\outputvar}[1]{y_{#1}}
+\newcommand{\mayReject}{\mathcal{M}}
+\newcommand{\values}{\mathcal{V}}
+\newcommand{\true}{\mathit{true}}
+\newcommand{\false}{\mathit{false}}
+\newcommand{\feedthrough}[1]{D_{#1}}
+\newcommand{\reactivity}[1]{R_{#1}}
+\newcommand{\fset}[1]{\mathtt{set}_{#1}}
+\newcommand{\fget}[1]{\mathtt{get}_{#1}}
+\newcommand{\fdoStep}[1]{\mathtt{doStep}_{#1}}
+\newcommand{\fSave}[1]{\mathtt{Save}_{#1}}
+\newcommand{\fRestore}[1]{\mathtt{Restore}_{#1}}
+\newcommand{\maxStep}[1]{\mathtt{h}_{#1}}
+\newcommand{\timestamp}[1]{\varphi(#1)}
+\newcommand{\feedsto}[2]{U_{#1}^{#2}}
+\newcommand{\CheckCon}{\mathit{CheckCon}}
+\newcommand{\stepfound}{\mathit{Step\_found}}
+
+\newcommand{\complexity}{Com}
+\newcommand{\master}{\mathcal{A}}
+\newcommand{\alloutputs}{Y}
+\newcommand{\allfeedthroughs}{D}
+\newcommand{\allreactivity}{R}
+\newcommand{\allcontracts}{\mathcal{C}}
+\newcommand{\coupling}{L}
+\newcommand{\allinputs}{U}
+\newcommand{\fmus}{C}
+\newcommand{\fmusLoop}{C_{loop}}
+\newcommand{\sequence}[1]{\pargroup{#1}}
+\newcommand{\functioncall}{f}
+\newcommand{\initcall}{I}
+\newcommand{\allfunctioncalls}{F}
+\newcommand{\fmu}[1]{\texttt{#1}}
+\newcommand{\signal}[1]{\texttt{#1}}
+\newcommand{\before}[2]{\ensuremath{#1 \twoheadrightarrow #2}}
+\newcommand{\ibefore}[2]{\ensuremath{#1 \rightarrow #2}}
+\newcommand{\after}[1]{{#1}'}
+\newcommand{\aftern}[2]{{#1}^{(#2)}}
+\newcommand{\stateafter}[2]{\ensuremath{\state{#1}^{(#2)}}}
+\newcommand{\minstep}{\ensuremath{h_{min}}}
+
+\algnewcommand\algorithmicforeach{\textbf{for each}}
+\algdef{S}[FOR]{ForEach}[1]{\algorithmicforeach\ #1\ \algorithmicdo}
+% New definitions
+\algnewcommand\algorithmicswitch{\textbf{switch}}
+\algnewcommand\algorithmiccase{\textbf{case}}
+\algnewcommand\algorithmicassert{\texttt{assert}}
+\algnewcommand\Assert[1]{\State \algorithmicassert(#1)}%
+% New "environments"
+\algdef{SE}[SWITCH]{Switch}{EndSwitch}[1]{\algorithmicswitch\ #1\ \algorithmicdo}{\algorithmicend\ \algorithmicswitch}%
+\algdef{SE}[CASE]{Case}{EndCase}[1]{\algorithmiccase\ #1}{\algorithmicend\ \algorithmiccase}%
+\algtext*{EndSwitch}%
+\algtext*{EndCase}%
+
+
+
+
+
+
+% Generic stuff
+
+\newcommand{\footurl}[1]{\footnote{\url{#1}}}
+
+% Math
+\newcommand{\brackets}[1]{\ensuremath{ \left[ #1 \right] }}
+\newcommand{\tuple}[1]{\ensuremath{ \left\langle #1 \right\rangle }}
+\newcommand{\set}[1]{\ensuremath{ \left\{ #1 \right\}}}
+\newcommand{\system}[1]{\ensuremath{ \begin{cases} #1 \end{cases}}}
+\newcommand{\rightgroup}[1]{\ensuremath{ \left. \begin{matrix} #1 \end{matrix} \right\} } }
+\newcommand{\pargroup}[1]{\ensuremath{ \left( #1 \right)}}
+\newcommand{\inv}[1]{\ensuremath{\pargroup{ #1 }^{-1}}}
+\newcommand{\dert}[1]{\ensuremath{ \dot{#1} }}
+\newcommand{\ddert}[1]{\ensuremath{ \ddot{#1} }}
+\newcommand{\partialder}[2]{\ensuremath{ \frac{\partial#1}{\partial#2} }}
+\newcommand{\setreal}[0]{\ensuremath{\mathbb{R}}}
+%\newcommand{\setbool}[0]{\ensuremath{\mathit{Bool}}}
+\newcommand{\setnat}[0]{\ensuremath{\mathbb{N}}}
+\newcommand{\norm}[1]{\left\lVert#1\right\rVert}
+\newcommand{\bnorm}[1]{\big\lVert#1\big\rVert}
+\newcommand{\abs}[1]{\left|#1\right\|}
+\newcommand{\xs}[2]{\ensuremath{#1^{\left[#2\right]}}}
+\newcommand{\infinitynorm}[1]{\left\lVert#1\right\rVert_\infty}
+
+
+\newcommand{\vectorOne}[1]{\brackets{%
+\begin{matrix}
+  #1
+ \end{matrix}%
+}}
+\newcommand{\vectorTwo}[2]{\brackets{%
+\begin{matrix}
+  #1 \\
+  #2
+ \end{matrix}%
+}}
+\newcommand{\vectorThree}[3]{\brackets{%
+\begin{matrix}
+  #1 \\
+  #2 \\
+  #3
+ \end{matrix}%
+}}
+\newcommand{\vectorFour}[4]{\brackets{%
+\begin{matrix}
+  #1 \\
+  #2 \\
+  #3 \\
+  #4
+ \end{matrix}%
+}}
+\newcommand{\vectorFive}[5]{\brackets{%
+\begin{matrix}
+  #1 \\
+  #2 \\
+  #3 \\
+  #4 \\
+  #5
+ \end{matrix}%
+}}
+\newcommand{\vectorSix}[6]{\brackets{%
+\begin{matrix}
+  #1 \\
+  #2 \\
+  #3 \\
+  #4 \\
+  #5 \\
+  #6
+ \end{matrix}%
+}}
+\newcommand{\vectorSeven}[7]{\brackets{%
+\begin{matrix}
+  #1 \\
+  #2 \\
+  #3 \\
+  #4 \\
+  #5 \\
+  #6 \\
+  #7
+ \end{matrix}%
+}}
+\newcommand{\vectorEight}[8]{\brackets{%
+\begin{matrix}
+  #1 \\
+  #2 \\
+  #3 \\
+  #4 \\
+  #5 \\
+  #6 \\
+  #7 \\
+  #8
+ \end{matrix}%
+}}
+
+\newenvironment{aligneq*}%
+{
+\begin{equation*}
+\begin{aligned}
+}{
+\end{aligned}
+\end{equation*}
+}
+
+\newenvironment{aligneq}%
+{
+\begin{equation}
+\begin{aligned}
+}{
+\end{aligned}
+\end{equation}
+}
+
+
+
+%enable \cref{...} and \Cref{...} instead of \ref: Type of reference included in the link
+%Nice formats for \cref
+\usepackage{iflang}
+\IfLanguageName{ngerman}{
+  \crefname{table}{Tab.}{Tab.}
+  \Crefname{table}{Tabelle}{Tabellen}
+  \crefname{figure}{\figurename}{\figurename}
+  \Crefname{figure}{Abbildungen}{Abbildungen}
+  \crefname{equation}{Gleichung}{Gleichungen}
+  \Crefname{equation}{Gleichung}{Gleichungen}
+  \crefname{listing}{\lstlistingname}{\lstlistingname}
+  \Crefname{listing}{Listing}{Listings}
+  \crefname{section}{Abschnitt}{Abschnitte}
+  \Crefname{section}{Abschnitt}{Abschnitte}
+  \crefname{paragraph}{Abschnitt}{Abschnitte}
+  \Crefname{paragraph}{Abschnitt}{Abschnitte}
+  \crefname{subparagraph}{Abschnitt}{Abschnitte}
+  \Crefname{subparagraph}{Abschnitt}{Abschnitte}
+}{
+  \crefname{section}{Sect.}{Sect.}
+  \Crefname{section}{Section}{Sections}
+  \crefname{listing}{\lstlistingname}{\lstlistingname}
+  \Crefname{listing}{Listing}{Listings}
+}
+\crefname{section}{Sect.}{Sect.}
+\Crefname{section}{Section}{Sections}
+\crefname{listing}{\lstlistingname}{\lstlistingname}
+\Crefname{listing}{Listing}{Listings}
+
+\crefname{assumption}{Assumption}{Assumptions}

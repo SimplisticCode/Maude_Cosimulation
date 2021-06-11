@@ -1,0 +1,141 @@
+fmod PORT-LIST is protecting NAT .
+ sort Object List .
+ subsorts Object < List .
+ op nil : -> List .
+ op _;_ : List List -> List [assoc id: nil] .
+ op length : List -> Nat .
+ var L : List .
+ var N : Object .
+ eq length(nil) = 0 .
+ eq length(N ; L) = s(length(L)) . 
+endfm
+
+
+mod CO-SIMULATION is 
+   protecting PORT-LIST .
+   protecting NAT .
+   protecting  QID .
+   sorts Oid Cid Mode fmiS Att Atts Configuration State Connection Connections Class .
+   subsort Oid < Qid .
+   subsorts Object < List .
+   subsorts Connection < Connections < Configuration .
+   subsorts Att < Atts .  *** Atts is set of attribute-value pairs
+   subsorts Object < Configuration . 
+
+   op none : -> Connections [ctor] .
+   op _ _ : Configuration Configuration -> Configuration
+                       [ctor config assoc comm id: none] .                    
+
+   op [_,_] : Oid Oid -> Connection [ctor] . *** Input port x Output port
+
+   op no : -> Atts .
+   op _,_ : Atts Atts -> Atts [ctor assoc comm id: no] .
+
+   op inputU:_ : List -> Att [ctor] . *** inputU = undefined inputs
+   op inputD:_ : List -> Att [ctor] . *** inputD = defined inputs
+   op outputU:_ : List -> Att [ctor] . *** OutputU = undefined outputs
+   op outputD:_ : List -> Att [ctor] .  *** OutputD = defined outputs
+   op time:_ : Nat -> Att [ctor] . *** Time of object is natural
+   op canReject:_ : Bool -> Att [ctor] .  *** Can the SU reject a step
+   op feedthrough:_ : List -> Att[ctor] . *** List of 
+   op type:_ : Mode -> Att[ctor] .
+   op maxStep:_ : Nat -> Att[ctor] .
+   op fmiState:_ : fmiS ->  Att[ctor] .
+   
+   ***Classes
+   ops Input Output SU : -> Class [ctor] .
+   op <_:_|_> : Oid Class Atts -> Object [ctor] .
+
+   op {_} : Configuration -> State [ctor] . 
+
+   ops d r : -> Mode .   *** d = delayed, r = Reactive.
+
+   ops Instantiated ExperimentSetup Initialize Simulation Terminated InstanceFreed Unloaded : -> fmiS . *** The different states of the FMI standard
+
+   vars ID1 ID2 O I : Oid .
+   vars T1 T2 Step : Nat .
+   vars L Q H J : List . 
+   var S : fmiS .
+   var C : Configuration .
+   var Con : Connections .
+   var t : Mode .
+
+
+  *** FMI state transition:
+
+  rl[create_Exp] : { < ID1 : SU | time: 0 , inputU: L, inputD: Q, outputU: H, outputD: J, fmiState: Instantiated > C }
+             => { < ID1 : SU | time: 0 , inputU: L, inputD: Q, outputU: H, outputD:  J, fmiState: ExperimentSetup > C } .
+
+  rl[init] : { < ID1 : SU | time: 0 , inputU: L, inputD: Q, outputU: H, outputD: J, fmiState: ExperimentSetup > C }
+             => { < ID1 : SU | time: 0 , inputU: (L ; Q), inputD: nil, outputU: H, outputD:  J, fmiState: Initialize > C } .
+
+  rl[simulate] : { < ID1 : SU | time: 0, inputU: nil, inputD: Q, outputU: H, outputD: J, fmiState: Initialize > C }
+             => { < ID1 : SU | time: 0, inputU: Q, inputD: nil, outputU: H, outputD:  J, fmiState: Simulation > C } .
+
+  rl[terminate] : { < ID1 : SU | time: T1 , inputU: nil, inputD: Q, outputU: H, outputD: J, fmiState: Simulation > C }
+             => { < ID1 : SU | time: T1 , inputU: nil, inputD: Q, outputU: H, outputD:  J, fmiState: Terminated > C } .
+
+  rl[free] : { < ID1 : SU | time: T1 , inputU: L, inputD: Q, outputU: H, outputD: J, fmiState: Terminated > C }
+             => { < ID1 : SU | time: T1 , inputU: L, inputD: Q, outputU: H, outputD:  J, fmiState: InstanceFreed > C } .
+
+  rl[unload] : { < ID1 : SU | time: T1 , inputU: L, inputD: Q, outputU: H, outputD: J, fmiState: InstanceFreed > C }
+             => { < ID1 : SU | time: T1 , inputU: L, inputD: Q, outputU: H, outputD:  J, fmiState: Unloaded > C } .
+
+
+   *** Initalization Procedure 
+
+   rl [get-init] :  { < ID1 : SU | time: 0 , inputU: L, inputD: Q, outputU: (< O : Output | time: 0 > ; H), outputD: J, fmiState: Initialize > C }
+             => { < ID1 : SU | time: 0 , inputU: L, inputD: Q, outputU: H, outputD:  (< O : Output | time: 0 > ; J), fmiState: Initialize > C } . *** if feed-through allows this
+
+   rl [set-init] :  { < ID1 : SU | time: 0 , inputU: (< I : Input | time: 0 , type: t > ; L), inputD: Q, outputU: H, outputD: J, fmiState: Initialize > 
+                          < ID2 : SU | time: 0 , inputU: L, inputD: Q, outputU: H, outputD: (< O : Output | time: 0 > ; J), fmiState: Initialize > ([O , I] Con) C }
+                        => { < ID1 : SU | time: 0 , inputU: L, inputD: (< I : Input | time: 0 , type: t > ; Q), outputU: H, outputD: J, fmiState: Initialize > 
+                             < ID2 : SU | time: 0 , inputU: L, inputD: Q, outputU: H, outputD: (< O : Output | time: 0 > ; J), fmiState: Initialize > ([O , I] Con) C } .
+
+   *** Maybe two cases - one with feed-through and one without
+   rl [get] :  { < ID1 : SU | time: T1 , inputU: L, inputD: Q, outputU: (< O : Output | time: T1 > ; H), outputD: J, fmiState: Simulation > C }
+             => { < ID1 : SU | time: T1 , inputU: L, inputD: Q, outputU: H, outputD:  (< O : Output | time: T1 > ; J), fmiState: Simulation > C } . *** if feed-through allows this
+
+   rl [set-reactive] :  { < ID1 : SU | time: T1 , inputU: (< I : Input | time: T1 , type: r > ; L), inputD: Q, outputU: H, outputD: J, fmiState: Simulation > 
+                          < ID2 : SU | time: T2 , inputU: L, inputD: Q, outputU: H, outputD: (< O : Output | time: T2 > ; J), fmiState: Simulation > ([O , I] Con) C }
+                        => { < ID1 : SU | time: T1 , inputU: L, inputD: (< I : Input | time: T2 , type: r > ; Q), outputU: H, outputD: J, fmiState: Simulation > 
+                             < ID2 : SU | time: T2 , inputU: L, inputD: Q, outputU: H, outputD: (< O : Output | time: T2 > ; J), fmiState: Simulation > ([O , I] Con) C } . *** if T2 > T1 . *** If value obtained at a greater time
+
+   rl [set-delayed] :  { < ID1 : SU | time: T1 , inputU: (< I : Input | time: T1 , type: d > ; L), inputD: Q, outputU: H, outputD: J, fmiState: Simulation > 
+                         < ID2 : SU | time: T1 , inputU: L, inputD: Q, outputU: H, outputD: (< O : Output | time: T1 > ; J), fmiState: Simulation > ([O , I] Con) C }
+                        => { < ID1 : SU | time: T1 , inputU: L, inputD: (< I : Input | time: T1 , type: d > ; Q), outputU: H, outputD: J, fmiState: Simulation >  
+                             < ID2 : SU | time: T1 , inputU: L, inputD: Q, outputU: H, outputD: (< O : Output | time: T1 > ; J), fmiState: Simulation > ([O , I] Con) C } . *** If value from same time
+
+   *** A step makes the SU stepped and sets all output ports to not get
+   crl [step] :  { < ID1 : SU | inputU: nil, inputD: Q, outputU: H, outputD: J, time: T1, fmiState: Simulation > C }
+             =>  { < ID1 : SU | inputU: nil, inputD: Q, outputU: (H ; J), outputD: nil, time: (T1 + Step), fmiState: Simulation > C } if Step > 0 . *** If all inputD are set
+
+  ***Complex scenarios with save and restore - this should 
+
+
+  *** Definition of system
+  op externalConnection : ->  Connections .    *** External Connections - all ports have unique name
+  op internalConnection : ->  Connections .    *** Internal Connections - all ports have unique name
+  op simulationUnits : -> Configuration .      *** SUs - ID * input ports * and outports
+
+
+  op setup : -> State .
+
+  ***Scenario Encoding      
+  eq externalConnection = ['msd1_x1, 'msd2_x1] ['msd1_v1,'msd2_v1] ['msd2_fk,'msd1_fk] ['msd2_fk,'msd3_fk] .
+  eq internalConnection = ['msd2_x1, 'msd2_fk] ['msd2_v1, 'msd2_fk] .
+
+  eq simulationUnits = 
+   < 'MSD1 : SU | inputU: < 'msd1_fk : Input | time: 0 , type: d >, inputD: nil, outputU: (< 'msd1_x1 : Output | time: 0 > ; < 'msd1_v1 : Output | time: 0 >) , outputD: nil, time: 0, fmiState: Instantiated > 
+   < 'MSD2 : SU | inputU: (< 'msd2_v1 : Input | time: 0 , type: d > ; < 'msd2_x1 : Input | time: 0 , type: d > ), inputD: nil, outputU: < 'msd2_fk : Output | time: 0 > , outputD: nil, time: 0, fmiState: Instantiated > 
+   < 'MSD3 : SU | inputU: < 'msd3_fk : Input | time: 0 , type: d > , inputD: nil, outputU: nil, outputD: nil, time: 0, fmiState: Instantiated > .
+
+
+  eq setup = { simulationUnits 
+              externalConnection 
+              } .
+
+endm
+
+search setup =>! X:State .
+show search graph .

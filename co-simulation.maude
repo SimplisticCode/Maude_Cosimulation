@@ -1,15 +1,3 @@
-fmod NAT-LIST is protecting NAT .
- sort List .
- subsorts Nat < List .
- op nil : -> List .
- op _;_ : List List -> List [assoc id: nil] .
- op length : List -> Nat .
- var L : List .
- var N : Nat .
- eq length(nil) = 0 .
- eq length(N ; L) = s(length(L)) . 
-endfm
-
 fmod PORT-LIST is protecting NAT .
  sort Object List .
  subsorts Object < List .
@@ -21,6 +9,7 @@ fmod PORT-LIST is protecting NAT .
  eq length(nil) = 0 .
  eq length(N ; L) = s(length(L)) . 
 endfm
+
 
 mod CO-SIMULATION is 
    protecting PORT-LIST .
@@ -36,7 +25,6 @@ mod CO-SIMULATION is
    op none : -> Connections [ctor] .
    op _ _ : Configuration Configuration -> Configuration
                        [ctor config assoc comm id: none] .                    
-   ***op _ _ : Connections Connections -> Connections .
 
    op [_,_] : Oid Oid -> Connection [ctor] . *** Input port x Output port
 
@@ -51,7 +39,8 @@ mod CO-SIMULATION is
    op canReject:_ : Bool -> Att [ctor] .  *** Can the SU reject a step
    op feedthrough:_ : List -> Att[ctor] . *** List of 
    op type:_ : Mode -> Att[ctor] .
-
+   op maxStep:_ : Nat -> Att[ctor] .
+   
    ***Classes
    ops Input Output SU : -> Class [ctor] .
    op <_:_|_> : Oid Class Atts -> Object [ctor] .
@@ -63,42 +52,45 @@ mod CO-SIMULATION is
    ***op init : -> Configuration .
 
    vars ID1 ID2 O I : Oid .
-   vars T1 T2 : Nat .
+   vars T1 T2 S : Nat .
    vars L Q H J : List . 
    var C : Configuration .
    var Con : Connections .
 
    *** Maybe two cases - one with feed-through and one without
    rl [get] :  { < ID1 : SU | time: T1 , inputU: L, inputD: Q, outputU: (< O : Output | time: T1 > ; H), outputD: J > C }
-             => { < ID1 : SU | time: T1 , inputU: L, inputD: Q, outputU: H, outputD:  (< O : Output | time: T1 > ; J) > C } . *** if feed throguh allows this
+             => { < ID1 : SU | time: T1 , inputU: L, inputD: Q, outputU: H, outputD:  (< O : Output | time: T1 > ; J) > C } . *** if feed-through allows this
 
    rl [set-reactive] :  { < ID1 : SU | time: T1 , inputU: (< I : Input | time: T1 , type: r > ; L), inputD: Q, outputU: H, outputD: J > 
                           < ID2 : SU | time: T2 , inputU: L, inputD: Q, outputU: H, outputD: (< O : Output | time: T2 > ; J) > ([O , I] Con) C }
-                        => { < ID1 : SU | time: T1 , inputU: L, inputD: (< I : Input | time : T2 , type: r > ; Q), outputU: H, outputD: J > 
+                        => { < ID1 : SU | time: T1 , inputU: L, inputD: (< I : Input | time: T2 , type: r > ; Q), outputU: H, outputD: J > 
                              < ID2 : SU | time: T2 , inputU: L, inputD: Q, outputU: H, outputD: (< O : Output | time: T2 > ; J) > ([O , I] Con) C } . *** if T2 > T1 . *** If value obtained at a greater time
 
    rl [set-delayed] :  { < ID1 : SU | time: T1 , inputU: (< I : Input | time: T1 , type: d > ; L), inputD: Q, outputU: H, outputD: J > 
                          < ID2 : SU | time: T1 , inputU: L, inputD: Q, outputU: H, outputD: (< O : Output | time: T1 > ; J) > ([O , I] Con) C }
-                        => { < ID1 : SU | time: T1 , inputU: L, inputD: (< I : Input | time : T1 , type: d > ; Q), outputU: H, outputD: J >  
+                        => { < ID1 : SU | time: T1 , inputU: L, inputD: (< I : Input | time: T1 , type: d > ; Q), outputU: H, outputD: J >  
                              < ID2 : SU | time: T1 , inputU: L, inputD: Q, outputU: H, outputD: (< O : Output | time: T1 > ; J) > ([O , I] Con) C } . *** If value from same time
 
    *** A step makes the SU stepped and sets all output ports to not get
    crl [step] :  { < ID1 : SU | inputU: nil, inputD: Q, outputU: H, outputD: J, time: T1 > C }
-             =>  { < ID1 : SU | inputU: nil, inputD: Q, outputU: (H ; J), outputD: nil, time: T2 > C } if T2 > T1 . *** If all inputD are set
+             =>  { < ID1 : SU | inputU: nil, inputD: Q, outputU: (H ; J), outputD: nil, time: (T1 + S) > C } if S > 0 . *** If all inputD are set
 
   ***Complex scenarios with save and restore - this should 
 
 
   *** Definition of system
-  ***op externalConnection : ->  Connections .    *** External Connections - all ports have unique name
-  ***op internalConnection : ->  Connections .    *** Internal Connections - all ports have unique name
-  ***op simulationUnits : SU List  List -> SU .      *** SUs - ID * input ports * and outports
+  op externalConnection : ->  Connections .    *** External Connections - all ports have unique name
+  op internalConnection : ->  Connections .    *** Internal Connections - all ports have unique name
+  op simulationUnits : -> Configuration .      *** SUs - ID * input ports * and outports
 
-  ***eq externalConnection = [1,2] [1,3] [1,5] [2,4] [2,6] [2,10] [3,6] [3,9] [3,15] .
-  ***eq internalConnection = [1,2]  .
+  ***Scenario Encoding      
+  eq externalConnection = ['msd1_x1, 'msd2_x1] ['msd1_v1,'msd2_v1] ['msd2_fk,'msd1_fk] ['msd2_fk,'msd3_fk] .
+  eq internalConnection = ['msd2_x1, 'msd2_fk] ['msd2_v1, 'msd2_fk] .
 
-  ***eq simulationUnits(N, L, Q) = 
-   *** < [M] : SU | inputU: L, inputD: nil, outputU: H, outputD: nil, stepped: false > .
+  eq simulationUnits = 
+   < 'MSD1 : SU | inputU: < 'msd1_fk : Input | time: 0 , type: d >, inputD: nil, outputU: (< 'msd1_x1 : Output | time: 0 > ; < 'msd1_v1 : Output | time: 0 >) , outputD: nil, time: 0 > 
+   < 'MSD2 : SU | inputU: (< 'msd2_v1 : Input | time: 0 , type: d > ; < 'msd2_x1 : Input | time: 0 , type: d > ), inputD: nil, outputU: < 'msd2_fk : Output | time: 0 > , outputD: nil, time: 0 > 
+   < 'MSD3 : SU | inputU: < 'msd3_fk : Input | time: 0 , type: d > , inputD: nil, outputU: nil, outputD: nil, time: 0 > .
 
 
 

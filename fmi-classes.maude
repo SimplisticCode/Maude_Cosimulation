@@ -1,7 +1,7 @@
-mod PORTLIST 
+omod PORTLIST 
    is protecting QID .
  sorts PortId Mode PortStatus PortList .
- subsorts Qid < PortId .
+ subsorts Qid < PortId < Oid.
 
  class Port | time: Nat , status: Status . 
  class Input | type: Mode .
@@ -11,7 +11,8 @@ mod PORTLIST
  op _;_ : PortList PortList -> PortList [ctor assoc id: emptyList] .
  ops d r : -> Mode .   *** d = delayed, r = Reactive.
  ops Def Undef : -> PortStatus .
-endm
+endom
+
 
 
 fmod Connections is protecting NAT .
@@ -26,14 +27,14 @@ endfm
 
 
 
-mod CO-SIMULATION is 
+omod CO-SIMULATION is 
+   protecting PORTLIST .
    protecting NAT .
-   protecting  QID .
-   sorts Oid Mode fmiS Att Atts Configuration State Connection Connections Class List Object.
-   ***sort EPortId .
+   sorts Oid Mode fmiS Att Atts Configuration State Connection .
+   sort EPortId .
    subsort Oid < Qid .
    subsorts Object < List .
-   subsorts Connection < Connections < Configuration .
+   subsorts Connection < Configuration .
    subsorts Att < Atts .  *** Atts is set of attribute-value pairs
    subsorts Object < Configuration . 
 
@@ -41,33 +42,24 @@ mod CO-SIMULATION is
    op _ _ : Configuration Configuration -> Configuration
                        [ctor config assoc comm id: none] . 
 
-   op [_,_] : Oid Oid -> Connection [ctor] . *** Input port x Output port
+   op [_==>_] : EPortId EPortId -> Connection [ctor] . *** Input port x Output port
+   op _!_ : FMUID PortId -> EPortId [ctor] .
 
    op stepSize:_ : Nat -> Configuration [ctor] . 
-   op savedSUs:_ : List -> Configuration [ctor] . 
+   op savedFMUs:_ : List -> Configuration [ctor] . 
 
    op no : -> Atts .
    op _,_ : Atts Atts -> Atts [ctor assoc comm id: no] .
-
-   op nil : -> List .
-   op _;_ : List List -> List [ctor assoc id: nil] .
-
-   op inputU:_ : List -> Att [ctor] . *** inputU = undefined inputs
-   op inputD:_ : List -> Att [ctor] . *** inputD = defined inputs
-   op outputU:_ : List -> Att [ctor] . *** OutputU = undefined outputs
-   op outputD:_ : List -> Att [ctor] .  *** OutputD = defined outputs
-   op time:_ : Nat -> Att [ctor] . *** Time of object is natural
-   op canReject:_ : Bool -> Att [ctor] .  *** Can the SU reject a step
-   op type:_ : Mode -> Att [ctor] .
-   op fmiState:_ : fmiS ->  Att [ctor] .
    
    ***Classes
-   ops Input Output SU : -> Class [ctor] .
-   op <_:_|_> : Oid Class Atts -> Object [ctor] .
+   ***ops Input Output SU : -> Class [ctor] .
+   ***op <_:_|_> : Oid Class Atts -> Object [ctor] .
+
+   class SU | time: Nat, inputs: PortList, outputs: PortList, canReject: Bool, state: fmiS.
 
    op {_} : Configuration -> State [ctor] . 
 
-   op feedthroughSatisfied : Oid List Connections -> Bool .
+   op feedthroughSatisfied : EPortId Connections -> Bool .
 
    ops Instantiated ExperimentSetup Initialize Simulation Terminated InstanceFreed Unloaded : -> fmiS . *** The different states of the FMI standard
 
@@ -102,8 +94,8 @@ mod CO-SIMULATION is
 
    *** Initalization Procedure 
 
-   crl [get-init] :  { < ID1 : SU | time: 0 , atb, outputU: (< O : Output | time: 0 > ; H), outputD: J, fmiState: Initialize > C }
-             => { < ID1 : SU | time: 0 , atb, outputU: H, outputD: (< O : Output | time: 0 > ; J), fmiState: Initialize > C } if feedthroughSatisfied(O, Q) .
+   rl [get-init] :  { < ID1 : SU | time: 0 , atb, outputU: (< O : Output | time: 0 > ; H), outputD: J, fmiState: Initialize > C }
+             => { < ID1 : SU | time: 0 , atb, outputU: H, outputD: (< O : Output | time: 0 > ; J), fmiState: Initialize > C } . *** if feed-through allows this
 
    *** Inputs can only rely on one connection 
    rl [set-init] :  { < ID1 : SU | time: 0 , inputU: (< I : Input | time: 0 , type: t > ; L), inputD: Q, atb, fmiState: Initialize > 
@@ -118,7 +110,7 @@ mod CO-SIMULATION is
    crl [set-reactive] :  { < ID1 : SU | time: T1 , inputU: (< I : Input | time: T1 , type: r > ; L), inputD: Q, atb, fmiState: Simulation > 
                            < ID2 : SU | time: T2 , atb2, outputD: (< O : Output | time: T2 > ; J), fmiState: Simulation > [O , I] C }
                         => { < ID1 : SU | time: T1 , inputU: L, inputD: (< I : Input | time: T2 , type: r > ; Q), atb, fmiState: Simulation > 
-                           < ID2 : SU | time: T2 , atb2, outputD: (< O : Output | time: T2 > ; J), fmiState: Simulation > [O, I] C } if T2 > T1 . *** If value obtained at a greater time
+                           < ID2 : SU | time: T2 , atb2, outputD: (< O : Output | time: T2 > ; J), fmiState: Simulation > [O ==> I] C } if T2 > T1 . *** If value obtained at a greater time
 
    rl [set-delayed] :  { < ID1 : SU | time: T1 , inputU: (< I : Input | time: T1 , type: d > ; L), inputD: Q, atb, fmiState: Simulation > 
                          < ID2 : SU | time: T1 , atb2, outputD: (< O : Output | time: T1 > ; J), fmiState: Simulation > [O , I] C }
@@ -155,7 +147,7 @@ mod CO-SIMULATION is
               externalConnection 
               } .
 
-endm
+endom
 
 *** Check for termination - not useful 
 search setup =>! X:State .

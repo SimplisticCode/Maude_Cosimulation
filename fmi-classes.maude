@@ -29,21 +29,29 @@ endom)
    sort fmiState .
 
    op stepSize:_ : Nat -> Configuration [ctor] . 
+   op endTime:_ : Nat -> Configuration [ctor] . 
+
   
    ***Classes
    class SU | time : Nat, inputs : Configuration, outputs : Configuration, canReject : Bool, state : fmiState .
 
-   op feedthroughSatisfied : PortIdSet Configuration -> Bool .
+   op feedthroughSatisfied : PortIdSet Configuration Nat -> Bool .
 
-   op allInputDef : Configuration -> Bool .
+   op allDef : Configuration Nat -> Bool .
 
-   op undefInput : Configuration -> Configuration .
+   op undefPorts : Configuration Nat -> Configuration .
+
+   op undefInputs : Configuration -> Configuration .
+   
+   op allInputsDef : Configuration Nat Nat -> Bool .
+
+   op allInputsSet : Configuration -> Bool .
 
    ops Instantiated ExperimentSetup Initialize Simulation Terminated InstanceFreed Unloaded : -> fmiState [ctor] . *** The different states of the FMI standard
 
    vars ID1 ID2 : SUID .
    vars I O PId : PortId .
-   vars T1 T2 Step : Nat .
+   vars T T1 T2 Step SUTime, FutureTime : Nat .
    vars Inputs Outputs : Configuration . 
    var S : fmiState .
    var C : Configuration .
@@ -53,32 +61,44 @@ endom)
 
    var feedthrough : PortIdSet .
 
-   eq feedthroughSatisfied(emptySet, C) = true .
-   eq feedthroughSatisfied(PId :: feedthrough, < PId : Input | status : Undef > C ) = false .
-   eq feedthroughSatisfied(PId :: feedthrough, < PId : Input | status : Def > C ) =  feedthroughSatisfied(feedthrough, C) .
+   eq feedthroughSatisfied(emptySet, C, T) = true .
+   eq feedthroughSatisfied(PId :: feedthrough, < PId : Input | status : Undef > C, T) = false .
+   eq feedthroughSatisfied(PId :: feedthrough, < PId : Input | time : T, status : Def > C, T) =  feedthroughSatisfied(feedthrough, C, T) .
 
-   eq allInputDef(none) = true .
-   eq allInputDef(< PId : Input | status : Status > C ) = Status == Def and allInputDef(C) .
+   eq allDef(none, T) = true .
+   eq allDef(< PId : Port | status : Status, time : T > C, T) = Status == Def and allDef(C, T) .
 
-   eq undefInput(none) = none .
-   eq undefInput(< PId : Input | > C) =  < PId : Input |  status : Undef > undefInput(C) .
+
+   eq allInputsDef(none, SUTime, FutureTime) = true .
+   eq allInputsDef(< PId : Input | time : SUTime, type : d, status : Status > C, SUTime, FutureTime) = Status == Def and allInputsDef(C, SUTime, FutureTime) .
+   eq allInputsDef(< PId : Input | time : FutureTime, type : r,  status : Status > C, SUTime, FutureTime ) = Status == Def and allInputsDef(C, SUTime, FutureTime) .
+
+   eq undefPorts(none, T) = none .
+   eq undefPorts(< PId : Port | > C, T) =  < PId : Port | status : Undef, time : T > undefPorts(C, T) .
+
+
+   eq undefInputs(none) = none .
+   eq undefInputs(< PId : Port | > C) =  < PId : Port | status : Undef > undefInputs(C) .
+
+   eq allInputsSet(none) = true .
+   eq allInputsSet(< ID1 : SU | inputs : Inputs > C) = allDef(Inputs, 0) and allInputsSet(C) .
 
   *** FMI state transition:
 
   rl [create_Exp] : < ID1 : SU | state : Instantiated >
                 => < ID1 : SU | state : ExperimentSetup > .
 
-  rl [init] : < ID1 : SU | state : ExperimentSetup >
-          => < ID1 : SU | state : Initialize > .
+  rl [init] : < ID1 : SU | inputs : Inputs , outputs : Outputs , state : ExperimentSetup >
+          => < ID1 : SU | inputs : undefPorts(Inputs, 0), outputs : undefPorts(Outputs, 0), state : Initialize > .
 
-  rl [simulate] : < ID1 : SU | inputs : Inputs , state : Initialize >
-              => < ID1 : SU | inputs : undefInput(Inputs) , state : Simulation > .
+  crl [simulate] : < ID1 : SU | inputs : Inputs , outputs : Outputs, state : Initialize > C
+                => < ID1 : SU | state : Simulation > C if allDef(Inputs, 0) and allDef(Outputs, 0) and allInputsSet(C) .
 
-  crl [terminate] : < ID1 : SU | time : T1 , state : Simulation > 
-                => < ID1 : SU | state : Terminated > if T1 > 0 .
+  crl [terminate] : < ID1 : SU | time : T1, inputs : Inputs , outputs : Outputs , state : Simulation > endTime: T1
+                 => < ID1 : SU | state : Terminated > endTime: T1 if allDef(Outputs, T1) and allDef(Inputs, T1) .
 
   rl [free] : < ID1 : SU | state : Terminated > 
-          => < ID1 : SU | state : InstanceFreed > .
+           => < ID1 : SU | state : InstanceFreed > .
 
   rl [unload] : < ID1 : SU | state : InstanceFreed > 
             => < ID1 : SU | state : Unloaded > .
@@ -87,34 +107,35 @@ endom)
    *** Initalization Procedure 
 
    crl [get-init] :  < ID1 : SU | outputs : ((< O : Output | status : Undef , dependsOn : feedthrough >) Outputs) , inputs : Inputs, state : Initialize >
-                  => < ID1 : SU | outputs : ((< O : Output | status : Def >) Outputs) > if feedthroughSatisfied(feedthrough, Inputs) .
+                  => < ID1 : SU | outputs : ((< O : Output | status : Def >) Outputs) > if feedthroughSatisfied(feedthrough, Inputs, 0) .
 
    *** Inputs can only rely on one connection 
    rl [set-init] :  < ID1 : SU | inputs : (< I : Input | status : Undef > Inputs), state : Initialize > 
-                          < ID2 : SU | outputs : (< O : Output | status : Def > Outputs), state : Initialize > (ID2 ! O ==> ID1 ! I)
+                          < ID2 : SU | outputs : (< O : Output | status : Def > Outputs) > (ID2 ! O ==> ID1 ! I)
                         => < ID1 : SU | inputs : (< I : Input | status : Def > Inputs) > 
                            < ID2 : SU | > (ID2 ! O ==> ID1 ! I) .
 
    ***Simulation
 
-   crl [get] :  < ID1 : SU | outputs : (< O : Output | status : Undef > Outputs), state : Simulation >
-                  => < ID1 : SU | outputs : (< O : Output | status : Def > Outputs) > if feedthroughSatisfied(feedthrough, Inputs) .
+   crl [get] :  < ID1 : SU | time : T1, outputs : (< O : Output | status : Undef , dependsOn : feedthrough > Outputs), inputs : Inputs, state : Simulation >
+                  => < ID1 : SU | outputs : (< O : Output | time : T1 , status : Def > Outputs) > if feedthroughSatisfied(feedthrough, Inputs, T1) .
 
-   crl [set-reactive] :  < ID1 : SU | inputs : (< I : Input | time : T1, status : Undef, type : r > Inputs), state : Simulation > 
-                          < ID2 : SU | outputs : (< O : Output | time : T2, status : Def > Outputs), state : Simulation > (ID2 ! O ==> ID1 ! I)
+   crl [set-reactive] :  < ID1 : SU | time : T1, inputs : (< I : Input | status : Undef, type : r > Inputs), state : Simulation > 
+                          < ID2 : SU | outputs : (< O : Output | time : T2, status : Def > Outputs) > (ID2 ! O ==> ID1 ! I)
                         => < ID1 : SU | inputs : (< I : Input | time : T2 , status : Def > Inputs) > 
                            < ID2 : SU | > (ID2 ! O ==> ID1 ! I) if T2 > T1 .
 
-   rl [set-delayed] :  < ID1 : SU | inputs : (< I : Input | time : T1, status : Undef, type : d > Inputs), state : Simulation > 
-                          < ID2 : SU | outputs : (< O : Output | time : T1, status : Def > Outputs), state : Simulation > (ID2 ! O ==> ID1 ! I)
-                        => < ID1 : SU | inputs : (< I : Input | status : Def > Inputs) > 
+   rl [set-delayed] :  < ID1 : SU | time : T1, inputs : (< I : Input | status : Undef, type : d > Inputs), state : Simulation > 
+                          < ID2 : SU | outputs : (< O : Output | time : T1, status : Def > Outputs) > (ID2 ! O ==> ID1 ! I)
+                        => < ID1 : SU | inputs : (< I : Input | time : T1, status : Def > Inputs) > 
                            < ID2 : SU | > (ID2 ! O ==> ID1 ! I) .
 
 
    *** A step makes the SU stepped and sets all output ports to not get
-   crl [step] :  < ID1 : SU | inputs : Inputs, time : T1, state : Simulation, canReject : false > stepSize: Step 
-             =>  < ID1 : SU | inputs : undefInput(Inputs), time : (T1 + Step), state : Simulation > stepSize: Step 
-             if Step > 0 and allInputDef(Inputs) . *** If all inputD are set
+   crl [step] :  < ID1 : SU | inputs : Inputs, outputs : Outputs, time : T1, state : Simulation, canReject : false > stepSize: Step endTime: T2 
+             =>  < ID1 : SU | outputs : undefPorts(Outputs, (T1 + Step)), inputs : undefInputs(Inputs), time : (T1 + Step), state : Simulation > stepSize: Step endTime: T2 
+             if Step > 0 and allInputsDef(Inputs, T1, (T1 + Step)) and allDef(Outputs, T1) and (T1 + Step) <= T2 . 
+
 
   ***Complex scenarios with save and restore - this should 
   *** Recognise Loop and treat them
@@ -132,19 +153,26 @@ endom)
 
   eq simulationUnits = 
    (< 'MSD1 : SU | time : 0, inputs : < 'fk : Input | time : 0 , type : d, status : Undef >, outputs : (< 'x1 : Output | time : 0 , status : Undef, dependsOn : emptySet  > < 'v1 : Output | time : 0, status : Undef, dependsOn : emptySet >), state : Instantiated, canReject : false > )
-   (< 'MSD2 : SU | time : 0, inputs : (< 'v1 : Input | time : 0 , type : d, status : Undef >  < 'x1 : Input | time : 0 , type : d > ), outputs: < 'fk : Output | time : 0, status : Undef, dependsOn : emptySet >, state : Instantiated, canReject: false  > )
-   < 'MSD3 : SU | time : 0, inputs : < 'fk : Input | time : 0 , type : d, status : Undef > , outputs: none, state : Instantiated, canReject: false  > .
+   (< 'MSD2 : SU | time : 0, inputs : (< 'v1 : Input | time : 0 , type : d, status : Undef >  < 'x1 : Input | time : 0 , type : d, status : Undef > ), outputs : < 'fk : Output | time : 0, status : Undef, dependsOn : emptySet >, state : Instantiated, canReject : false  > )
+   < 'MSD3 : SU | time : 0, inputs : < 'fk : Input | time : 0 , type : d, status : Undef > , outputs : none, state : Instantiated, canReject : false  > .
 
 
-  eq setup = simulationUnits externalConnection .
+  eq setup = simulationUnits externalConnection stepSize: 1 endTime: 1 .
+
 
 endom)
 
+eof
+
 *** Check for termination - not useful 
-search setup =>! X:State .
+(search setup =>! X:Configuration . )
 show search graph .
 
-rewrite setup .
+( frew [550000] setup . )
+
+  ***(
+
+ )***
 
 
 *** Why can't I rewrite the system?

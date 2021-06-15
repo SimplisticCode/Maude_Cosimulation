@@ -82,8 +82,8 @@ endom)
 
    *** Initalization Procedure 
 
-   crl [get-init] :  < ID1 : SU | outports : (< O : Output | status : Undef, dependsOn : feedthrough > Outputs), inputs: Inputs, state : Initalization >
-                  => < ID1 : SU | outports : (< O : Output | status : Def > Outputs) > if feedthroughSatisfied(feedthrough, Inputs) .
+   crl [get-init] :  < ID1 : SU | outputs : (< O : Output | status : Undef, dependsOn : feedthrough > Outputs), inputs: Inputs, state : Initalization >
+                  => < ID1 : SU | outputs : (< O : Output | status : Def > Outputs) > if feedthroughSatisfied(feedthrough, Inputs) .
 
    *** Inputs can only rely on one connection 
    rl [set-init] :  < ID1 : SU | inputs : (< I : Input | status : Undef > Inputs), state : Initialize > 
@@ -93,8 +93,8 @@ endom)
 
    ***Simulation
 
-   crl [get] :  < ID1 : SU | outports : (< O : Output | status : Undef > Outputs), state : Simulation >
-                  => < ID1 : SU | outports : (< O : Output | status : Def > Outputs) > if feedthroughSatisfied(feedthrough, Inputs) .
+   crl [get] :  < ID1 : SU | outputs : (< O : Output | status : Undef > Outputs), state : Simulation >
+                  => < ID1 : SU | outputs : (< O : Output | status : Def > Outputs) > if feedthroughSatisfied(feedthrough, Inputs) .
 
    crl [set-reactive] :  < ID1 : SU | inputs : (< I : Input | time : T1, status : Undef, type: r > Inputs), state : Simulation > 
                           < ID2 : SU | outputs : (< O : Output | time : T2, status : Def > Outputs), state : Simulation > [ID2 ! O ==> ID1 ! I]
@@ -118,7 +118,7 @@ endom)
 
   *** Definition of system
   op externalConnection : ->  Configuration .    *** External Connections - all ports have unique name
-  op simulationUnits : -> Configuration .      *** SUs - ID * input ports * and outports
+  op simulationUnits : -> Configuration .      *** SUs - ID * input ports * and outputs
 
 
   op setup : -> Configuration .

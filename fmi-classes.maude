@@ -1,34 +1,40 @@
-omod PORTLIST 
-   is protecting QID .
- sorts PortId Mode PortStatus PortList .
- subsorts Qid < PortId < Oid.
+loop init .
 
- class Port | time: Nat , status: Status . 
- class Input | type: Mode .
+(omod PORTLIST is 
+ protecting QID .
+ protecting NAT .
+ sorts PortId Mode PortStatus PortList  .
+ subsorts Qid < PortId < Oid .
+
+ ***class Port | time: Nat, status: PortStatus . 
+ ***class Input | type: Mode .
  class Output .
- subclasses Input Output < Port . 
- op emptyList : -> PortList .
+ ***subclasses Input Output < Port . 
+ op emptyList : -> PortList [ctor] .
  op _;_ : PortList PortList -> PortList [ctor assoc id: emptyList] .
- ops d r : -> Mode .   *** d = delayed, r = Reactive.
- ops Def Undef : -> PortStatus .
-endom
+ ops d r : -> Mode [ctor] .   *** d = delayed, r = Reactive.
+ ops Def Undef : -> PortStatus [ctor] .
+endom)
 
 
 
-fmod Connections is protecting NAT .
- sort Object List .
- subsorts Object < List .
- op nil : -> List .
- op _;_ : List List -> List [assoc id: nil] .
-endfm
+(mod Connections is protecting NAT .
+   sorts Connection EPortIdSet EPortId Configuration .
+   op _==>_ : EPortId EPortId -> Connection [ctor] .
+   subsort connection < Configuration .
+   subsort EPortId < EPortIdSet .
+   op _!_ : ActorID PortId -> EPortId [ctor] .
+   op noPort : -> EPortIdSet [ctor] .
+   op _::_ : EPortIdSet EPortIdSet -> EPortIdSet [ctor assoc comm id: noPort] .
+endm)
 
 *** How to divide up the project
 *** And how does it work with the object?
 
 
-
 omod CO-SIMULATION is 
    protecting PORTLIST .
+   protecting Connections .
    protecting NAT .
    sorts Oid Mode fmiS Att Atts Configuration State Connection .
    sort EPortId .

@@ -1,17 +1,15 @@
-(omod Connections is protecting NAT .
-   sorts Connection SUID EPortId .
-   subsorts Qid < SUID < Oid .
-   op _==>_ : EPortId EPortId -> Connection [ctor] .
-   subsort Connection < Configuration .
-   op _!_ : SUID PortId -> EPortId [ctor] .
-endom)
-
 (omod Ports is 
  protecting QID .
  protecting NAT .
  sorts PortId Mode PortStatus PortIdSet .
  subsorts Qid < PortId < Oid .
  subsort PortId < PortIdSet .
+
+ sorts Connection SUID EPortId .
+ subsorts Qid < SUID < Oid .
+ op _==>_ : EPortId EPortId -> Connection [ctor] .
+ subsort Connection < Configuration .
+ op _!_ : SUID PortId -> EPortId [ctor] .
 
  class Port | time : Nat, status : PortStatus . 
  class Input | type : Mode .
@@ -26,16 +24,11 @@ endom)
 endom)
 
 
-
-
 (omod CO-SIMULATION is 
    protecting Ports .
-   protecting Connections .
    sorts fmiS  State .
-   subsorts Object < List .
 
    op stepSize:_ : Nat -> Configuration [ctor] . 
-   op savedFMUs:_ : List -> Configuration [ctor] . 
   
    ***Classes
    class SU | time : Nat, inputs : Configuration, outputs : Configuration, canReject : Bool, state : fmiS .

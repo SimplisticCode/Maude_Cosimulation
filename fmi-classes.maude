@@ -23,6 +23,17 @@
 
 endom)
 
+(omod Algorithm is 
+ protecting Ports .
+ sorts AlgId ActionType .
+ subsorts Qid < AlgId < Oid .
+
+ class Action | AcType : ActionType, SU : SUID, Port : PortId . 
+ ops Set Get Step Save Restore : -> ActionType [ctor] . 
+endom)
+
+
+
 
 (omod CO-SIMULATION is 
    protecting Ports .
@@ -30,8 +41,8 @@ endom)
 
    op stepSize:_ : Nat -> Configuration [ctor] . 
    op endTime:_ : Nat -> Configuration [ctor] . 
+   op Algorithm:_ : Configuration -> Configuration [ctor] . 
 
-  
    ***Classes
    class SU | time : Nat, inputs : Configuration, outputs : Configuration, canReject : Bool, state : fmiState .
 
@@ -47,6 +58,10 @@ endom)
 
    op allInputsSet : Configuration -> Bool .
 
+
+   op calculateMembersInStepNegotiation : Configuration -> Configuration .
+   op containsStepNegotiation : Configuration -> Bool .
+ 
    ops Instantiated ExperimentSetup Initialize Simulation Terminated InstanceFreed Unloaded : -> fmiState [ctor] . *** The different states of the FMI standard
 
    vars ID1 ID2 : SUID .
@@ -54,7 +69,7 @@ endom)
    vars T T1 T2 Step SUTime, FutureTime : Nat .
    vars Inputs Outputs : Configuration . 
    var S : fmiState .
-   var C : Configuration .
+   vars C Alg : Configuration .
    var t : Mode .
    var P : Port .
    var Status : PortStatus .
@@ -76,17 +91,26 @@ endom)
    eq undefPorts(none, T) = none .
    eq undefPorts(< PId : Port | > C, T) =  < PId : Port | status : Undef, time : T > undefPorts(C, T) .
 
-
    eq undefInputs(none) = none .
    eq undefInputs(< PId : Port | > C) =  < PId : Port | status : Undef > undefInputs(C) .
 
    eq allInputsSet(none) = true .
    eq allInputsSet(< ID1 : SU | inputs : Inputs > C) = allDef(Inputs, 0) and allInputsSet(C) .
 
+   eq calculateMembersInStepNegotiation(< ID1 : SU | inputs : (< I : Input | type : r > Inputs) , canReject : true > 
+                                         < ID2 : SU | outputs : (< O : Output | > Outputs) , canReject : false > (ID2 ! O ==> ID1 ! I) C) = 
+                                         calculateMembersInStepNegotiation(< ID1 : SU | > < ID2 : SU | canReject : true > C ) .
+   eq calculateMembersInStepNegotiation(C) = C [owise] .
+
+
+  eq containsStepNegotiation(none) = false .
+  eq containsStepNegotiation(< ID1 : SU | canReject : false > C) = containsStepNegotiation(C) . *** Is this case necessary
+  eq containsStepNegotiation(< ID1 : SU | canReject : true > C) = true .
+
   *** FMI state transition:
 
-  rl [create_Exp] : < ID1 : SU | state : Instantiated >
-                => < ID1 : SU | state : ExperimentSetup > .
+  rl [create_Exp] : < ID1 : SU | state : Instantiated > Algorithm: Alg
+                 => < ID1 : SU | state : ExperimentSetup > Algorithm: (< 'T : Action | AcType : Set, SU : Id1 > Alg) .
 
   rl [init] : < ID1 : SU | inputs : Inputs , outputs : Outputs , state : ExperimentSetup >
           => < ID1 : SU | inputs : undefPorts(Inputs, 0), outputs : undefPorts(Outputs, 0), state : Initialize > .
@@ -140,6 +164,17 @@ endom)
   ***Complex scenarios with save and restore - this should 
   *** Recognise Loop and treat them
 
+***(
+  If the scenario contains SUs that require step negotiation
+ crl [step-negotiation] : C ==> 
+          if containsStepNegotiation(C) .
+  )***
+
+***(
+  If the scenario contains SUs that require algebraic loop (cycles that blocks the scenario)
+ crl [step-negotiation] : C ==> 
+          if containsCycle(C) .
+  )***
 
   *** Definition of system
   op externalConnection : ->  Configuration .    *** External Connections - all ports have unique name
@@ -157,7 +192,7 @@ endom)
    < 'MSD3 : SU | time : 0, inputs : < 'fk : Input | time : 0 , type : d, status : Undef > , outputs : none, state : Instantiated, canReject : false  > .
 
 
-  eq setup = simulationUnits externalConnection stepSize: 1 endTime: 1 .
+  eq setup = simulationUnits externalConnection stepSize: 1 endTime: 1 Algorithm: none .
 
 
 endom)

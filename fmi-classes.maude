@@ -47,20 +47,16 @@ endom)
    class SU | time : Nat, inputs : Configuration, outputs : Configuration, canReject : Bool, state : fmiState .
 
    op feedthroughSatisfied : PortIdSet Configuration Nat -> Bool .
-
    op allDef : Configuration Nat -> Bool .
-
    op undefPorts : Configuration Nat -> Configuration .
-
-   op undefInputs : Configuration -> Configuration .
-   
+   op undefInputs : Configuration -> Configuration .  
    op allInputsDef : Configuration Nat Nat -> Bool .
-
    op allInputsSet : Configuration -> Bool .
 
 
    op calculateMembersInStepNegotiation : Configuration -> Configuration .
    op containsStepNegotiation : Configuration -> Bool .
+   op containsCycle : Configuration Configuration -> Bool .
  
    ops Instantiated ExperimentSetup Initialize Simulation Terminated InstanceFreed Unloaded : -> fmiState [ctor] . *** The different states of the FMI standard
 
@@ -107,10 +103,13 @@ endom)
   eq containsStepNegotiation(< ID1 : SU | canReject : false > C) = containsStepNegotiation(C) . *** Is this case necessary
   eq containsStepNegotiation(< ID1 : SU | canReject : true > C) = true .
 
+
+  ***eq containsCycle(< ID1 : SU |  : false > C) , )
+
   *** FMI state transition:
 
-  rl [create_Exp] : < ID1 : SU | state : Instantiated > Algorithm: Alg
-                 => < ID1 : SU | state : ExperimentSetup > Algorithm: (< 'T : Action | AcType : Set, SU : Id1 > Alg) .
+  rl [create_Exp] : < ID1 : SU | state : Instantiated >
+                 => < ID1 : SU | state : ExperimentSetup > .
 
   rl [init] : < ID1 : SU | inputs : Inputs , outputs : Outputs , state : ExperimentSetup >
           => < ID1 : SU | inputs : undefPorts(Inputs, 0), outputs : undefPorts(Outputs, 0), state : Initialize > .

@@ -1,0 +1,266 @@
+\documentclass{beamer}
+\usepackage[utf8]{inputenc}
+
+\usepackage{fourier} %font utopia imported
+\usetheme{Madrid}
+\usecolortheme{default}
+
+%------------------------------------------------------------
+%This block of code defines the information to appear in the
+%Title page
+\title[Synthesizing Co-Simulation Algorithms] %optional
+{Synthesizing and Verifying Orchestration Algorithms}
+\date{\today}
+\usepackage{booktabs}
+\usepackage{natbib}
+\usepackage{multicol}
+\usepackage{listings}
+\usepackage{environ}
+\usepackage{graphicx}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{stmaryrd}
+\usepackage{amstext}
+\usepackage{semantic}
+\usepackage{semantic}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{etoolbox}
+\usepackage{paralist}
+\usepackage{verbatim}
+
+
+\usepackage[capitalise,nameinlink]{cleveref}
+
+\input{commands}
+
+
+
+\urlstyle{same}
+\author[Thrane, S.] % (optional)
+{Simon Thrane Hansen \\ Ph.D. Student AU}
+
+
+\date[AU 2021] % (optional)
+{\today}
+
+%\logo{\includegraphics[height=1.5cm]{lion-logo.jpg}}
+
+%End of title page configuration block
+%------------------------------------------------------------
+
+
+
+%------------------------------------------------------------
+%The next block of commands puts the table of contents at the 
+%beginning of each section and highlights the current section:
+
+
+%------------------------------------------------------------
+\begin{document}
+
+%The next statement creates the title page.
+\frame{\titlepage}
+
+\begin{frame}{Overview}
+    \tableofcontents
+\end{frame}
+
+\section{Recap Simple Scenarios}
+\begin{frame}{Simulation of simple scenario}
+    Last time we covered simple scenarios by describing the rules of the actions that formed the step operation graph - that for simple scenarios only contain trivial SCC.
+    \begin{columns}[T] % align columns
+        \begin{column}{.48\textwidth}
+            \begin{figure}    
+                \includegraphics[width=0.5\textwidth]{images/simple_example.pdf}
+            \end{figure}
+            \begin{figure}
+                \centering
+                \includegraphics[width=0.55\textwidth]{images/simple_scenario_graph.pdf}
+            \end{figure}
+    \end{column}%
+    \hfill%
+    \begin{column}{.48\textwidth}
+        \begin{algorithm}[H]
+            \caption{Step function of scenario}
+            \begin{algorithmic}[1]
+              \scriptsize
+              \State $\stateafter{A}{s+H} \gets \fdoStep{A}(\stateafter{A}{s}, H)$
+              \State $\stateafter{B}{s+H} \gets \fdoStep{B}(\stateafter{B}{s}, H)$
+              \State $F_v \gets \fget{B}(\stateafter{B}{s+H}, \outputvar{F})$
+              \State $\stateafter{A}{s+H} \gets \fset{A}(\stateafter{a}{s+H}, \inputvar{F}, F_v)$
+              \State $x_v \gets \fget{A}(\stateafter{A}{s+H}, \outputvar{x})$
+              \State $\stateafter{B}{s} \gets \fset{B}(\stateafter{B}{s+H}, \inputvar{x}, x_v)$
+            \end{algorithmic}
+          \end{algorithm}
+    \end{column}%
+    \end{columns}
+\end{frame}
+
+
+\section{Complex Scenarios}
+
+\begin{frame}{Introduction to complex scenarios}
+    
+\end{frame}
+
+
+\begin{frame}{Algebraic Loops}
+    \textbf{Happens if}: The value on a ports depends on itself.\\
+    \textbf{Example of the two kinds of Algebraic Loops}: 
+    \begin{columns}[T] % align columns
+        \begin{column}{.48\textwidth}
+            \begin{figure}    
+                \includegraphics[width=0.9\textwidth]{images/reactive_loop_scenario.pdf}
+                \caption{Reactivity Loop}
+            \end{figure}
+    \end{column}%
+    \hfill%
+    \begin{column}{.48\textwidth}
+        \begin{figure}    
+            \includegraphics[width=0.9\textwidth]{images/feedthroughloop.pdf}
+            \caption{Feed-through Loop}
+        \end{figure}
+    \end{column}%
+    \end{columns}
+    \textbf{How do we simulate this}: Fixed-point iteration - The simulation iteratively searches for a fixed-point on all the output ports between two successive iterations.\\
+    \textbf{Problem:} Introduces complex SCCs in the step operation graph - no topological order can be found.
+\end{frame}
+
+\begin{frame}{Step negotiation}
+    \textbf{Happens if}: A scenario contains SUs that may reject to take a step of arbitrary size.\\
+    \textbf{Example}: 
+    \begin{columns}[T] % align columns
+        \begin{column}{.48\textwidth}
+            \begin{figure}    
+                \includegraphics[width=0.9\textwidth]{images/step_scenario.pdf}
+            \end{figure}
+    \end{column}%
+    \hfill%
+    \begin{column}{.48\textwidth}
+        \begin{figure}    
+            \includegraphics[width=0.7\textwidth]{images/step_scenario_original.pdf}
+        \end{figure}
+    \end{column}%
+    \end{columns}
+    \textbf{How do we simulate this}: Step finding procedure - The simulation iteratively searches for a step all SUs are able to perform.\\
+    \textbf{Problem with the traditional method:} Fails to identify these scenarios and can therefore not treat them.
+\end{frame}
+
+\begin{frame}{Simulation of complex scenario}
+    \begin{columns}[T]
+        \begin{column}{0.5\textwidth}
+            \begin{itemize}
+                \item Should be simulated using a correct configuration (Step size + Fixed-points).
+                \item An incorrect configuration breaks the preconditions.
+                \item The simulation strategy is to use an iterative search for a correct (stable) configuration.
+                \item The simulation is restarted after unsuccessful tries (using restore and save).
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \begin{algorithm}[H]
+                \caption{Simulation of complex scenarios.}
+            \label{alg:algorithm_step}
+            \begin{algorithmic}[1]
+              \scriptsize
+                \State Save SUs
+                \While{$!correctConfiguration$} 
+                \State Iterative search
+                \If{$!correctConfiguration$}
+                    \State Restore SUs
+                \EndIf
+                \EndWhile
+            \end{algorithmic} 
+          \end{algorithm}
+        \end{column}
+    \end{columns}    
+\end{frame}
+
+
+\begin{frame}{Challenges in Synthesizing Algorithms for Complex Scenarios}
+    \begin{enumerate}
+        \item Detection of complex scenarios
+        \item Extracting the Algorithm
+        \begin{itemize}
+            \item The graph contains cycles
+        \end{itemize}
+    \end{enumerate}
+    \begin{itemize}
+        \item Complex Scenarios - having SCC in the graph.
+        \begin{itemize}
+            \item Solving Algebraic Loops (cycles in the graph)
+            \item Performing Step Negotiation to ensure that SUs move in lockstep.
+        \end{itemize}
+    \end{itemize}
+    These are solved using specialize heuristics to break the SCCs.
+    \begin{columns}[T] 
+        \begin{column}{.48\textwidth}
+            \begin{figure}    
+                \includegraphics[width=0.9\textwidth]{images/reactive_step_graph.pdf}
+            \end{figure}  
+        \end{column}
+    \hfill%
+    \begin{column}{.48\textwidth}
+        \begin{figure}    
+            \centering
+            \includegraphics[width=0.9\textwidth]{images/step_scenario_org.pdf}
+        \end{figure}
+    \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}{Synthesizing Complex Scenarios - Algebraic Loop}
+    The SCC is broken using reduction scheme:
+    \begin{columns}[T] 
+        \begin{column}{.48\textwidth}
+            \begin{figure}    
+                \includegraphics[width=0.8\textwidth]{images/jacobian_reduced_graph.pdf}
+                \caption{Maximal reduction.}
+            \end{figure}  
+        \end{column}
+    \hfill%
+    \begin{column}{.48\textwidth}
+        \begin{figure}    
+            \centering
+            \includegraphics[width=0.8\textwidth]{images/gauss_reduced_graph.pdf}
+            \caption{Minimal reduction.}
+        \end{figure}
+    \end{column}
+    \end{columns}
+\end{frame}
+
+
+\begin{frame}{Synthesizing Complex Scenarios - Step negotiation}
+    \begin{columns}[T] 
+        \begin{column}{.48\textwidth}
+            \begin{figure}    
+                \includegraphics[width=0.8\textwidth]{images/step_scenario_graph.pdf}
+                \caption{Step graph - the blue part shows the iterative search.}
+            \end{figure}  
+        \end{column}
+    \hfill%
+    \begin{column}{.48\textwidth}
+        \begin{algorithm}[H]
+            \caption{Step negotiation.}
+        \begin{algorithmic}[1]
+          \scriptsize
+            \While{$!\stepfound$} 
+            \State $(\stateafter{D}{s+h_D},h_D) \gets \fdoStep{D}(\stateafter{D}{s}, h)$
+            \State $g_v \gets \fget{D}(\stateafter{D}{s+h_D}, \outputvar{g})$       
+            \State $\stateafter{C}{s} \gets \fset{C}(\stateafter{C}{s}, \inputvar{G}, G_v)$
+            \State $(\stateafter{C}{s+h_C},h_C) \gets \fdoStep{C}(\stateafter{C}{s}, h_D)$
+            \State $h \gets min(h_C, h_D)$
+            \State $\stepfound \gets h == h_C \land h == h_D$
+            \If{$!\stepfound$}
+                \State Restore SUs
+            \EndIf
+            \EndWhile
+        \end{algorithmic} 
+      \end{algorithm}
+    \end{column}
+    \end{columns}
+\end{frame}
+
+
+\end{document}

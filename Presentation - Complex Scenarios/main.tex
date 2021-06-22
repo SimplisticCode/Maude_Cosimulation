@@ -121,7 +121,7 @@
         \begin{itemize}
             \item The current approach works for these examples!
             \item No Algebraic Loops
-            \item Fixed-Step Co-Simulation Algorithm
+            \item Step negotiation \textbf{not} needed!
         \end{itemize}
         \begin{figure}
             \includegraphics[scale=0.6]{images/simple_example.pdf}
@@ -133,7 +133,7 @@
         \begin{itemize}
             \item The standard approach does \textbf{not} work!
             \item Algebraic Loops - a port depends on itself
-            \item Not capable of running a Fixed-Step Algorithm
+            \item Step negotiation needed!
         \end{itemize}
         \begin{figure}
             \includegraphics[scale=0.6]{images/loop_within_loop.pdf}
@@ -145,26 +145,36 @@
 
 \section{Complex Scenarios}
 
-\begin{frame}{Introduction to complex scenarios}
-    The two kinds and there graph using the currently implemented rules.
-    \begin{columns}[T] 
-        \begin{column}{.48\textwidth}
-            Algebraic Loops - SCC in graph
-            \begin{figure}    
-                \includegraphics[width=0.9\textwidth]{images/reactive_step_graph.pdf}
-            \end{figure}  
-        \end{column}
-    \hfill%
-    \begin{column}{.48\textwidth}
-        Step negotiation - no SCC in graph
-        \begin{figure}    
-            \centering
-            \includegraphics[width=0.9\textwidth]{images/step_scenario_original.pdf}
-        \end{figure}
-    \end{column}
-    \end{columns}
-\end{frame}
 
+\begin{frame}{Simulation of complex scenario}
+    \begin{columns}[T]
+        \begin{column}{0.5\textwidth}
+            \begin{itemize}
+                \item Simulated using a correct configuration (Step size + Fixed-points).
+                \item An incorrect configuration breaks the preconditions.
+                \item Simulation strategy is to use an iterative search to establish a configuration.
+                \item The search is restarted after unsuccessful tries (using restore and save).
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \begin{algorithm}[H]
+                \caption{Simulation of complex scenarios.}
+            \label{alg:algorithm_step}
+            \begin{algorithmic}[1]
+              \scriptsize
+                \State Save SUs
+                \While{$!correctConfiguration$} 
+                \State Iterative search
+                \State $correctConfiguration \gets isCorrect()$
+                \If{$!correctConfiguration$}
+                    \State Restore SUs
+                \EndIf
+                \EndWhile
+            \end{algorithmic} 
+          \end{algorithm}
+        \end{column}
+    \end{columns}    
+\end{frame}
 
 \begin{frame}{Algebraic Loops}
     \textbf{Happens if}: The value on a ports depends on itself.\\
@@ -185,7 +195,7 @@
     \end{column}%
     \end{columns}
     \textbf{How do we simulate this}: Fixed-point iteration - The simulation iteratively searches for a fixed-point on all the output ports between two successive iterations.\\
-    \textbf{Problem:} Introduces complex SCCs in the step operation graph - no topological order can be found.
+    \textbf{Problem:} Introduces non-trivial SCCs in the graph - no topological order can be found.
 \end{frame}
 
 \begin{frame}{Step negotiation}
@@ -201,59 +211,53 @@
     \begin{column}{.48\textwidth}
         \begin{figure}    
             \includegraphics[width=0.7\textwidth]{images/step_scenario_original.pdf}
+            \caption{The graph.}
         \end{figure}
     \end{column}%
     \end{columns}
-    \textbf{How do we simulate this}: Step finding procedure - The simulation iteratively searches for a step all SUs are able to perform.\\
-    \textbf{Problem with the traditional method:} Fails to identify these scenarios and can therefore not treat them.
+    \textbf{How do we simulate this}: The simulation iteratively searches for a step all SUs are able to perform.
 \end{frame}
 
-\begin{frame}{Simulation of complex scenario}
-    \begin{columns}[T]
-        \begin{column}{0.5\textwidth}
+
+\begin{frame}{The current state of the two kinds of complex scenarios}
+    \begin{columns}[T] 
+        \begin{column}{.48\textwidth}
+            Algebraic Loops - SCC in graph
+            \begin{figure}    
+                \includegraphics[width=0.9\textwidth]{images/reactive_step_graph.pdf}
+            \end{figure}  
+        \end{column}
+    \hfill%
+    \begin{column}{.48\textwidth}
+        Step negotiation - no SCC in graph
+        \begin{figure}    
+            \centering
+            \includegraphics[width=0.9\textwidth]{images/step_scenario_original.pdf}
+        \end{figure}
+    \end{column}
+    \end{columns}
+\end{frame}
+
+
+\begin{frame}{Extending the approach to handle complex scenarios?}
+    \begin{block}{What is needed?}
+        \begin{enumerate}
+            \item A way to identify complex scenarios.
             \begin{itemize}
-                \item Should be simulated using a correct configuration (Step size + Fixed-points).
-                \item An incorrect configuration breaks the preconditions.
-                \item The simulation strategy is to use an iterative search for a correct (stable) configuration.
-                \item The simulation is restarted after unsuccessful tries (using restore and save).
+                \item Step negotiation
+                \item Algebraic Loops
+                \begin{itemize}
+                    \item Reactive loops
+                    \item Feed-through loops
+                \end{itemize}        
             \end{itemize}
-        \end{column}
-        \begin{column}{0.5\textwidth}
-            \begin{algorithm}[H]
-                \caption{Simulation of complex scenarios.}
-            \label{alg:algorithm_step}
-            \begin{algorithmic}[1]
-              \scriptsize
-                \State Save SUs
-                \While{$!correctConfiguration$} 
-                \State Iterative search
-                \If{$!correctConfiguration$}
-                    \State Restore SUs
-                \EndIf
-                \EndWhile
-            \end{algorithmic} 
-          \end{algorithm}
-        \end{column}
-    \end{columns}    
-\end{frame}
+            \item A way to handle complex scenarios
+            \begin{itemize}
+                \item A method to break non-trivial SCCs - to obtain a topological order.
 
-
-\begin{frame}{Challenges in Synthesizing Algorithms for Complex Scenarios}
-    \begin{enumerate}
-        \item Detection of complex scenarios
-        \item Extracting the Algorithm
-        \begin{itemize}
-            \item The graph contains cycles
-        \end{itemize}
-    \end{enumerate}
-    \begin{itemize}
-        \item Complex Scenarios - having SCC in the graph.
-        \begin{itemize}
-            \item Solving Algebraic Loops (cycles in the graph)
-            \item Performing Step Negotiation to ensure that SUs move in lockstep.
-        \end{itemize}
-    \end{itemize}
-    These are solved using specialize heuristics to break the SCCs.
+            \end{itemize}
+        \end{enumerate}
+    \end{block}
 \end{frame}
 
 
@@ -276,17 +280,23 @@
     \end{columns}
 \end{frame}
 
-\begin{frame}{Reactive Loop - How do extract a fixed-point procedure?}
+\begin{frame}{Reactive Loop - How to extract a fixed-point procedure?}
     \textbf{Observations}: 
     \begin{itemize}
         \item Progression of time in an iteratively search $\implies$ Restoration of state is needed - to give us more chances to find the fixed-points. 
         \item The convergence criteria are a fixed-point on all output ports.
     \end{itemize}
+    \begin{block}{Conclusion}
+        We need a way to break a non-trivial SCC!        
+    \end{block}
 \end{frame}
 
 \begin{frame}{Breaking a non-trivial SCC}
-    The SCC of Algebraic loops should be broken by guessing some input values to destroy some edges in the graph!
-    This technique is referred to as reduction - to different kinds of reductions exists:
+    \begin{block}{Reduction}
+        The non-trivial SCC of Algebraic loops are broken by guessing some input values to destroy edges in the graph!
+
+    \end{block}
+    Two different kinds of reductions exist:
     \begin{itemize}
         \item Maximum reduction: Provide guesses for all inputs for all SUs - we should use this technique. 
         \item Minimum reduction: Provide a guess for the minimum number of inputs to break the cycle.
@@ -315,26 +325,25 @@
 \end{frame}
 
 \begin{frame}{Maximum reduction:}
-    \text{Technique}: Provide guesses for the for all inputs the SUs. 
+    \textbf{Technique}: Provide guesses for the for all inputs.
     \begin{columns}[T] % align columns
         \begin{column}{.48\textwidth}
             \begin{figure}    
-                \includegraphics[width=0.98\textwidth]{images/reactive_step_graph.pdf}
+                \includegraphics[width=0.8\textwidth]{images/reactive_step_graph.pdf}
                 \caption{Original Graph}
             \end{figure}
     \end{column}%
     \hfill%
     \begin{column}{.48\textwidth}
         \begin{figure}    
-            \includegraphics[width=0.8\textwidth]{images/jacobian_reduced_graph.pdf}
+            \includegraphics[width=0.7\textwidth]{images/jacobian_reduced_graph.pdf}
             \caption{Maximum Reduction}
         \end{figure}
     \end{column}%
     \end{columns}
-
+    \textbf{Consequence:}
     All edges from \textit{Get}-nodes to reactive \textit{Set}-nodes disappear in reactive loops.
     In feed-through loops, we also remove connections to delayed ports.  
-    
 \end{frame}
 
 \begin{frame}{Maximum reduction - obtaining an algorithm:}
@@ -366,7 +375,7 @@
     \begin{column}{.48\textwidth}
         \begin{figure}    
             \includegraphics[width=0.8\textwidth]{images/jacobian_reduced_graph.pdf}
-            \caption{Maximum Reduction to get Acyclic graph.}
+            \caption{Maximum Reduction to get an acyclic graph.}
         \end{figure}
     \end{column}%
     \end{columns}    
@@ -398,8 +407,10 @@
         \item No progression of time in an iteratively search $\implies$ Restoration of state is \textbf{not} needed.
         \item Thus no need for \textit{Restore} and \textit{Save}.
     \end{itemize}
-
-    The graph should simply be made acyclic using reductions - in a similar manor as reactive loops! Once an acyclic graph is established the Algorithm can be found as the topological order.
+    \begin{block}{Conclusion}
+        The graph is made acyclic using reductions - similarly to the reactive loops! \\
+        The algorithm is found from the acyclic graph.
+    \end{block}
 \end{frame}
 
 \begin{frame}{Strategy in Maude for Algebraic Loops}
@@ -413,7 +424,7 @@
         \item Remove edges (Reduction scheme) 
         \item Extract actions of loop body (hopefully using normal rules).
     \end{enumerate}  
-    (We should be careful that not all actions end up inside the loop-action)
+    \emph{We should be careful that not all actions end up inside the loop-action}
 \end{frame}
 
 
@@ -449,18 +460,78 @@
     \end{columns}
 \end{frame}
 
-\begin{frame}{Calculating the set B}
-    Insights:
+\begin{frame}{Step negotiation}
+    The iterative search for a step all SUs can take!\\
+    \textbf{Observations}: 
     \begin{itemize}
-        \item If one SU rejects a step of size $H$ all SUs that has taken a step of $H$ should be backtracked.
-        \item We want to limit the number of SUs that need to be backtracked.
-        \item Reactive connections shows the stepping order - every SUs that is reactively coupled to some SUs that can reject a step (transitivity).
+            \item If one SU rejects a step of size $H$, all SUs that has taken a step of $H$ should be backtracked.
+            \item We want to \emph{limit the number of SUs} ($B$) that need to be backtracked.
+            \item Step negotiation should be performed first in a simulation step.
+            % \item \textbf{Consist of:} All actions performed before a $\fdoStep{\dontcare}$ that may fail.
+            % \begin{itemize}
+            %     \item Transitive reactive connections to an SU that can reject a step.
+            % \end{itemize}
     \end{itemize}
+    \begin{block}{Calculating $B$ - The set of SUs that should be backtracked}
+        Iterative calculated by including all SUs reactive coupled to an SU in $B$ until one reaches a fixed-point.
+    \end{block}
     \begin{figure}    
-        \includegraphics[width=0.65\textwidth]{images/calcB.pdf}
-        \caption{Expand B until fixed-point.}
-    \end{figure}
-    
+        \includegraphics[width=0.6\textwidth]{images/calcB.pdf}
+    \end{figure} 
+\end{frame}
+
+
+\begin{frame}{Highlighting the Step negotiation in the graph}
+    \begin{alertblock}{Adding edges to introduce a non-trivial SCC}
+        \begin{itemize}
+            \item Add edges between the \textit{doStep}-nodes of $c$ and $d$ where $c,d \in B$. 
+        \end{itemize}
+    \end{alertblock}
+    \begin{block}{Making the step negotation the intial object}
+        \begin{itemize}
+            \item Adding edges from all $doStep$ of $c \in B$ to all $doStep$ of $d \notin B$.
+            \begin{itemize}
+                \item This adds no new non-trivial SCC.
+            \end{itemize}
+        \end{itemize} 
+    \end{block}
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.65\textwidth]{images/step_scenario_graph_extended.pdf}
+      \end{figure}
+\end{frame}
+
+\begin{frame}{Step negotiation SCCs to an algorithm}
+    \textbf{Identifiable:} A non-trivial SCC with \textit{Step}-nodes and direct edges between two \textit{Step}-nodes.\\
+    \textbf{Strategy:} Remove the edges between the $B$-nodes - and use the topological order.
+    \begin{columns}[T] % align columns
+        \begin{column}{.48\textwidth}
+            \begin{figure}    
+                \includegraphics[width=0.95\textwidth]{images/step_scenario_graph.pdf}
+            \end{figure}
+    \end{column}%
+    \hfill%
+    \begin{column}{.48\textwidth}
+        \begin{algorithm}[H]
+        \caption{Step negotiation.}
+        \begin{algorithmic}[1]
+            \scriptsize
+            \While{$!step\_found$}
+            \State $\stateafter{D}{s+h_D} \gets \fdoStep{D}(\stateafter{D}{s}, h)$
+            \State $g_v \gets \fget{D}(\stateafter{D}{s+h_D}, \outputvar{g})$       
+            \State $\stateafter{C}{s} \gets \fset{C}(\stateafter{C}{s}, \inputvar{G}, G_v)$
+            \State $\stateafter{C}{s+h_C} \gets \fdoStep{C}(\stateafter{C}{s}, h_D)$
+            \State $h \gets min(h_C, h_D)$
+            \State $step\_found \gets h == h_C \land h == h_D$
+            \If{$!step\_found$}
+                \State Restore SUs in $B$
+            \EndIf
+            \EndWhile
+            \State Rest of Simulation
+        \end{algorithmic}
+        \end{algorithm}
+    \end{column}%
+    \end{columns}
 \end{frame}
 
 \begin{frame}{Strategy in Maude for Step Negotiation}
@@ -481,11 +552,40 @@
         \begin{column}{.48\textwidth}
             \begin{figure}    
                 \includegraphics[width=0.8\textwidth]{images/step_scenario_graph.pdf}
-                \caption{Step graph - the blue part shows should be in the iterative search.}
+                \caption{The graph - the blue part shows should be in the iterative search.}
             \end{figure}  
         \end{column}
     \end{columns}
-    (Again we should be careful that not all actions end up inside the loop-action)
+    \emph{Again we should be careful that not all actions end up inside the step-loop-action}
+\end{frame}
+
+\begin{frame}{Scenario subject to step negotiation and algebraic loops}
+    The approach also works for nested complex scenarios.
+    \begin{enumerate}
+        \item Handle the step negotiation.
+        \item Handle the algebraic loops inside.
+    \end{enumerate}
+
+    \begin{figure}    
+        \includegraphics[width=0.5\textwidth]{images/loop_within_loop.pdf}
+    \end{figure}
+    \begin{figure}   
+        \includegraphics[width=0.5\textwidth]{images/nested_graph.pdf}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{Next steps}
+    \begin{enumerate}
+        \item Implementation of step negotiation.
+        \item Implementation of algebraic loops.
+        \item Calculate the set B - initially.
+        \item If B is non-empty
+        \begin{itemize}
+            \item Save SUs in B
+        \end{itemize}
+        \item Mark as special step-loop-action with convergence criteria and restore-actions
+        \item Extract actions for loop body (hopefully using normal rules).
+    \end{enumerate}  
 \end{frame}
 
 

@@ -23,6 +23,7 @@
 
 endom)
 
+*** Tried to use this to keep track of the algorithm
 (omod Algorithm is 
  protecting Ports .
  sorts AlgId ActionType .
@@ -54,7 +55,7 @@ endom)
    op allInputsSet : Configuration -> Bool .
 
 
-   op calculateMembersInStepNegotiation : Configuration -> Configuration .
+   op calculateB : Configuration -> Configuration .
    op containsStepNegotiation : Configuration -> Bool .
    op containsCycle : Configuration Configuration -> Bool .
  
@@ -72,10 +73,12 @@ endom)
 
    var feedthrough : PortIdSet .
 
+   *** Checks if all feedthrough constraints are satisfied
    eq feedthroughSatisfied(emptySet, C, T) = true .
    eq feedthroughSatisfied(PId :: feedthrough, < PId : Input | status : Undef > C, T) = false .
    eq feedthroughSatisfied(PId :: feedthrough, < PId : Input | time : T, status : Def > C, T) =  feedthroughSatisfied(feedthrough, C, T) .
 
+   
    eq allDef(none, T) = true .
    eq allDef(< PId : Port | status : Status, time : T > C, T) = Status == Def and allDef(C, T) .
 
@@ -93,15 +96,17 @@ endom)
    eq allInputsSet(none) = true .
    eq allInputsSet(< ID1 : SU | inputs : Inputs > C) = allDef(Inputs, 0) and allInputsSet(C) .
 
-   eq calculateMembersInStepNegotiation(< ID1 : SU | inputs : (< I : Input | type : r > Inputs) , canReject : true > 
+
+   *** Calculation of the members of the set of SUs that should be backtracked in the step negotiation
+   eq calculateB(< ID1 : SU | inputs : (< I : Input | type : r > Inputs) , canReject : true > 
                                          < ID2 : SU | outputs : (< O : Output | > Outputs) , canReject : false > (ID2 ! O ==> ID1 ! I) C) = 
-                                         calculateMembersInStepNegotiation(< ID1 : SU | > < ID2 : SU | canReject : true > C ) .
-   eq calculateMembersInStepNegotiation(C) = C [owise] .
+                                         calculateB(< ID1 : SU | > < ID2 : SU | canReject : true > C ) .
+   eq calculateB(C) = C [owise] .
 
 
-  eq containsStepNegotiation(none) = false .
-  eq containsStepNegotiation(< ID1 : SU | canReject : false > C) = containsStepNegotiation(C) . *** Is this case necessary
-  eq containsStepNegotiation(< ID1 : SU | canReject : true > C) = true .
+  eq needsStepNegotiation(none) = false .
+  eq needsStepNegotiation(< ID1 : SU | canReject : false > C) = containsStepNegotiation(C) . *** Is this case necessary
+  eq needsStepNegotiation(< ID1 : SU | canReject : true > C) = true .
 
 
   ***eq containsCycle(< ID1 : SU |  : false > C) , )
@@ -165,13 +170,14 @@ endom)
 
 ***(
   If the scenario contains SUs that require step negotiation
+  The step negotiation 
  crl [step-negotiation] : C ==> 
-          if containsStepNegotiation(C) .
+          if needsStepNegotiation(C) .
   )***
 
 ***(
   If the scenario contains SUs that require algebraic loop (cycles that blocks the scenario)
- crl [step-negotiation] : C ==> 
+ crl [algebraic-loop] : C ==> 
           if containsCycle(C) .
   )***
 
@@ -191,7 +197,7 @@ endom)
    < 'MSD3 : SU | time : 0, inputs : < 'fk : Input | time : 0 , type : d, status : Undef > , outputs : none, state : Instantiated, canReject : false  > .
 
 
-  eq setup = simulationUnits externalConnection stepSize: 1 endTime: 1 Algorithm: none .
+  eq setup = calculateB(simulationUnits externalConnection stepSize: 1 endTime: 1 Algorithm: none) .
 
 
 endom)

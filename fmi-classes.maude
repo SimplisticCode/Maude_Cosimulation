@@ -1,6 +1,5 @@
 (omod Ports is 
- protecting QID .
- protecting NAT .
+ protecting QID + NAT .
  sorts PortId Mode PortStatus PortIdSet .
  subsorts Qid < PortId < Oid .
  subsort PortId < PortIdSet .
@@ -23,21 +22,18 @@
 
 endom)
 
-*** Tried to use this to keep track of the algorithm
 (omod Algorithm is 
  protecting Ports .
- sorts AlgId ActionType ComplexActionType SUIdSet ActionList Action .
+ sorts AlgId ActionType FMIActionType ComplexActionType SUIdSet ActionList Action .
  subsorts Qid < AlgId < Oid .
  subsort SUID < SUIdSet .
  subsort Action < ActionList .
 
- ***class Action | AcType : ActionType, SU : SUID, Port : PortId . 
- ***class ComplexAction | AcType : ComplexActionType, SaveSUs : SUIdSet, Actions : ActionList, RestoreSUs : SUIdSet . 
-
- ops Set Get Step Save Restore CreateExp : -> ActionType [ctor] . 
+ ops CreateExp EnterInitialization ExitInitialization Terminate FreeInstance Unload : -> FMIActionType [ctor] . 
+ ops Set Get Step Save CreateExp : -> ActionType [ctor] . 
  ops StepNegotiation AlgebraicLoop : -> ComplexActionType [ctor] . 
 
- op fmiEvent:_SU:_ : ActionType PortId -> Action [ctor] .
+ op fmiEvent:_SU:_ : FMIActionType PortId -> Action [ctor] .
  op event:_SU:_PId:_ : ActionType SUID PortId -> Action [ctor] .
  op complexEvent:_SaveSUs:_RestoreSUs:_Actions:_ : ComplexActionType SUIdSet SUIdSet ActionList -> Action [ctor] .
 
@@ -49,29 +45,26 @@ endom)
  op emptyList : -> ActionList [ctor] .
  op _;_ : ActionList ActionList -> ActionList [ctor assoc id: emptyList] .
 
+ op Algorithm:_ : ActionList -> Configuration [ctor] . 
+ op SNSet:_ : SUIdSet -> Configuration [ctor] .
+
  var ID : SUID .
  var SUSet : SUIdSet .
 
  eq ID in ID ++ SUSet = true .
  eq ID in  SUSet = false [owise] .
-
-
 endom)
 
-
-(omod CO-SIMULATION is 
-   protecting Ports .
-   protecting Algorithm .
+(omod SimulationUnit is
+   protecting Ports + Algorithm .
    sort fmiState .
 
-   op stepSize:_ : Nat -> Configuration [ctor] . 
-   op endTime:_ : Nat -> Configuration [ctor] . 
-   op Algorithm:_ : ActionList -> Configuration [ctor] . 
-   op SNSet : SUIdSet -> Configuration [ctor] .
+   ops Instantiated ExperimentSetup Initialize Simulation Terminated InstanceFreed Unloaded : -> fmiState [ctor] . *** The different states of the FMI standard
 
    ***Classes
    class SU | time : Nat, inputs : Configuration, outputs : Configuration, canReject : Bool, state : fmiState, maxStep : Nat .
 
+   op askStepSize : Object Nat -> Nat .
    op feedthroughSatisfied : PortIdSet Configuration Nat -> Bool .
    op allDef : Configuration Nat -> Bool .
    op undefPorts : Configuration Nat -> Configuration .
@@ -79,17 +72,53 @@ endom)
    op allInputsDef : Configuration Nat Nat -> Bool .
    op allInputsSet : Configuration -> Bool .
 
+   var ID1 : SUID .
+   var PId : PortId .
+   vars T  SUTime, FutureTime : Nat .
+   vars C Inputs : Configuration .
+   var Status : PortStatus .
+   var feedthrough : PortIdSet .
+
+   *** Checks if all feedthrough constraints are satisfied
+   eq feedthroughSatisfied(emptySet, C, T) = true .
+   eq feedthroughSatisfied(PId :: feedthrough, < PId : Input | status : Undef > C, T) = false .
+   eq feedthroughSatisfied(PId :: feedthrough, < PId : Input | time : T, status : Def > C, T) =  feedthroughSatisfied(feedthrough, C, T) .
+
+   
+   eq allDef(none, T) = true .
+   eq allDef(< PId : Port | status : Status, time : T > C, T) = Status == Def and allDef(C, T) .
+
+   eq allInputsDef(none, SUTime, FutureTime) = true .
+   eq allInputsDef(< PId : Input | time : SUTime, type : d, status : Status > C, SUTime, FutureTime) = Status == Def and allInputsDef(C, SUTime, FutureTime) .
+   eq allInputsDef(< PId : Input | time : FutureTime, type : r,  status : Status > C, SUTime, FutureTime ) = Status == Def and allInputsDef(C, SUTime, FutureTime) .
+
+   eq undefPorts(none, T) = none .
+   eq undefPorts(< PId : Port | > C, T) =  < PId : Port | status : Undef, time : T > undefPorts(C, T) .
+
+   eq undefInputs(none) = none .
+   eq undefInputs(< PId : Port | > C) =  < PId : Port | status : Undef > undefInputs(C) .
+
+   eq allInputsSet(none) = true .
+   eq allInputsSet(< ID1 : SU | inputs : Inputs > C) = allDef(Inputs, 0) and allInputsSet(C) .
+
+   *** For the moment we allow all steps - should updated to reflect the nondeterminism of the step negotiation!
+   eq askStepSize(< ID1 : SU | time : T, inputs : Inputs >, T) = T .
+
+endom)
+
+
+(omod CO-SIMULATION is 
+   protecting SimulationUnit .
+   op stepSize:_ : Nat -> Configuration [ctor] . 
+   op endTime:_ : Nat -> Configuration [ctor] . 
 
    op calculateSNSet : Configuration -> Configuration .
    op needsStepNegotiation : Configuration -> Bool .
    op containsCycle : Configuration Configuration -> Bool .
  
-   ops Instantiated ExperimentSetup Initialize Simulation Terminated InstanceFreed Unloaded : -> fmiState [ctor] . *** The different states of the FMI standard
-
-    *** Current State x Originanl State -> Nat
+    *** Current State x Initial State -> Nat
    op findStep : Configuration Configuration -> Nat .
 
-   op askStepSize : Object Nat -> Nat .
 
    vars ID1 ID2 : SUID .
    var SUIDs : SUIdSet .
@@ -105,50 +134,26 @@ endom)
 
    var feedthrough : PortIdSet .
 
-   *** Checks if all feedthrough constraints are satisfied
-   eq feedthroughSatisfied(emptySet, C, T) = true .
-   eq feedthroughSatisfied(PId :: feedthrough, < PId : Input | status : Undef > C, T) = false .
-   eq feedthroughSatisfied(PId :: feedthrough, < PId : Input | time : T, status : Def > C, T) =  feedthroughSatisfied(feedthrough, C, T) .
-
-   
-   eq allDef(none, T) = true .
-   eq allDef(< PId : Port | status : Status, time : T > C, T) = Status == Def and allDef(C, T) .
-
-
-   eq allInputsDef(none, SUTime, FutureTime) = true .
-   eq allInputsDef(< PId : Input | time : SUTime, type : d, status : Status > C, SUTime, FutureTime) = Status == Def and allInputsDef(C, SUTime, FutureTime) .
-   eq allInputsDef(< PId : Input | time : FutureTime, type : r,  status : Status > C, SUTime, FutureTime ) = Status == Def and allInputsDef(C, SUTime, FutureTime) .
-
-   eq undefPorts(none, T) = none .
-   eq undefPorts(< PId : Port | > C, T) =  < PId : Port | status : Undef, time : T > undefPorts(C, T) .
-
-   eq undefInputs(none) = none .
-   eq undefInputs(< PId : Port | > C) =  < PId : Port | status : Undef > undefInputs(C) .
-
-   eq allInputsSet(none) = true .
-   eq allInputsSet(< ID1 : SU | inputs : Inputs > C) = allDef(Inputs, 0) and allInputsSet(C) .
-
-
    *** Calculation of the members of the set of SUs that should be backtracked in the step negotiation
   ceq calculateSNSet(< ID1 : SU | inputs : (< I : Input | type : r > Inputs) > 
-                     < ID2 : SU | outputs : (< O : Output | > Outputs) > (ID2 ! O ==> ID1 ! I) (SNSet: ID1 ++ SUIDs)  C) = 
+                     < ID2 : SU | outputs : (< O : Output | > Outputs) > (ID2 ! O ==> ID1 ! I) (SNSet: (ID1 ++ SUIDs))  C) = 
                                          calculateSNSet(< ID1 : SU | > < ID2 : SU | canReject : true > (ID2 ! O ==> ID1 ! I) 
-                                         (SNSet: ID1 ++ ID2 ++ SUIDs) C  ) 
+                                         (SNSet: (ID1 ++ ID2 ++ SUIDs)) C  ) 
                                          if not ID2 in SUIDs .
   
-  ceq calculateSNSet(< ID1 : SU | canReject : true>  (SNSet: SUIDs) C )  = calculateSNSet(< ID1 : SU |>  (SNSet: ID1 ++ SUIDs) C )
-                                         if not ID1 in SUIDs .
+  ceq calculateSNSet(< ID1 : SU | canReject : true > (SNSet: SUIDs) C ) = calculateSNSet(< ID1 : SU | > (SNSet: (ID1 ++ SUIDs)) C )
+                                         if not (ID1 in SUIDs) .
   eq calculateSNSet(C) = C [owise] .
 
+***(
 
    *** Step Negotiation
    eq performStepNegotiation(C) = findStep(C,C) .  
 
    ***Stepping case
-   eq findStep((B: ID1 ; S) < ID1 : SU | time : T, inputs : Inputs > stepSize: Step C) = 
-                    findStep((B: ID1 ; S) < ID1 : SU | time : (T + askStepSize(< ID1 : SU | time : T, inputs : Inputs >, Step)), inputs : Inputs > stepSize: askStepSize(< ID1 : SU | time : T, inputs : Inputs >, Step) C)
-                    if allInputsDef(Inputs, T, (T + Step)) .
-    *** Reset Outputs
+   eq findStep((B: ID1 ; S, C) < ID1 : SU | time : T, outputs : Outputs, inputs : Inputs > stepSize: Step C, C1) = 
+                    findStep((B: ID1 ; S) < ID1 : SU | time : (T + askStepSize(< ID1 : SU | time : T, inputs : Inputs, outputs : undefPorts(Outputs, (T1 + Step)) >, Step)), outputs : undefPorts(Outputs, (T1 + askStepSize(< ID1 : SU | time : T, inputs : Inputs >, Step))), inputs : Inputs > stepSize: askStepSize(< ID1 : SU | time : T, inputs : Inputs >, Step) C)
+                    if allInputsDef(Inputs, T, (T + Step)) and allDef(Outputs, T) .
 
    *** Get case
    eq findStep((B: ID1 ; S) < ID2 : SU | outputs : (< O : Output | status : Undef > Outputs) >
@@ -161,21 +166,18 @@ endom)
                                   findStep( (B: ID1 ; ID2; S) < ID1 : SU | inputs : (< I : Input | status : Def > Inputs) > 
                                   < ID2 : SU | > (ID2 ! O ==> ID1 ! I) C) .
 
-    *** Restart search and and fidn new step size
+    *** Restart search and and update step size for next iteration of search
     eq findStep((B: ID1 ; ID2; S) < ID1 : SU | time : T1 > 
                                   < ID2 : SU | time : T2 > C, C1 stepSize: T) = 
                                     findStep(C1 stepSize: min(T1, T2), C1 stepSize: min(T1, T2))   
-                                    if T1 > 0 and T2 > 0 and T1 =/= T2 .
+                                    if T1 > 0 and T2 > 0 and T1 =/= T2 . *** The simulations should both have stepped, but not to the same time
    
    eq findStep(C stepSize: T, C1) = T [owise] . 
-
-   *** For the moment we allow all steps - should updated to reflect the nondeterminism!
-   eq askStepSize(< ID1 : SU | time : T, inputs : Inputs >, Step) = Step .
 
   *** Step negotiation is needed if at least one SU can reject a Step
   eq needsStepNegotiation(SNSet: emptySet) = false .
   eq needsStepNegotiation(SNSet: ID1 ++ SUIdSet) = true .
-
+)***
 
   ***eq containsCycle(< ID1 : SU |  : false > C) , )
 
@@ -198,7 +200,7 @@ endom)
            => < ID1 : SU | state : InstanceFreed > Algorithm: (AL ; (fmiEvent: FreeInstance SU: ID1)) .
 
   rl [unload] : < ID1 : SU | state : InstanceFreed > Algorithm: AL
-              => < ID1 : SU | state : Unloaded > Algorithm: (AL ; (fmiEvent: Unload SU: ID1) .
+              => < ID1 : SU | state : Unloaded > Algorithm: (AL ; (fmiEvent: Unload SU: ID1)) .
 
 
    *** Initalization Procedure 
@@ -239,14 +241,14 @@ endom)
 
 ***(
   If the scenario contains SUs that require step negotiation
-  The step negotiation )***
+  The step negotiation
   ***If B is non-empty
   rl [simulationStep] : C => 
           performStepNegotiation(C)
 
           Algorithm: (AL ; (complexEvent: StepNegotiation SaveSUs: SUIDs RestoreSUs: SUIDs Actions: ))
            .
-
+ )***
 ***(
   If the scenario contains SUs that require algebraic loop (cycles that blocks the scenario)
  crl [algebraic-loop] : C ==> 
@@ -269,7 +271,7 @@ endom)
    < 'MSD3 : SU | time : 0, inputs : < 'fk : Input | time : 0 , type : d, status : Undef > , outputs : none, state : Instantiated, canReject : false  > .
 
 
-  eq setup = calculateSNSet(simulationUnits externalConnection stepSize: 1 endTime: 1 Algorithm: emptyList) .
+  eq setup = calculateSNSet(simulationUnits externalConnection stepSize: 1 endTime: 1 Algorithm: emptyList SNSet: emptySet) .
 
 
 endom)

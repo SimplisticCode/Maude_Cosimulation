@@ -33,7 +33,7 @@ endom)
  ops StepNegotiation AlgebraicLoop : -> ComplexActionType [ctor] . 
 
  op fmiEvent:_SU:_ : FMIActionType PortId -> Action [ctor] .
- op event:_SU:_PId:_ : ActionType SUID PortId -> Action [ctor] .
+ op event:_SU:_PId:_ : ActionType SUID PortIdSet -> Action [ctor] .
  op complexEvent:_SaveSUs:_RestoreSUs:_Actions:_ : ComplexActionType SUIdSet SUIdSet ActionList -> Action [ctor] .
 
  op emptySUSet : -> SUIdSet [ctor] .
@@ -46,6 +46,8 @@ endom)
 
  op Algorithm:_ : ActionList -> Configuration [ctor] . 
  op SNSet:_ : SUIdSet -> Configuration [ctor] .
+ op stepSize:_ : NzNat -> Configuration [ctor] . 
+ op endTime:_ : NzNat -> Configuration [ctor] . 
 
  var ID : SUID .
  var SUSet : SUIdSet .
@@ -84,7 +86,6 @@ endom)
    eq feedthroughSatisfied(PId :: feedthrough, < PId : Input | status : Undef > C, T) = false .
    eq feedthroughSatisfied(PId :: feedthrough, < PId : Input | time : T, status : Def > C, T) =  feedthroughSatisfied(feedthrough, C, T) .
 
-   
    eq allDef(none, T) = true .
    eq allDef(< PId : Port | status : Status, time : T > C, T) = Status == Def and allDef(C, T) .
 
@@ -111,16 +112,15 @@ endom)
 
 (omod CO-SIMULATION is 
    protecting SimulationUnit .
-   op stepSize:_ : NzNat -> Configuration [ctor] . 
-   op endTime:_ : NzNat -> Configuration [ctor] . 
 
    op calculateSNSet : Configuration -> Configuration .
    op needsStepNegotiation : Configuration -> Bool .
    op containsCycle : Configuration Configuration -> Bool .
+   op performStepNegotiation : Configuration -> Configuration .
+   op allSUinSimulation : Configuration -> Bool .
  
     *** Current State x Initial State -> Nat
-   ***op findStep : Configuration Configuration -> Nat .
-   ***op performStepNegotiation : Configuration -> Nat .
+    op findStep : Configuration Configuration -> Nat .
 
    vars ID1 ID2 : SUID .
    var SUIDs : SUIdSet .
@@ -145,9 +145,15 @@ endom)
                                          if not ID1 in SUIDs .                                    
   eq calculateSNSet(C) = C [owise] .
 
-***(
+
+  *** All SUs are in the simulation state
+  eq allSUinSimulation(none) = true .
+  eq allSUinSimulation(< ID1 : SU | state : S > C) = S == Simulation and allSUinSimulation(C) . 
+
+
    *** Step Negotiation
-  eq performStepNegotiation(C) = findStep(C,C) .  
+  ceq performStepNegotiation(C) = C (stepSize: findStep(C,C) SNSet: emptySUSet) if needsStepNegotiation(C) .
+  eq performStepNegotiation(C) = C [owise] .  
 
    ***Stepping case
   ceq findStep((SNSet: (ID1 ++ SUIDs)) < ID1 : SU | time : T, outputs : Outputs, inputs : Inputs > stepSize: Step C, C1) = 
@@ -174,11 +180,10 @@ endom)
    eq findStep(C (stepSize: T), C1) = T [owise] . 
 
   *** Step negotiation is needed if at least one SU can reject a Step
-  eq needsStepNegotiation(SNSet: emptySet) = false .
-  eq needsStepNegotiation(SNSet: (ID1 ++ SUIDs)) = true .
+  eq needsStepNegotiation(SNSet: emptySUSet) = false .
+  eq needsStepNegotiation(C) = true [owise] .
 
 
-)***
   ***eq containsCycle(< ID1 : SU |  : false > C) , )
 
   *** FMI-standard state transition:
@@ -207,50 +212,47 @@ endom)
 
    *** Initalization Procedure 
 
-   crl [get-init] :  < ID1 : SU | outputs : ((< O : Output | status : Undef , dependsOn : feedthrough >) Outputs) , inputs : Inputs, state : Initialize >
-                  => < ID1 : SU | outputs : ((< O : Output | status : Def >) Outputs) > if feedthroughSatisfied(feedthrough, Inputs, 0) .
+   crl [get-init] :  < ID1 : SU | outputs : ((< O : Output | status : Undef , dependsOn : feedthrough >) Outputs) , inputs : Inputs, state : Initialize > Algorithm: AL 
+                  => < ID1 : SU | outputs : ((< O : Output | status : Def >) Outputs) >  Algorithm: (AL ; (event: Get SU: ID1 PId: O)) if feedthroughSatisfied(feedthrough, Inputs, 0) .
 
    *** Inputs can only rely on one connection 
-   rl [set-init] :  < ID1 : SU | inputs : (< I : Input | status : Undef > Inputs), state : Initialize > 
+   rl [set-init] :  < ID1 : SU | inputs : (< I : Input | status : Undef > Inputs), state : Initialize > Algorithm: AL 
                           < ID2 : SU | outputs : (< O : Output | status : Def > Outputs) > (ID2 ! O ==> ID1 ! I)
                         => < ID1 : SU | inputs : (< I : Input | status : Def > Inputs) > 
-                           < ID2 : SU | > (ID2 ! O ==> ID1 ! I) .
+                           < ID2 : SU | > (ID2 ! O ==> ID1 ! I) Algorithm: (AL ; (event: Set SU: ID1 PId: I)) .
 
    ***Simulation
 
-   crl [get] :  < ID1 : SU | time : T1, outputs : (< O : Output | status : Undef , dependsOn : feedthrough > Outputs), inputs : Inputs, state : Simulation >
-                  => < ID1 : SU | outputs : (< O : Output | time : T1 , status : Def > Outputs) > if feedthroughSatisfied(feedthrough, Inputs, T1) .
+   crl [get] :  < ID1 : SU | time : T1, outputs : (< O : Output | status : Undef , dependsOn : feedthrough > Outputs), inputs : Inputs, state : Simulation > Algorithm: AL 
+                  => < ID1 : SU | outputs : (< O : Output | time : T1 , status : Def > Outputs) >  Algorithm: (AL ; (event: Get SU: ID1 PId: O)) if feedthroughSatisfied(feedthrough, Inputs, T1) .
 
-   crl [set-reactive] :  < ID1 : SU | time : T1, inputs : (< I : Input | status : Undef, type : r > Inputs), state : Simulation > 
+   crl [set-reactive] :  < ID1 : SU | time : T1, inputs : (< I : Input | status : Undef, type : r > Inputs), state : Simulation >  Algorithm: AL 
                           < ID2 : SU | outputs : (< O : Output | time : T2, status : Def > Outputs) > (ID2 ! O ==> ID1 ! I)
                         => < ID1 : SU | inputs : (< I : Input | time : T2 , status : Def > Inputs) > 
-                           < ID2 : SU | > (ID2 ! O ==> ID1 ! I) if T2 > T1 .
+                           < ID2 : SU | > (ID2 ! O ==> ID1 ! I) Algorithm: (AL ; (event: Set SU: ID1 PId: I)) if T2 > T1 .
 
-   rl [set-delayed] :  < ID1 : SU | time : T1, inputs : (< I : Input | status : Undef, type : d > Inputs), state : Simulation > 
+   rl [set-delayed] :  < ID1 : SU | time : T1, inputs : (< I : Input | status : Undef, type : d > Inputs), state : Simulation > Algorithm: AL 
                           < ID2 : SU | outputs : (< O : Output | time : T1, status : Def > Outputs) > (ID2 ! O ==> ID1 ! I)
                         => < ID1 : SU | inputs : (< I : Input | time : T1, status : Def > Inputs) > 
-                           < ID2 : SU | > (ID2 ! O ==> ID1 ! I) .
+                           < ID2 : SU | > (ID2 ! O ==> ID1 ! I) Algorithm: (AL ; (event: Set SU: ID1 PId: I)).
 
 
    *** A step makes the SU stepped and sets all output ports to not get
-   crl [step] :  < ID1 : SU | inputs : Inputs, outputs : Outputs, time : T1, state : Simulation, canReject : false > stepSize: Step endTime: T2 
-             =>  < ID1 : SU | outputs : undefPorts(Outputs, (T1 + Step)), inputs : undefInputs(Inputs), time : (T1 + Step), state : Simulation > stepSize: Step endTime: T2 
+   crl [step] :  < ID1 : SU | inputs : Inputs, outputs : Outputs, time : T1, state : Simulation, canReject : false > stepSize: Step endTime: T2 Algorithm: AL 
+             =>  < ID1 : SU | outputs : undefPorts(Outputs, (T1 + Step)), inputs : undefInputs(Inputs), time : (T1 + Step), state : Simulation > stepSize: Step endTime: T2 Algorithm: (AL ; (event: Step SU: ID1 PId: emptySet)) 
              if Step > 0 and canStep(T1, (T1 + Step), Inputs, Outputs) and (T1 + Step) <= T2 . 
 
 
   ***Complex scenarios with save and restore - this should 
   *** Recognise Loop and treat them
 
-***(
-  If the scenario contains SUs that require step negotiation
-  The step negotiation
-  ***If B is non-empty
-  rl [simulationStep] : C (SNSet: SUIDs)=> 
-          performStepNegotiation(C)
 
-          Algorithm: (AL ; (complexEvent: StepNegotiation SaveSUs: SUIDs RestoreSUs: SUIDs Actions: ))
-           .
- )***
+  ***If the scenario contains SUs that require step negotiation
+  ***The step negotiation
+  crl [simulationStep] : C SNSet: SUIDs Algorithm: AL => 
+          performStepNegotiation(C SNSet: SUIDs) Algorithm: (AL ; (complexEvent: StepNegotiation SaveSUs: SUIDs RestoreSUs: SUIDs Actions: emptyList))
+          if needsStepNegotiation(SNSet: SUIDs) and allSUinSimulation(C) .
+ 
 ***(
   If the scenario contains SUs that require algebraic loop (cycles that blocks the scenario)
  crl [algebraic-loop] : C ==> 
@@ -261,21 +263,20 @@ endom)
   op externalConnection : ->  Configuration .    *** External Connections - all ports have unique name
   op simulationUnits : -> Configuration .      *** SUs - ID * input ports * and outputs
 
-
   op setup : -> Configuration .
 
   ***Encoding of the Scenario 
-  eq externalConnection = ('MSD1 ! 'x1 ==> 'MSD2 ! 'x1) ('MSD1 ! 'v1 ==> 'MSD2 ! 'v1) ('MSD2 ! 'fk ==> 'MSD1 ! 'fk) ('MSD2 ! 'fk ==> 'MSD3 ! 'fk) .
 
-  eq simulationUnits = 
-   (< 'MSD1 : SU | time : 0, inputs : < 'fk : Input | time : 0 , type : d, status : Undef >, outputs : (< 'x1 : Output | time : 0 , status : Undef, dependsOn : emptySet  > < 'v1 : Output | time : 0, status : Undef, dependsOn : emptySet >), state : Instantiated, canReject : false > )
-   (< 'MSD2 : SU | time : 0, inputs : (< 'v1 : Input | time : 0 , type : d, status : Undef >  < 'x1 : Input | time : 0 , type : d, status : Undef > ), outputs : < 'fk : Output | time : 0, status : Undef, dependsOn : emptySet >, state : Instantiated, canReject : false  > )
-   < 'MSD3 : SU | time : 0, inputs : < 'fk : Input | time : 0 , type : d, status : Undef > , outputs : none, state : Instantiated, canReject : false  > .
+eq externalConnection = ('msd1 ! 'x1 ==> 'msd2 ! 'x1) ('msd1 ! 'v1 ==> 'msd2 ! 'v1) ('msd2 ! 'fk ==> 'msd1 ! 'fk) ('msd2 ! 'fk ==> 'msd3 ! 'fk) .
 
-
-  eq setup = calculateSNSet(simulationUnits externalConnection stepSize: 1 endTime: 1 Algorithm: emptyList SNSet: emptySet) .
+eq simulationUnits = 
+ (< 'msd2 : SU | time : 0, inputs : (< 'x1 : Input | time : 0, type : r, status : Undef  >) (< 'v1 : Input | time : 0, type : r, status : Undef  >), outputs : (< 'fk : Output | time : 0, status : Undef, dependsOn : ( 'x1 :: 'v1 ) >), state : Instantiated, canReject : false >)
+ (< 'msd1 : SU | time : 0, inputs : (< 'fk : Input | time : 0, type : d, status : Undef  >), outputs : (< 'x1 : Output | time : 0, status : Undef, dependsOn : emptySet >) (< 'v1 : Output | time : 0, status : Undef, dependsOn : emptySet >), state : Instantiated, canReject : true >)
+ (< 'msd3 : SU | time : 0, inputs : (< 'fk : Input | time : 0, type : d, status : Undef  >), outputs : none, state : Instantiated, canReject : false >) .
 
 
+
+  eq setup = calculateSNSet(simulationUnits externalConnection stepSize: 1 endTime: 1 Algorithm: emptyList SNSet: emptySUSet) .
 endom)
 
 eof
@@ -284,7 +285,10 @@ eof
 (search setup =>! X:Configuration . )
 show search graph .
 
-( frew [1000000] setup . )
+( frew [1000] setup . )
+( red needsStepNegotiation(setup) . )
+( red allSUinSimulation(setup) . )
+
 
   ***(
 

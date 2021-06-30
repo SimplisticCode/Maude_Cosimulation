@@ -4,7 +4,8 @@
  subsorts Qid < PortId < Oid .
  subsort PortId < PortIdSet .
 
- sorts Connection SUID EPortId .
+ sorts Connection SUID EPortId EPortIdSet .
+ subsort EPortId < EPortIdSet .
  subsorts Qid < SUID < Oid .
  op _==>_ : EPortId EPortId -> Connection [ctor format(niy! d d d)] .
  subsort Connection < Configuration .
@@ -20,17 +21,27 @@
  op emptySet : -> PortIdSet [ctor] .
  op _::_ : PortIdSet PortIdSet -> PortIdSet [ctor assoc comm id: emptySet] .
 
+ op emptyLoop : -> EPortIdSet [ctor] .
+ op _;;_ : EPortIdSet EPortIdSet -> EPortIdSet [ctor assoc comm id: emptyLoop] .
+ op _in_ : EPortId EPortIdSet -> Bool . 
+
+ var P : EPortId .
+ var PSet : EPortIdSet .
+ eq P in P ;; PSet = true .
+ eq P in PSet = false [owise] .
 endom)
 
 (omod Algorithm is 
  protecting Ports .
- sorts ActionType FMIActionType ComplexActionType SUIdSet ActionList Action .
+ sorts ActionType FMIActionType ComplexActionType SUIdSet ActionList Action LoopType .
  subsort SUID < SUIdSet .
  subsort Action < ActionList .
 
  ops CreateExp EnterInitialization ExitInitialization Terminate FreeInstance Unload : -> FMIActionType [ctor] . 
  ops Set Get Step Save CreateExp : -> ActionType [ctor] . 
  ops StepNegotiation AlgebraicLoop : -> ComplexActionType [ctor] . 
+ ops F R : -> LoopType [ctor] . 
+
 
  op fmiEvent:_SU:_ : FMIActionType PortId -> Action [ctor format(nib! d d d d)] .
  op event:_SU:_PId:_ : ActionType SUID PortIdSet -> Action [ctor format(nib! d d d d d d)] .
@@ -48,12 +59,13 @@ endom)
  op SNSet:_ : SUIdSet -> Configuration [ctor format(ni d d)] .
  op stepSize:_ : NzNat -> Configuration [ctor format(nig! d d)] . 
  op endTime:_ : NzNat -> Configuration [ctor format(nim! d d)] . 
+ op AlgebraicLoop:_Type:_ : EPortIdSet LoopType -> Configuration[ctor] . 
 
  var ID : SUID .
  var SUSet : SUIdSet .
 
  eq ID in ID ++ SUSet = true .
- eq ID in  SUSet = false [owise] .
+ eq ID in SUSet = false [owise] .
 endom)
 
 (omod SimulationUnit is
@@ -110,7 +122,7 @@ endom)
 endom)
 
 
-(omod CO-SIMULATION is 
+(omod COSIMULATION is 
    protecting SimulationUnit .
    sort GlobalState .
 
@@ -121,7 +133,9 @@ endom)
    op performGlobalStep : Configuration -> Configuration .
    op allSUinSimulation : Configuration -> Bool .
    op `{_`} : Configuration -> GlobalState .
- 
+   op calculateSCC : Configuration -> Configuration .
+   op getPorts : Configuration EPortIdSet -> EPortIdSet .
+
     *** Current State x Initial State -> Nat
     op findStep : SUIdSet Configuration Configuration -> Nat .
 
@@ -133,10 +147,9 @@ endom)
    var S : fmiState .
    vars C C1 : Configuration .
    var Status : PortStatus .
-
    var AL : ActionList .
-
    var feedthrough : PortIdSet .
+   var P : EPortIdSet .
 
    *** Calculation of the members of the set of SUs that should be backtracked in the step negotiation
   ceq calculateSNSet(< ID1 : SU | inputs : (< I : Input | type : r > Inputs) > 
@@ -149,7 +162,25 @@ endom)
                                          if not ID1 in SUIDs .                                    
   eq calculateSNSet(C) = C [owise] .
 
+  *** Get All ports in the scenario:
+  ceq getPorts(< ID1 : SU | inputs : (< I : Input | > Inputs) > C, P) = getPorts(< ID1 : SU | > C,  (ID1 ! I) ;; P )
+            if not (ID1 ! I) in P .
 
+  ceq getPorts(< ID1 : SU | outputs : (< O : Output | > Outputs) > C, P) = getPorts(< ID1 : SU | > C,  (ID1 ! O) ;; P )
+            if not (ID1 ! O) in P .
+
+  eq getPorts(C, P) = P [owise] . 
+
+  ***Calculation of Algebraic Loops
+  *** External Connection 
+  ***(
+  eq calculateSCC(< ID1 : SU | inputs : (< I : Input | type : r > Inputs) > 
+                  < ID2 : SU | outputs : (< O : Output | > Outputs) > (ID2 ! O ==> ID1 ! I) )
+
+  *** Feedthrough
+  eq calculateSCC(< ID1 : SU | inputs : (< I : Input | type : r > Inputs) > 
+                  < ID2 : SU | outputs : (< O : Output | > Outputs) > (ID2 ! O ==> ID1 ! I) )
+  )***
   *** All SUs are in the simulation state
   eq allSUinSimulation(none) = true .
   eq allSUinSimulation(< ID1 : SU | state : S > C) = S == Simulation and allSUinSimulation(C) . 
@@ -204,7 +235,8 @@ endom)
                          < ID2 : SU | outputs : (< O : Output | time : T2, status : Def > Outputs) > 
                          (ID2 ! O ==> ID1 ! I) Algorithm: AL) = 
             performGlobalStep(C < ID1 : SU | time : T1, inputs : (< I : Input | time : T2, status : Def > Inputs) > 
-                         < ID2 : SU | > (ID2 ! O ==> ID1 ! I) Algorithm: (AL ; (event: Set SU: ID1 PId: I)))
+                         < ID2 : SU | > 
+                         (ID2 ! O ==> ID1 ! I) Algorithm: (AL ; (event: Set SU: ID1 PId: I)))
                          if T1 < T2 .
   *** Set delayed
   ceq performGlobalStep(C < ID1 : SU | time : T, inputs : (< I : Input | time : T1, type : d > Inputs) > 
@@ -234,7 +266,9 @@ endom)
   eq needsStepNegotiation(emptySUSet) = false .
   eq needsStepNegotiation(SUIDs) = true [owise] .
 
-  ***eq containsCycle(< ID1 : SU |  : false > C) , )
+  *** Does the scenario contain any loop
+  ***eq containsCycle(emptyLoop) = false .
+  ***eq containsCycle(emptyLoop) = true [owise] .
 
   *** FMI-standard state transition:
 
@@ -322,28 +356,55 @@ endom)
 
   ***Encoding of the Scenario 
 
-eq externalConnection = ('msd1 ! 'x1 ==> 'msd2 ! 'x1) ('msd1 ! 'v1 ==> 'msd2 ! 'v1) ('msd2 ! 'fk ==> 'msd1 ! 'fk) ('msd2 ! 'fk ==> 'msd3 ! 'fk) .
+eq externalConnection = ('env ! 'psu ==> 'plant ! 'psu) ('env ! 'ref ==> 'ctrl ! 'ref) ('load ! 'xaft ==> 'ctrl ! 'xaft) ('ctrl ! 'o ==> 'plant ! 'o) ('plant ! 'w ==> 'ctrl ! 'w) ('load ! 'x ==> 'plant ! 'x) ('load ! 'v ==> 'plant ! 'v) ('plant ! 'f ==> 'load ! 'f) .
 
-eq simulationUnits = 
- (< 'msd2 : SU | time : 0, inputs : (< 'x1 : Input | time : 0, type : r, status : Undef  >) (< 'v1 : Input | time : 0, type : r, status : Undef  >), outputs : (< 'fk : Output | time : 0, status : Undef, dependsOn : ( 'x1 :: 'v1 ) >), state : Instantiated, canReject : false >)
- (< 'msd1 : SU | time : 0, inputs : (< 'fk : Input | time : 0, type : d, status : Undef  >), outputs : (< 'x1 : Output | time : 0, status : Undef, dependsOn : emptySet >) (< 'v1 : Output | time : 0, status : Undef, dependsOn : emptySet >), state : Instantiated, canReject : true >)
- (< 'msd3 : SU | time : 0, inputs : (< 'fk : Input | time : 0, type : d, status : Undef  >), outputs : none, state : Instantiated, canReject : false >) .
+eq simulationUnits = (< 'env : SU | time : 0, inputs : none, outputs : (< 'ref : Output | time : 0, status : Undef, dependsOn : emptySet >) (< 'psu : Output | time : 0, status : Undef, dependsOn : emptySet >), state : Instantiated, canReject : false >)
 
+ 	 (< 'load : SU | time : 0, inputs : (< 'f : Input | time : 0, type : d, status : Undef  >), outputs : (< 'v : Output | time : 0, status : Undef, dependsOn : emptySet >) (< 'xaft : Output | time : 0, status : Undef, dependsOn : emptySet >) (< 'x : Output | time : 0, status : Undef, dependsOn : emptySet >), state : Instantiated, canReject : false >)
 
+ 	 (< 'ctrl : SU | time : 0, inputs : (< 'ref : Input | time : 0, type : d, status : Undef  >) (< 'w : Input | time : 0, type : d, status : Undef  >) (< 'xaft : Input | time : 0, type : d, status : Undef  >), outputs : (< 'o : Output | time : 0, status : Undef, dependsOn : emptySet >), state : Instantiated, canReject : false >)
+
+ 	 (< 'plant : SU | time : 0, inputs : (< 'x : Input | time : 0, type : r, status : Undef  >) (< 'v : Input | time : 0, type : r, status : Undef  >) (< 'o : Input | time : 0, type : d, status : Undef  >) (< 'psu : Input | time : 0, type : r, status : Undef  >), outputs : (< 'w : Output | time : 0, status : Undef, dependsOn : ( 'v ) >) (< 'f : Output | time : 0, status : Undef, dependsOn : ( 'v :: 'x ) >), state : Instantiated, canReject : false >) .
 
   eq setup = { calculateSNSet(simulationUnits externalConnection stepSize: 1 endTime: 1 Algorithm: emptyList SNSet: emptySUSet) } .
+
+  eq setup = { calculateSNSet(simulationUnits externalConnection stepSize: 1 endTime: 1 Algorithm: emptyList SNSet: emptySUSet) } .
+
+
 endom)
 
+
+
 eof
+
+*** Create strategies and look for parallel actions
+
+(smod CO-SIMULATION-STRAT is
+  protecting COSIMULATION .
+
+  strat fmi_rules_setExpt @ GlobalState .
+
+  vars M1 M2 : SUID .
+  var FS : fmiState .
+  var  S : GlobalState .
+
+  sd fmi_rules_setExpt := 
+     (matchrew S s.t. < M1 : SU | state : Instantiated > /\ < M2 : SU | state : FS > /\ FS =/= Instantiated  by
+              S using setExp[ID1 <- M1] 
+     ) ! .
+
+
+endsm)
 
 *** Check for termination - not useful 
 (search setup =>! X:Configuration . )
 show search graph .
 
-( frew [20] setup . )
+( frew [20] setup using fmi_rules_setExpt . )
 ( red needsStepNegotiation(setup) . )
 ( red allSUinSimulation(setup) . )
 ( red findStep(setup,setup) . )
+( red getPorts(simulationUnits, emptyLoop) . )
 
 set trace on .
 trace exclude FULL-MAUDE . set trace substitution off . set trace eq off . 
@@ -356,3 +417,6 @@ trace exclude FULL-MAUDE . set trace substitution off . set trace eq off .
 *** I think some of the cases should match
 
 *** Feed through
+
+
+

@@ -59,7 +59,7 @@ load LOOPSolver.maude
   ceq performGlobalStep(C < ID1 : SU | time : T, inputs : (< I : Input | time : T1, type : d > INPUTS) > 
                           < ID2 : SU | outputs : (< O : Output | time : T, status : Def > OUTPUTS) > 
                          (ID2 ! O ==> ID1 ! I) Algorithm: AL) = 
-        performGlobalStep(C setAction( < ID1 : SU | >, I, T) < ID2 : SU | > < ID2 : SU | > 
+        performGlobalStep(C setAction( < ID1 : SU | >, I, T) < ID2 : SU | > 
                          (ID2 ! O ==> ID1 ! I) Algorithm: (AL ; (event: Set SU: ID1 PId: I)))
                          if T1 < T .
 

@@ -366,7 +366,8 @@ endom)
 
   *** Step Negotiation
   ceq performStepNegotiation(C SNSet: SUIDs stepSize: T Algorithm: AL) = 
-                              C SNSet: emptySUSet Algorithm: (AL ; (complexEvent: StepNegotiation SaveSUs: SUIDs RestoreSUs: SUIDs Actions: getStepAction(SUIDs, C stepSize: T, emptyList)))
+                              C SNSet: emptySUSet 
+                                Algorithm: (AL ; (complexEvent: StepNegotiation SaveSUs: SUIDs RestoreSUs: SUIDs Actions: getStepAction(SUIDs, C stepSize: T, emptyList)))
                               (stepSize: findStep(SUIDs, C stepSize: T,C stepSize: T)) if needsStepNegotiation(SUIDs) .
 
   ceq performStepNegotiation(C SNSet: SUIDs) = C if not needsStepNegotiation(SUIDs) .  
@@ -393,28 +394,28 @@ endom)
   ceq performGlobalStep(C < ID1 : SU | time : T1, inputs : (< I : Input | time : T1, type : r > INPUTS) > 
                           < ID2 : SU | outputs : (< O : Output | time : T2, status : Def > OUTPUTS) > 
                          (ID2 ! O ==> ID1 ! I) Algorithm: AL) = 
-            performGlobalStep(C < ID1 : SU | inputs : (< I : Input | time : T2, status : Def > INPUTS) > 
-                         < ID2 : SU | > 
-                         (ID2 ! O ==> ID1 ! I) Algorithm: (AL ; (event: Set SU: ID1 PId: I)))
+            performGlobalStep(C setAction( < ID1 : SU | >, I, T2) < ID2 : SU | > 
+                         (ID2 ! O ==> ID1 ! I) 
+                         Algorithm: (AL ; (event: Set SU: ID1 PId: I)))
                          if T1 < T2 .
   *** Set delayed
   ceq performGlobalStep(C < ID1 : SU | time : T, inputs : (< I : Input | time : T1, type : d > INPUTS) > 
                           < ID2 : SU | outputs : (< O : Output | time : T, status : Def > OUTPUTS) > 
                          (ID2 ! O ==> ID1 ! I) Algorithm: AL) = 
-        performGlobalStep(C < ID1 : SU | inputs : (< I : Input | time : T, status : Def > INPUTS) > 
-                         < ID2 : SU | > 
+        performGlobalStep(C setAction( < ID1 : SU | >, I, T) < ID2 : SU | > < ID2 : SU | > 
                          (ID2 ! O ==> ID1 ! I) Algorithm: (AL ; (event: Set SU: ID1 PId: I)))
                          if T1 < T .
 
   *** Step
   ceq performGlobalStep(C < ID1 : SU | time : T, inputs : INPUTS, outputs : OUTPUTS > stepSize: S endTime: T2 Algorithm: AL)  = 
-      performGlobalStep(C < ID1 : SU | outputs : undefPorts(OUTPUTS, (T + S)), time : (T + S) > 
+      performGlobalStep(C 
+                        stepAction(< ID1 : SU | >, S)
                         stepSize: S endTime: T2 Algorithm: (AL ; (event: Step SU: ID1 PId: emptySet)))
                         if canStep(T, (T + S), INPUTS, OUTPUTS) and (T + S) <= T2 . 
 
   *** Get
   ceq performGlobalStep(C < ID1 : SU | time : T, inputs : INPUTS, outputs : (< O : Output | status : Undef, dependsOn : FT > OUTPUTS) > Algorithm: AL) =
-                    performGlobalStep(C < ID1 : SU | outputs : (< O : Output | time : T, status : Def > OUTPUTS) > Algorithm: (AL ; (event: Get SU: ID1 PId: O)))  
+                    performGlobalStep(C getAction(< ID1 : SU | >, O) Algorithm: (AL ; (event: Get SU: ID1 PId: O)))  
                     if feedthroughSatisfied(FT, INPUTS, T) .
 
   eq performGlobalStep(C) = C [owise] .

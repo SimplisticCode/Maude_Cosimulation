@@ -23,6 +23,8 @@ load Port.maude
  op stepSize:_ : NzNat -> Configuration [ctor format(nig! d d)] . 
  op endTime:_ : NzNat -> Configuration [ctor format(nim! d d)] . 
  op SCC:_ : AlgebraicLoops -> Configuration [ctor format(nim! d d)] . 
+ op guessOn:_ : EPortIdSet -> Configuration [ctor format(nip! d d)] .
+
 
  ***Operations
  op emptySUSet : -> SUIdSet [ctor] .
@@ -54,7 +56,7 @@ load Port.maude
  eq P memberOf L = false [owise] .
 
  eq getSUs(emptyLoop, SUSet) = SUSet .
- eq getSUs((ID ! PID) ;; PSet, ID ++ SUSet) = getSUs(PSet, SUSet) .
+ ceq getSUs((ID ! PID) ;; PSet, SUSet) = getSUs(PSet, SUSet) if ID in SUSet .
  eq getSUs((ID ! PID) ;; PSet, SUSet) = getSUs(PSet, ID ++ SUSet) [owise] .
 
 endom)

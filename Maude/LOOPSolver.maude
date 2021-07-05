@@ -4,15 +4,15 @@ load StepFinder.maude
   protecting PerformActions .
     op solveLoop : Configuration Algebraic  -> Configuration . 
     op breakLoop : EPortIdSet Configuration LoopType -> Configuration .
-    op loopStepActions : EPortIdSet Configuration ActionList -> ActionList .
-    op containsCycle : AlgebraicLoops -> Bool .
-    
+    op loopStepActions : EPortIdSet Configuration LoopType ActionList -> ActionList .
+    op containsCycle : AlgebraicLoops -> Bool . 
+
     var L : AlgebraicLoops .  
     var K : LoopType .
     vars C OUTPUTS INPUTS : Configuration .
     vars I O : PortId .
     vars ID1 ID2 : SUID .
-    var PSet : EPortIdSet .
+    vars PSet GSet : EPortIdSet .
     var AL : ActionList .
     var T : Nat .
     var S : NzNat .
@@ -22,25 +22,35 @@ load StepFinder.maude
    eq containsCycle(noLoops) = false .
    eq containsCycle(L) = true [owise] .
 
-    eq solveLoop(C Algorithm: AL, AlgebraicLoop: PSet Type: K) = C 
-        Algorithm: (AL ; (complexEvent: Loop SaveSUs: getSUs(PSet, emptySUSet) RestoreSUs: getSUs(PSet, emptySUSet) Actions: loopStepActions(PSet, breakLoop(PSet, C, K), emptyList))) .
+   eq solveLoop(C Algorithm: AL, AlgebraicLoop: PSet Type: K) = C 
+        Algorithm: (AL ; (complexEvent: Loop SaveSUs: getSUs(PSet, emptySUSet) RestoreSUs: getSUs(PSet, emptySUSet) 
+        Actions: loopStepActions(PSet, breakLoop(PSet, C, K), K, emptyList))) .
 
     *** Forget All Delayed Connections
     eq breakLoop((ID1 ! I) ;; PSet,   
                      < ID1 : SU | inputs : (< I : Input | type : d > INPUTS) > 
-                     < ID2 : SU | outputs : (< O : Output | > OUTPUTS) > (ID2 ! O ==> ID1 ! I) C, F) = 
-                        breakLoop((ID1 ! I) ;; PSet, < ID1 : SU | > < ID2 : SU | > C , F) .
+                     < ID2 : SU | outputs : (< O : Output | > OUTPUTS) > (ID2 ! O ==> ID1 ! I) guessOn: GSet C, F) = 
+                        breakLoop((ID1 ! I) ;; PSet, < ID1 : SU | > < ID2 : SU | > (ID2 ! O ==> ID1 ! I) guessOn: ((ID1 ! I) ;; GSet) C , F) .
 
     *** Forget All Reactive Connections
     eq breakLoop((ID1 ! I) ;; PSet,
                  < ID1 : SU | inputs : (< I : Input | type : r > INPUTS) > 
-                 < ID2 : SU | outputs : (< O : Output | > OUTPUTS) > (ID2 ! O ==> ID1 ! I) C , R) = 
-                breakLoop((ID1 ! I) ;; PSet, < ID1 : SU | > < ID2 : SU | > C , R) .
+                 < ID2 : SU | outputs : (< O : Output | > OUTPUTS) > (ID2 ! O ==> ID1 ! I) guessOn: GSet C , R) = 
+                breakLoop((ID1 ! I) ;; PSet, < ID1 : SU | > < ID2 : SU | > (ID2 ! O ==> ID1 ! I) guessOn: ((ID1 ! I) ;; GSet) C , R) .
 
     eq breakLoop(PSet, C, K) = C [owise] .
 
-    *** Guess on input - should be added
-
+    *** Set value using Guess
+    eq loopStepActions((ID1 ! I) ;; PSet, 
+                    < ID1 : SU | time : T, inputs : (< I : Input | > INPUTS) > 
+                    < ID2 : SU | time : T, outputs : (< O : Output | time : T > OUTPUTS) > 
+                      (ID2 ! O ==> ID1 ! I)
+                    guessOn: ((ID1 ! I) ;; GSet) stepSize: S C, AL) = 
+            loopStepActions(PSet, 
+                    setAction(< ID1 : SU | >, I, (T + S))
+                    < ID2 : SU | > (ID2 ! O ==> ID1 ! I) 
+                    guessOn: GSet C, 
+                    (AL ; (event: Set SU: ID1 PId: I))) .
 
     *** Set value on input
     eq loopStepActions((ID1 ! I) ;; (ID2 ! O) ;; PSet, 
@@ -52,13 +62,13 @@ load StepFinder.maude
                       < ID2 : SU | > (ID2 ! O ==> ID1 ! I) C, 
                       (AL ; (event: Set SU: ID1 PId: I))) .
 
-    *** Get output value - remember feed through
+    *** Get output value
     ceq loopStepActions((ID1 ! O) ;; PSet, 
                     < ID1 : SU | time : T, outputs : (< O : Output | dependsOn : FT > OUTPUTS), inputs : INPUTS > C, AL) = 
                     loopStepActions(PSet,
                       getAction( < ID1 : SU | >, O) C, 
                       (AL ; (event: Get SU: ID1 PId: O))) 
-                      if feedthroughSatisfied(FT, INPUTS, T).
+                      if feedthroughSatisfied(FT, INPUTS, T) .
 
     *** Step
     ceq loopStepActions((ID1 ! O) ;; PSet,  
@@ -67,6 +77,6 @@ load StepFinder.maude
                     stepAction(< ID1 : SU | >, S) stepSize: S C, (AL ; (event: Step SU: ID1 PId: emptySet)))
                     if canStep(T, (T + S), INPUTS, OUTPUTS) .
 
-    eq loopStepActions(emptyLoop,C, AL) = AL .
+    eq loopStepActions(emptyLoop,C, AL) = AL [owise].
 
 endom)

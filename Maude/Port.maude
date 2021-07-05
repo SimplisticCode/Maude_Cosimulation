@@ -1,0 +1,40 @@
+(omod Ports is 
+ protecting QID + NAT .
+ sorts PortId Mode PortStatus PortIdSet .
+ subsorts Qid < PortId < Oid .
+ subsort PortId < PortIdSet .
+
+ sorts Connection SUID EPortId EPortIdSet .
+ subsort EPortId < EPortIdSet .
+ subsorts Qid < SUID < Oid .
+ op _==>_ : EPortId EPortId -> Connection [ctor format(niy! d d d)] .
+ subsort Connection < Configuration .
+ op _!_ : SUID PortId -> EPortId [ctor] .
+
+ class Port | time : Nat, status : PortStatus . 
+ class Input | type : Mode .
+ class Output | dependsOn : PortIdSet .
+ subclasses Input Output < Port . 
+ ops d r : -> Mode [ctor] .   *** d = delayed, r = Reactive.
+ ops Def Undef : -> PortStatus [ctor] .
+
+ op emptySet : -> PortIdSet [ctor] .
+ op _::_ : PortIdSet PortIdSet -> PortIdSet [ctor assoc comm id: emptySet] .
+ 
+ op emptyLoop : -> EPortIdSet [ctor] .
+ op _;;_ : EPortIdSet EPortIdSet -> EPortIdSet [ctor assoc comm id: emptyLoop] .
+ op _in_ : EPortId EPortIdSet -> Bool . 
+ op _in_ : Connection Configuration -> Bool . 
+
+ var P : EPortId .
+ var PSet : EPortIdSet .
+ var Cons : Configuration .
+ var C : Connection .
+
+ eq P in P ;; PSet = true .
+ eq P in PSet = false [owise] .
+
+ eq C in C Cons = true .
+ eq C in Cons = false [owise] .
+
+endom)

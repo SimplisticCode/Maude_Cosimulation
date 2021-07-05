@@ -1,0 +1,96 @@
+load SimulationUnit.maude 
+
+(omod StepFinder is
+  protecting PerformActions .
+  
+  *** Current State x Initial State -> Nat
+  op findStep : SUIdSet Configuration Configuration -> NzNat .
+  op getStepAction : SUIdSet Configuration ActionList -> ActionList .
+  op calculateSNSet : Configuration -> Configuration .
+  op needsStepNegotiation : SUIdSet -> Bool .
+
+   vars ID1 ID2 : SUID .
+   var SUIDs : SUIdSet .
+   vars I O : PortId .
+   var T : Nat .
+   var S T1 T2 : NzNat .
+   vars INPUTS OUTPUTS INPUTS1 : Configuration . 
+   vars C C1 : Configuration .
+   var AL : ActionList .
+   var FT : PortIdSet .
+
+  *** Step negotiation is needed if at least one SU can reject a Step
+  eq needsStepNegotiation(emptySUSet) = false .
+  eq needsStepNegotiation(SUIDs) = true [owise] .
+
+   *** Calculation of the members of the set of SUs that should be backtracked in the step negotiation
+   ceq calculateSNSet(< ID1 : SU | inputs : (< I : Input | type : r > INPUTS) > 
+                     < ID2 : SU | outputs : (< O : Output | > OUTPUTS) > (ID2 ! O ==> ID1 ! I) (SNSet: (ID1 ++ SUIDs))  C) = 
+                                         calculateSNSet(< ID1 : SU | > < ID2 : SU | canReject : true > (ID2 ! O ==> ID1 ! I) 
+                                         (SNSet: (ID1 ++ ID2 ++ SUIDs)) C) 
+                                         if not ID2 in SUIDs .
+  
+  ceq calculateSNSet(< ID1 : SU | canReject : true > (SNSet: SUIDs) C ) = calculateSNSet(< ID1 : SU | > (SNSet: (ID1 ++ SUIDs)) C )
+                                         if not ID1 in SUIDs .                                    
+  eq calculateSNSet(C) = C [owise] .
+
+
+  *** Get case (only on reactive outputs) - remember feedthrough
+  ceq findStep(ID1 ++ SUIDs, 
+                    < ID2 : SU | time : T, outputs : (< O : Output | status : Undef, dependsOn : FT > OUTPUTS), inputs : INPUTS1 >
+                    < ID1 : SU | inputs : (< I : Input | type : r > INPUTS) > (ID2 ! O ==> ID1 ! I) C, C1) = 
+                    findStep(ID1 ++ SUIDs, getAction(< ID2 : SU | >, O) < ID1 : SU | >  (ID2 ! O ==> ID1 ! I) C, C1) 
+                      if feedthroughSatisfied(FT, INPUTS1, T) .
+
+  *** Set case
+  eq findStep(ID1 ++ ID2 ++ SUIDs, 
+                      < ID1 : SU | inputs : (< I : Input | status : Undef, type : r > INPUTS) > 
+                      < ID2 : SU | outputs : (< O : Output | time : T, status : Def > OUTPUTS) > 
+                        (ID2 ! O ==> ID1 ! I) C, C1) = 
+              findStep(ID1 ++ ID2 ++ SUIDs, setAction(< ID1 : SU | >, I, T) < ID2 : SU | > (ID2 ! O ==> ID1 ! I) C, C1) .
+
+  ***Stepping case
+  ceq findStep(ID1 ++ SUIDs,  
+                    < ID1 : SU | time : T, outputs : OUTPUTS, inputs : INPUTS > stepSize: S C, C1) = 
+                  findStep(ID1 ++ SUIDs,
+                  stepAction(< ID1 : SU | >, (askStepSize(< ID1 : SU | >, S))) stepSize: (askStepSize(< ID1 : SU | >, S)) C, C1)
+                    if canStep(T, (T + S), INPUTS, OUTPUTS) .
+
+  *** Restart search and and update step size for next iteration of search
+  ceq findStep(ID1 ++ ID2 ++ SUIDs, 
+                        < ID1 : SU | time : T1 > 
+                        < ID2 : SU | time : T2 > C, C1 stepSize: S) = 
+              findStep(ID1 ++ ID2 ++ SUIDs, C1 stepSize: min(T1, T2), C1 stepSize: min(T1, T2))   
+                    if T1 =/= T2 . *** The simulations should both have stepped, but not to the same time
+
+   eq findStep(SUIDs, C stepSize: S, C1) = S [owise] . 
+
+   *** Get case (only on reactive outputs) - remember feedthrough
+   ceq getStepAction(ID1 ++ SUIDs, 
+                    < ID2 : SU | time : T, outputs : (< O : Output | status : Undef, dependsOn : FT > OUTPUTS), inputs : INPUTS1 >
+                    < ID1 : SU | inputs : (< I : Input | type : r > INPUTS) > (ID2 ! O ==> ID1 ! I) C, AL) = 
+                    getStepAction(ID1 ++ SUIDs,
+                      getAction(< ID2 : SU | >, O) < ID1 : SU | > (ID2 ! O ==> ID1 ! I) C, 
+                      (AL ; (event: Get SU: ID2 PId: O))) 
+                      if feedthroughSatisfied(FT, INPUTS1, T) .
+
+   *** Set case
+   eq getStepAction(ID1 ++ ID2 ++ SUIDs, 
+                      < ID1 : SU | inputs : (< I : Input | status : Undef, type : r > INPUTS) > 
+                      < ID2 : SU | outputs : (< O : Output | time : T, status : Def > OUTPUTS) > 
+                        (ID2 ! O ==> ID1 ! I) C, AL) = 
+              getStepAction(ID1 ++ ID2 ++ SUIDs, 
+                      setAction(< ID1 : SU | >, I, T)
+                      < ID2 : SU | > (ID2 ! O ==> ID1 ! I) C, 
+                      (AL ; (event: Set SU: ID1 PId: I))).
+                    
+  ***Stepping case
+    ceq getStepAction(ID1 ++ SUIDs,  
+                    < ID1 : SU | time : T, outputs : OUTPUTS, inputs : INPUTS > stepSize: S C, AL) = 
+                    getStepAction(ID1 ++ SUIDs,
+                          stepAction(< ID1 : SU | >, S) stepSize: S C, (AL ; (event: Step SU: ID1 PId: emptySet)))
+                    if canStep(T, (T + S), INPUTS, OUTPUTS) .
+
+   eq getStepAction(SUIDs, C, AL) = AL [owise] . 
+
+endom)

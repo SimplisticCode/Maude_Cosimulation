@@ -1,0 +1,85 @@
+load Algorithm.maude
+(omod SimulationUnit is
+   protecting Ports + Algorithm .
+   sort fmiState .
+
+   ops Instantiated ExperimentSetup Initialize Simulation Terminated InstanceFreed Unloaded : -> fmiState [ctor] . *** The different states of the FMI standard
+
+   ***Classes
+   class SU | time : Nat, inputs : Configuration, outputs : Configuration, canReject : Bool, state : fmiState .
+
+   op askStepSize : Object NzNat -> NzNat .
+   op feedthroughSatisfied : PortIdSet Configuration Nat -> Bool .
+   op allDef : Configuration Nat -> Bool .
+   op undefPorts : Configuration Nat -> Configuration .
+   op undefInputs : Configuration -> Configuration .  
+   op allInputsDef : Configuration Nat Nat -> Bool .
+   op allInputsSet : Configuration -> Bool .
+   op canStep : Nat NzNat Configuration Configuration -> Bool .
+
+   var ID1 : SUID .
+   var PId : PortId .
+   vars T  SUTime : Nat .
+   vars C Inputs Outputs : Configuration .
+   var PS : PortStatus .
+   var FT : PortIdSet .
+   vars FutureTime S : NzNat .
+
+   *** Checks if all feedthrough constraints are satisfied
+   eq feedthroughSatisfied(emptySet, C, T) = true .
+   eq feedthroughSatisfied(PId :: FT, < PId : Input | status : Undef > C, T) = false .
+   eq feedthroughSatisfied(PId :: FT, < PId : Input | time : T, status : Def > C, T) =  feedthroughSatisfied(FT, C, T) .
+
+   eq allDef(none, T) = true .
+   eq allDef(< PId : Port | status : PS, time : T > C, T) = PS == Def and allDef(C, T) .
+
+   eq allInputsDef(none, SUTime, FutureTime) = true .
+   eq allInputsDef(< PId : Input | time : SUTime, type : d, status : PS > C, SUTime, FutureTime) = PS == Def and allInputsDef(C, SUTime, FutureTime) .
+   eq allInputsDef(< PId : Input | time : FutureTime, type : r,  status : PS > C, SUTime, FutureTime ) = PS == Def and allInputsDef(C, SUTime, FutureTime) .
+
+   eq undefPorts(none, T) = none .
+   eq undefPorts(< PId : Port | > C, T) =  < PId : Port | status : Undef, time : T > undefPorts(C, T) .
+
+   eq undefInputs(none) = none .
+   eq undefInputs(< PId : Port | > C) =  < PId : Port | status : Undef > undefInputs(C) .
+
+   eq allInputsSet(none) = true .
+   eq allInputsSet(< ID1 : SU | inputs : Inputs > C) = allDef(Inputs, 0) and allInputsSet(C) .
+
+   eq canStep(SUTime, FutureTime, Inputs, Outputs) =  allInputsDef(Inputs, SUTime, FutureTime) and allDef(Outputs, SUTime) . 
+
+   *** For the moment we allow all steps - should updated to reflect the nondeterminism of the step negotiation!
+   eq askStepSize(< ID1 : SU | time : SUTime, inputs : Inputs >, S) = S .
+
+endom)
+
+
+
+(omod PerformActions is
+  protecting SimulationUnit .
+  
+  op getAction : Object PortId -> Object .
+  op setAction : Object PortId Nat -> Object .
+  op stepAction : Object NzNat -> Object .
+
+***Why can't I use these functions in other places
+  var ID1 : SUID .
+  vars I O : PortId .
+  var S : NzNat .
+  vars INPUTS OUTPUTS : Configuration .
+  var ST : Object .
+  var T : Nat .
+
+  *** Updates the time and status of the input
+  eq getAction(< ID1 : SU | time : T, outputs : (< O : Output | > OUTPUTS) >, O) = < ID1 : SU | outputs : (< O : Output | time : T, status : Def > OUTPUTS) > .
+  eq getAction(ST, O) = ST [owise] .
+
+  eq setAction(< ID1 : SU | inputs : (< I : Input | > INPUTS) > , I, T) =  < ID1 : SU | inputs : (< I : Input | time : T, status : Def > INPUTS) > .
+  eq setAction(ST, I, T) = ST [owise] .
+
+  *** Updates the time and the status of the outputs
+  eq stepAction(< ID1 : SU | time : T, outputs : OUTPUTS >, S) = < ID1 : SU | time : (T + S), outputs : undefPorts(OUTPUTS, (T + S)) > .
+  eq stepAction(ST, S) = ST [owise] .
+
+endom)
+

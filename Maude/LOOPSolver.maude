@@ -1,0 +1,72 @@
+load StepFinder.maude
+
+(omod LOOPSolver is 
+  protecting PerformActions .
+    op solveLoop : Configuration Algebraic  -> Configuration . 
+    op breakLoop : EPortIdSet Configuration LoopType -> Configuration .
+    op loopStepActions : EPortIdSet Configuration ActionList -> ActionList .
+    op containsCycle : AlgebraicLoops -> Bool .
+    
+    var L : AlgebraicLoops .  
+    var K : LoopType .
+    vars C OUTPUTS INPUTS : Configuration .
+    vars I O : PortId .
+    vars ID1 ID2 : SUID .
+    var PSet : EPortIdSet .
+    var AL : ActionList .
+    var T : Nat .
+    var S : NzNat .
+    var FT : PortIdSet .
+
+   *** Does the scenario contain any loop
+   eq containsCycle(noLoops) = false .
+   eq containsCycle(L) = true [owise] .
+
+    eq solveLoop(C Algorithm: AL, AlgebraicLoop: PSet Type: K) = C 
+        Algorithm: (AL ; (complexEvent: Loop SaveSUs: getSUs(PSet, emptySUSet) RestoreSUs: getSUs(PSet, emptySUSet) Actions: loopStepActions(PSet, breakLoop(PSet, C, K), emptyList))) .
+
+    *** Forget All Delayed Connections
+    eq breakLoop((ID1 ! I) ;; PSet,   
+                     < ID1 : SU | inputs : (< I : Input | type : d > INPUTS) > 
+                     < ID2 : SU | outputs : (< O : Output | > OUTPUTS) > (ID2 ! O ==> ID1 ! I) C, F) = 
+                        breakLoop((ID1 ! I) ;; PSet, < ID1 : SU | > < ID2 : SU | > C , F) .
+
+    *** Forget All Reactive Connections
+    eq breakLoop((ID1 ! I) ;; PSet,
+                 < ID1 : SU | inputs : (< I : Input | type : r > INPUTS) > 
+                 < ID2 : SU | outputs : (< O : Output | > OUTPUTS) > (ID2 ! O ==> ID1 ! I) C , R) = 
+                breakLoop((ID1 ! I) ;; PSet, < ID1 : SU | > < ID2 : SU | > C , R) .
+
+    eq breakLoop(PSet, C, K) = C [owise] .
+
+    *** Guess on input - should be added
+
+
+    *** Set value on input
+    eq loopStepActions((ID1 ! I) ;; (ID2 ! O) ;; PSet, 
+                      < ID1 : SU | inputs : (< I : Input | status : Undef > INPUTS) > 
+                      < ID2 : SU | outputs : (< O : Output | time : T, status : Def > OUTPUTS) > 
+                        (ID2 ! O ==> ID1 ! I) C, AL) = 
+              loopStepActions((ID2 ! O) ;; PSet, 
+                      setAction(< ID1 : SU | >, I, T)
+                      < ID2 : SU | > (ID2 ! O ==> ID1 ! I) C, 
+                      (AL ; (event: Set SU: ID1 PId: I))) .
+
+    *** Get output value - remember feed through
+    ceq loopStepActions((ID1 ! O) ;; PSet, 
+                    < ID1 : SU | time : T, outputs : (< O : Output | dependsOn : FT > OUTPUTS), inputs : INPUTS > C, AL) = 
+                    loopStepActions(PSet,
+                      getAction( < ID1 : SU | >, O) C, 
+                      (AL ; (event: Get SU: ID1 PId: O))) 
+                      if feedthroughSatisfied(FT, INPUTS, T).
+
+    *** Step
+    ceq loopStepActions((ID1 ! O) ;; PSet,  
+                    < ID1 : SU | time : T, outputs : OUTPUTS, inputs : INPUTS > stepSize: S C, AL) = 
+                  loopStepActions((ID1 ! O) ;; PSet,
+                    stepAction(< ID1 : SU | >, S) stepSize: S C, (AL ; (event: Step SU: ID1 PId: emptySet)))
+                    if canStep(T, (T + S), INPUTS, OUTPUTS) .
+
+    eq loopStepActions(emptyLoop,C, AL) = AL .
+
+endom)

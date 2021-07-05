@@ -1,0 +1,171 @@
+load LOOPSolver.maude
+
+(omod COSIMULATION is 
+   protecting StepFinder .
+   sort GlobalState .
+
+   op performStepNegotiation : Configuration -> Configuration .
+   op performGlobalStep : Configuration -> Configuration .
+   op allSUinSimulation : Configuration -> Bool .
+   op `{_`} : Configuration -> GlobalState .
+   op getPorts : Configuration EPortIdSet -> EPortIdSet .
+
+   vars ID1 ID2 : SUID .
+   var SUIDs : SUIdSet .
+   vars I O : PortId .
+   vars T T1 T2 : Nat .
+   vars INPUTS OUTPUTS C : Configuration . 
+   var ST : fmiState .
+   var AL : ActionList .
+   var FT : PortIdSet .
+   var P : EPortIdSet .
+   var S : NzNat .
+
+  *** Step Negotiation
+  ceq performStepNegotiation(C SNSet: SUIDs stepSize: T Algorithm: AL) = 
+                              C SNSet: emptySUSet 
+                                Algorithm: (AL ; (complexEvent: StepNegotiation SaveSUs: SUIDs RestoreSUs: SUIDs Actions: getStepAction(SUIDs, C stepSize: T, emptyList)))
+                              (stepSize: findStep(SUIDs, C stepSize: T,C stepSize: T)) if needsStepNegotiation(SUIDs) .
+
+  ceq performStepNegotiation(C SNSet: SUIDs) = C if not needsStepNegotiation(SUIDs) .  
+
+
+  *** Get All ports in the scenario:
+  ceq getPorts(< ID1 : SU | inputs : (< I : Input | > INPUTS) > C, P) = getPorts(< ID1 : SU | > C,  (ID1 ! I) ;; P )
+            if not (ID1 ! I) in P .
+
+  ceq getPorts(< ID1 : SU | outputs : (< O : Output | > OUTPUTS) > C, P) = getPorts(< ID1 : SU | > C,  (ID1 ! O) ;; P )
+            if not (ID1 ! O) in P .
+
+  eq getPorts(C, P) = P [owise] . 
+
+  ***Calculation of Algebraic Loops
+  *** External Connection 
+
+  *** All SUs are in the simulation state
+  eq allSUinSimulation(< ID1 : SU | state : ST > C) = ST == Simulation and allSUinSimulation(C) . 
+  eq allSUinSimulation(C) = true [owise] .
+
+  *** Perform the global simulation step
+  *** Set reactive
+  ceq performGlobalStep(C < ID1 : SU | time : T1, inputs : (< I : Input | time : T1, type : r > INPUTS) > 
+                          < ID2 : SU | outputs : (< O : Output | time : T2, status : Def > OUTPUTS) > 
+                         (ID2 ! O ==> ID1 ! I) Algorithm: AL) = 
+            performGlobalStep(C setAction( < ID1 : SU | >, I, T2) < ID2 : SU | > 
+                         (ID2 ! O ==> ID1 ! I) 
+                         Algorithm: (AL ; (event: Set SU: ID1 PId: I)))
+                         if T1 < T2 .
+  *** Set delayed
+  ceq performGlobalStep(C < ID1 : SU | time : T, inputs : (< I : Input | time : T1, type : d > INPUTS) > 
+                          < ID2 : SU | outputs : (< O : Output | time : T, status : Def > OUTPUTS) > 
+                         (ID2 ! O ==> ID1 ! I) Algorithm: AL) = 
+        performGlobalStep(C setAction( < ID1 : SU | >, I, T) < ID2 : SU | > < ID2 : SU | > 
+                         (ID2 ! O ==> ID1 ! I) Algorithm: (AL ; (event: Set SU: ID1 PId: I)))
+                         if T1 < T .
+
+  *** Step
+  ceq performGlobalStep(C < ID1 : SU | time : T, inputs : INPUTS, outputs : OUTPUTS > stepSize: S endTime: T2 Algorithm: AL)  = 
+      performGlobalStep(C 
+                        stepAction(< ID1 : SU | >, S)
+                        stepSize: S endTime: T2 Algorithm: (AL ; (event: Step SU: ID1 PId: emptySet)))
+                        if canStep(T, (T + S), INPUTS, OUTPUTS) and (T + S) <= T2 . 
+
+  *** Get
+  ceq performGlobalStep(C < ID1 : SU | time : T, inputs : INPUTS, outputs : (< O : Output | status : Undef, dependsOn : FT > OUTPUTS) > Algorithm: AL) =
+                    performGlobalStep(C getAction(< ID1 : SU | >, O) Algorithm: (AL ; (event: Get SU: ID1 PId: O)))  
+                    if feedthroughSatisfied(FT, INPUTS, T) .
+
+  eq performGlobalStep(C) = C [owise] .
+
+  *** FMI-standard state transition:
+
+  rl [setExp] : < ID1 : SU | state : Instantiated > Algorithm: AL 
+                 => < ID1 : SU | state : ExperimentSetup > Algorithm: (AL ; (fmiEvent: CreateExp SU: ID1)) .
+
+  rl [init] : < ID1 : SU | inputs : INPUTS , outputs : OUTPUTS, state : ExperimentSetup >  Algorithm: AL 
+          => < ID1 : SU | inputs : undefPorts(INPUTS, 0), outputs : undefPorts(OUTPUTS, 0), state : Initialize > 
+              Algorithm: (AL ; (fmiEvent: EnterInitialization SU: ID1)).
+
+  crl [simulate] : < ID1 : SU | inputs : INPUTS , outputs : OUTPUTS, state : Initialize > C Algorithm: AL 
+                => < ID1 : SU | state : Simulation > C Algorithm: (AL ; (fmiEvent: ExitInitialization SU: ID1))
+                if allDef(INPUTS, 0) and allDef(OUTPUTS, 0) and allInputsSet(C) .
+
+  crl [terminate] : < ID1 : SU | time : T1, inputs : INPUTS , outputs : OUTPUTS , state : Simulation > endTime: T1 Algorithm: AL 
+                 => < ID1 : SU | state : Terminated > endTime: T1 Algorithm: (AL ; (fmiEvent: Terminate SU: ID1))
+                 if allDef(OUTPUTS, T1) and allDef(INPUTS, T1) .
+
+  rl [free] : < ID1 : SU | state : Terminated > Algorithm: AL 
+           => < ID1 : SU | state : InstanceFreed > Algorithm: (AL ; (fmiEvent: FreeInstance SU: ID1)) .
+
+  rl [unload] : < ID1 : SU | state : InstanceFreed > Algorithm: AL
+              => < ID1 : SU | state : Unloaded > Algorithm: (AL ; (fmiEvent: Unload SU: ID1)) .
+
+
+   *** Initalization Procedure 
+   crl [get-init] :  < ID1 : SU | outputs : ((< O : Output | status : Undef , dependsOn : FT >) OUTPUTS) , inputs : INPUTS, state : Initialize > Algorithm: AL 
+                  => 
+                  getAction(< ID1 : SU | >, O)                  
+                  Algorithm: (AL ; (event: Get SU: ID1 PId: O)) if feedthroughSatisfied(FT, INPUTS, 0) .
+
+   *** Inputs can only rely on one connection 
+   rl [set-init] :  < ID1 : SU | inputs : (< I : Input | status : Undef > INPUTS), state : Initialize > Algorithm: AL 
+                          < ID2 : SU | outputs : (< O : Output | status : Def > OUTPUTS) > (ID2 ! O ==> ID1 ! I)
+                        => 
+                           setAction(< ID1 : SU | >, I, 0)
+                           < ID2 : SU | > (ID2 ! O ==> ID1 ! I) Algorithm: (AL ; (event: Set SU: ID1 PId: I)) .
+  ***Complex scenarios with save and restore - this should 
+  *** Recognise Loop and treat them
+
+
+  ***If the scenario contains SUs that require step negotiation
+  ***The step negotiation
+  crl [stepNego] : { C SNSet: SUIDs} => 
+          { performStepNegotiation(C SNSet: SUIDs)}
+          if needsStepNegotiation(SUIDs) and allSUinSimulation(C) .
+
+  crl [simulationStep]: { C SNSet: SUIDs} => 
+          { performGlobalStep(C SNSet: SUIDs) }
+        if (not needsStepNegotiation(SUIDs)) and allSUinSimulation(C) .
+
+ 
+  *** Definition of system
+  op externalConnection : ->  Configuration .    *** External Connections - all ports have unique name
+  op simulationUnits : -> Configuration .      *** SUs - ID * input ports * and outputs
+
+  op setup : -> GlobalState .
+
+***Encoding of the Scenario 
+
+eq externalConnection = ('msd1 ! 'x1 ==> 'msd2 ! 'x1) ('msd1 ! 'v1 ==> 'msd2 ! 'v1) ('msd2 ! 'fk ==> 'msd1 ! 'fk) ('msd2 ! 'fk ==> 'msd3 ! 'fk) .
+
+eq simulationUnits = 
+(< 'msd2 : SU | time : 0, inputs : (< 'x1 : Input | time : 0, type : r, status : Undef  >) (< 'v1 : Input | time : 0, type : r, status : Undef  >), outputs : (< 'fk : Output | time : 0, status : Undef, dependsOn : ( 'x1 :: 'v1 ) >), state : Instantiated, canReject : false >)
+
+ (< 'msd1 : SU | time : 0, inputs : (< 'fk : Input | time : 0, type : d, status : Undef  >), outputs : (< 'x1 : Output | time : 0, status : Undef, dependsOn : emptySet >) (< 'v1 : Output | time : 0, status : Undef, dependsOn : emptySet >), state : Instantiated, canReject : true >)
+
+ (< 'msd3 : SU | time : 0, inputs : (< 'fk : Input | time : 0, type : d, status : Undef  >), outputs : none, state : Instantiated, canReject : false >) .
+
+
+  eq setup = { calculateSNSet(simulationUnits externalConnection stepSize: 1 endTime: 1 Algorithm: emptyList SNSet: emptySUSet) } .
+
+endom)
+
+eof
+
+*** Check for termination - not useful 
+(search setup =>! X:Configuration . )
+show search graph .
+
+( frew setup . )
+
+( frew [20] setup using fmi_rules_setExpt . )
+( red needsStepNegotiation(setup) . )
+( red allSUinSimulation(setup) . )
+
+( red breakLoop(setup) . )
+
+( red findStep(setup,setup) . )
+( red getPorts(simulationUnits, emptyLoop) . )
+
+set trace on .
+trace exclude FULL-MAUDE . set trace substitution off . set trace eq off . 

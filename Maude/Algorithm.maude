@@ -1,0 +1,60 @@
+load Port.maude
+
+(omod Algorithm is 
+ protecting Ports .
+ sorts ActionType FMIActionType ComplexActionType SUIdSet ActionList Action LoopType Algebraic AlgebraicLoops .
+ subsort SUID < SUIdSet .
+ subsort Action < ActionList .
+ subsort Algebraic < AlgebraicLoops .
+    
+ *** Types
+ ops CreateExp EnterInitialization ExitInitialization Terminate FreeInstance Unload : -> FMIActionType [ctor] . 
+ ops Set Get Step Save CreateExp : -> ActionType [ctor] . 
+ ops StepNegotiation Loop : -> ComplexActionType [ctor] . 
+ ops F R : -> LoopType [ctor] . 
+ op fmiEvent:_SU:_ : FMIActionType PortId -> Action [ctor format(nib! d d d d)] .
+ op event:_SU:_PId:_ : ActionType SUID PortIdSet -> Action [ctor format(nib! d d d d d d)] .
+ op complexEvent:_SaveSUs:_RestoreSUs:_Actions:_ : ComplexActionType SUIdSet SUIdSet ActionList -> Action [ctor format(nib! d d d d d d d d)] .
+ op AlgebraicLoop:_Type:_ : EPortIdSet LoopType -> Algebraic[ctor] . 
+ 
+ *** Configuration fields
+ op Algorithm:_ : ActionList -> Configuration [ctor format(nir! d d)] . 
+ op SNSet:_ : SUIdSet -> Configuration [ctor format(ni d d)] .
+ op stepSize:_ : NzNat -> Configuration [ctor format(nig! d d)] . 
+ op endTime:_ : NzNat -> Configuration [ctor format(nim! d d)] . 
+ op SCC:_ : AlgebraicLoops -> Configuration [ctor format(nim! d d)] . 
+
+ ***Operations
+ op emptySUSet : -> SUIdSet [ctor] .
+ op _++_ : SUIdSet SUIdSet -> SUIdSet [ctor assoc comm id: emptySUSet] .
+
+ op _in_ : SUID SUIdSet -> Bool . 
+ op _memberOf_ : EPortId AlgebraicLoops -> Bool . 
+
+ op emptyList : -> ActionList [ctor] .
+ op _;_ : ActionList ActionList -> ActionList [ctor assoc id: emptyList] .
+
+ op noLoops : -> AlgebraicLoops [ctor] .
+ op _#_ : AlgebraicLoops AlgebraicLoops -> AlgebraicLoops [ctor assoc id: noLoops] .
+
+ op getSUs : EPortIdSet SUIdSet -> SUIdSet .
+
+ var ID : SUID .
+ var SUSet : SUIdSet .
+ var L : AlgebraicLoops .
+ var P : EPortId .
+ var T : LoopType .
+ var PSet : EPortIdSet .
+ var PID : PortId .
+
+ eq ID in ID ++ SUSet = true .
+ eq ID in SUSet = false [owise] .
+
+ eq P memberOf (AlgebraicLoop: (P ;; PSet)  Type: T) # L = true .
+ eq P memberOf L = false [owise] .
+
+ eq getSUs(emptyLoop, SUSet) = SUSet .
+ eq getSUs((ID ! PID) ;; PSet, ID ++ SUSet) = getSUs(PSet, SUSet) .
+ eq getSUs((ID ! PID) ;; PSet, SUSet) = getSUs(PSet, ID ++ SUSet) [owise] .
+
+endom)

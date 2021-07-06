@@ -1,0 +1,7 @@
+
+(omod ScenarioAnalyser
+    protecting SimulationUnit .
+
+    *** Implementation of Tarjan to find SCC in the scenario
+
+endom)

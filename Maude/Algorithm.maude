@@ -15,7 +15,7 @@ load Port.maude
  *** Rename loop type
  op fmiEvent:_SU:_ : FMIActionType PortId -> Action [ctor format(nib! d d d d)] .
  op event:_SU:_PId:_ : ActionType SUID PortIdSet -> Action [ctor format(nib! d d d d d d)] .
- op complexEvent:_SaveSUs:_RestoreSUs:_Actions:_ : ComplexActionType SUIdSet SUIdSet ActionList -> Action [ctor format(nib! d d d d d d d d)] .
+ op complexEvent:_SaveSUs:_RestoreSUs:_Actions:_ : ComplexActionType SUIdSet SUIdSet ActionList -> Action [ctor format(niy! d d d d d d d d)] .
  op AlgebraicLoop:_Type:_ : EPortIdSet LoopType -> Algebraic[ctor] . 
  
  *** Configuration fields
@@ -25,7 +25,6 @@ load Port.maude
  op endTime:_ : NzNat -> Configuration [ctor format(nim! d d)] . 
  op SCC:_ : AlgebraicLoops -> Configuration [ctor format(nim! d d)] . 
  op guessOn:_ : EPortIdSet -> Configuration [ctor format(nip! d d)] .
-
 
  ***Operations
  op emptySUSet : -> SUIdSet [ctor] .

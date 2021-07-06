@@ -32,8 +32,8 @@ load LOOPSolver.maude
   ceq performStepNegotiation(C SNSet: SUIDs stepSize: S Algorithm: AL) = 
                               C SNSet: emptySUSet 
                                 Algorithm: (AL ; (complexEvent: StepNegotiation SaveSUs: SUIDs RestoreSUs: SUIDs 
-                                Actions: getStepAction(SUIDs, C stepSize: S, emptyList)))
-                              (stepSize: (findStep(SUIDs, C stepSize: S, C stepSize: S)))
+                                Actions: getAL(findStep(SUIDs, C stepSize: S, C stepSize: S, emptyList))))
+                              (stepSize: getStep(findStep(SUIDs, C stepSize: S, C stepSize: S, emptyList)))
                               if needsStepNegotiation(SUIDs) .
 
   ceq performStepNegotiation(C SNSet: SUIDs) = C if not needsStepNegotiation(SUIDs) .  

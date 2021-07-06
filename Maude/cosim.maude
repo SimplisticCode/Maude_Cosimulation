@@ -22,6 +22,7 @@ load LOOPSolver.maude
    var S : NzNat .
    var L : Algebraic .  
    var LOOPS : AlgebraicLoops .  
+   var M : Mode .
 
   *** Step Negotiation
   ceq performStepNegotiation(C SNSet: SUIDs stepSize: S Algorithm: AL) = 
@@ -59,6 +60,7 @@ load LOOPSolver.maude
                          (ID2 ! O ==> ID1 ! I) 
                          Algorithm: (AL ; (event: Set SU: ID1 PId: I)))
                          if T1 < T2 .
+
   *** Set delayed
   ceq performGlobalStep(C < ID1 : SU | time : T, inputs : (< I : Input | time : T1, type : d > INPUTS) > 
                           < ID2 : SU | outputs : (< O : Output | time : T, status : Def > OUTPUTS) > 
@@ -75,23 +77,22 @@ load LOOPSolver.maude
                         if canStep(T, (T + S), INPUTS, OUTPUTS) and (T + S) <= T2 . 
 
   *** Get
-  ceq performGlobalStep(C < ID1 : SU | time : T, inputs : INPUTS, outputs : (< O : Output | status : Undef, dependsOn : FT > OUTPUTS) > Algorithm: AL) =
+  ceq performGlobalStep(C < ID1 : SU | time : T, inputs : INPUTS, outputs : (< O : Output | status : Undef, dependsOn : FT > OUTPUTS) >       Algorithm: AL) =
                     performGlobalStep(C getAction(< ID1 : SU | >, O) Algorithm: (AL ; (event: Get SU: ID1 PId: O)))  
                     if feedthroughSatisfied(FT, INPUTS, T) .
 
-
   *** Algebraic Loop - solve and remove loop
-  eq performGlobalStep(C SCC: (L # LOOPS)) = solveLoop(C SCC: LOOPS, L) .
+  eq performGlobalStep(C SCC: (L # LOOPS)) = solveLoop(C SCC: LOOPS, L) [owise] .
 
-  eq performGlobalStep(C) = C [owise] .
+  *** 
+  ceq performGlobalStep(C) = C if simulationStepDone(C) .
 
   *** FMI-standard state transition:
-
   rl [setExp] : < ID1 : SU | state : Instantiated > Algorithm: AL 
                  => < ID1 : SU | state : ExperimentSetup > Algorithm: (AL ; (fmiEvent: CreateExp SU: ID1)) .
 
   rl [init] : < ID1 : SU | inputs : INPUTS , outputs : OUTPUTS, state : ExperimentSetup >  Algorithm: AL 
-          => < ID1 : SU | inputs : undefPorts(INPUTS, 0), outputs : undefPorts(OUTPUTS, 0), state : Initialize > 
+           => < ID1 : SU | inputs : undefPorts(INPUTS, 0), outputs : undefPorts(OUTPUTS, 0), state : Initialize > 
               Algorithm: (AL ; (fmiEvent: EnterInitialization SU: ID1)).
 
   crl [simulate] : < ID1 : SU | inputs : INPUTS , outputs : OUTPUTS, state : Initialize > C Algorithm: AL 
@@ -117,7 +118,7 @@ load LOOPSolver.maude
 
    *** Inputs can only rely on one connection 
    rl [set-init] :  < ID1 : SU | inputs : (< I : Input | status : Undef > INPUTS), state : Initialize > Algorithm: AL 
-                          < ID2 : SU | outputs : (< O : Output | status : Def > OUTPUTS) > (ID2 ! O ==> ID1 ! I)
+                    < ID2 : SU | outputs : (< O : Output | status : Def > OUTPUTS) > (ID2 ! O ==> ID1 ! I)
                         => 
                            setAction(< ID1 : SU | >, I, 0)
                            < ID2 : SU | > (ID2 ! O ==> ID1 ! I) Algorithm: (AL ; (event: Set SU: ID1 PId: I)) .
@@ -151,7 +152,7 @@ eq simulationUnits = (< 'msd1 : SU | time : 0, inputs : (< 'fk : Input | time : 
  	 (< 'msd2 : SU | time : 0, inputs : (< 'x1 : Input | time : 0, type : r, status : Undef  >) (< 'v1 : Input | time : 0, type : r, status : Undef  >), outputs : (< 'fk : Output | time : 0, status : Undef, dependsOn : ( 'x1 :: 'v1 ) >), state : Instantiated, canReject : true >) .
 
 
-  eq algeLoops = noLoops .
+  eq algeLoops = ('msd1 ! 'x1) ;; ('msd2 ! 'x1) ;; ('msd2 ! 'v1) ;; ('msd1 ! 'v1) .
 
 
   eq setup = { calculateSNSet(simulationUnits externalConnection stepSize: 1 endTime: 1 Algorithm: emptyList SNSet: emptySUSet guessOn: emptyLoop SCC: algeLoops) } .
@@ -170,9 +171,9 @@ show search graph .
 ( red needsStepNegotiation(setup) . )
 ( red allSUinSimulation(setup) . )
 
-( red breakLoop(('msd1 ! 'x1) ;; ('msd2 ! 'x1) ;; ('msd2 ! 'fk) ;; ('msd1 ! 'fk), (simulationUnits externalConnection stepSize: 1 endTime: 1 Algorithm: emptyList SNSet: emptySUSet guessOn: emptyLoop) , R) . )
+( red breakLoop(('msd1 ! 'x1) ;; ('msd2 ! 'x1) ;; ('msd2 ! 'v1) ;; ('msd1 ! 'v1), (simulationUnits externalConnection stepSize: 1 endTime: 1 Algorithm: emptyList SNSet: emptySUSet guessOn: emptyLoop) , R) . )
 
-( red getSUs(('msd1 ! 'x1) ;; ('msd2 ! 'x1) ;; ('msd2 ! 'fk) ;; ('msd1 ! 'fk), emptySUSet) .)
+( red getSUs(('msd1 ! 'x1) ;; ('msd2 ! 'x1) ;; ('msd2 ! 'v1) ;; ('msd1 ! 'v1), emptySUSet) .)
 
 ( red findStep(setup,setup) . )
 ( red getPorts(simulationUnits, emptyLoop) . )

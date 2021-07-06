@@ -1,4 +1,4 @@
-load LOOPSolver.maude
+load LOOPSolver
 
 (omod COSIMULATION is 
    protecting StepFinder + LOOPSolver .

@@ -1,4 +1,4 @@
-load StepFinder.maude
+load StepFinder
 
 (omod LOOPSolver is 
   protecting PerformActions .

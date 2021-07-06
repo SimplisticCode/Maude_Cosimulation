@@ -1,4 +1,4 @@
-load Algorithm.maude
+load Algorithm
 (omod SimulationUnit is
    protecting Ports + Algorithm .
    sort fmiState .

@@ -1,4 +1,4 @@
-load Port.maude
+load Port
 
 (omod Algorithm is 
  protecting Ports .

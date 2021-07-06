@@ -1,4 +1,4 @@
-load SimulationUnit.maude 
+load SimulationUnit 
 
 (omod StepFinder is
   protecting PerformActions .

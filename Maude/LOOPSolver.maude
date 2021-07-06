@@ -2,6 +2,9 @@ load StepFinder.maude
 
 (omod LOOPSolver is 
   protecting PerformActions .
+    sorts Pair .
+
+    op <_;_> : ActionList Configuration -> Pair [ctor] .
     op solveLoop : Configuration Algebraic  -> Configuration . 
     op breakLoop : EPortIdSet Configuration LoopType -> Configuration .
     op loopStepActions : EPortIdSet Configuration ActionList -> ActionList .
@@ -14,7 +17,7 @@ load StepFinder.maude
     vars ID1 ID2 : SUID .
     vars PSet GSet : EPortIdSet .
     var AL : ActionList .
-    var T : Nat .
+    var T T1 : Nat .
     var S : NzNat .
     var FT : PortIdSet .
     var M : Mode .
@@ -23,11 +26,11 @@ load StepFinder.maude
    eq containsCycle(noLoops) = false .
    eq containsCycle(L) = true [owise] .
 
-   eq solveLoop(C Algorithm: AL, AlgebraicLoop: PSet Type: K) = C 
+   eq solveLoop(C Algorithm: AL, AlgebraicLoop: PSet Type: K) = C
         Algorithm: (AL ; (complexEvent: Loop SaveSUs: getSUs(PSet, emptySUSet) RestoreSUs: getSUs(PSet, emptySUSet) 
         Actions: loopStepActions(PSet, breakLoop(PSet, C, K), emptyList))) .
 
-    *** Forget All Delayed Connections for 
+    *** Forget All Connections depending on type of loop 
     ceq breakLoop((ID1 ! I) ;; PSet,   
                      < ID1 : SU | inputs : (< I : Input | type : M > INPUTS) > 
                      < ID2 : SU | outputs : (< O : Output | > OUTPUTS) > 
@@ -35,21 +38,21 @@ load StepFinder.maude
                         breakLoop((ID1 ! I) ;; PSet, < ID1 : SU | > < ID2 : SU | > guessOn: ((ID1 ! I) ;; GSet) C , K) 
                         if (K == R and M == r) or (K == F and M == d) .
 
-    *** Forget All Reactive Connections  
     eq breakLoop(PSet, C, K) = C [owise] .
 
     *** Set value using Guess
-    eq loopStepActions((ID1 ! I) ;; PSet, 
-                      < ID1 : SU | time : T, inputs : (< I : Input | time : T, type : r > INPUTS) > 
+    ceq loopStepActions((ID1 ! I) ;; PSet, 
+                      < ID1 : SU | time : T, inputs : (< I : Input | time : T1, type : M > INPUTS) > 
                     guessOn: ((ID1 ! I) ;; GSet) stepSize: S C, AL) = 
             loopStepActions(PSet, 
-                    setAction(< ID1 : SU | >, I, (T + S))
+                    setAction(< ID1 : SU | >, I, T1 + S)
                     guessOn: GSet stepSize: S C, 
-                    (AL ; (event: Set SU: ID1 PId: I))) .
+                    (AL ; (event: Set SU: ID1 PId: I))) 
+                    if (M == r and T1 == T) or (M == d and T == (T1 + S)) .
 
     *** Set value on input - Fix
     ceq loopStepActions((ID1 ! I) ;; PSet, 
-                      < ID1 : SU | inputs : (< I : Input | time : T, type : r > INPUTS) > 
+                      < ID1 : SU | inputs : (< I : Input | time : T, type : M > INPUTS) > 
                       < ID2 : SU | outputs : (< O : Output | time : T1, status : Def > OUTPUTS) > 
                         (ID2 ! O ==> ID1 ! I) C, AL) = 
               loopStepActions(PSet, 

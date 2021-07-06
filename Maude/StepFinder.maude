@@ -26,7 +26,7 @@ load SimulationUnit.maude
    *** Calculation of the members of the set of SUs that should be backtracked in the step negotiation
    ceq calculateSNSet(< ID1 : SU | inputs : (< I : Input | type : r > INPUTS) > 
                       < ID2 : SU | outputs : (< O : Output | > OUTPUTS) > (ID2 ! O ==> ID1 ! I) (SNSet: (ID1 ++ SUIDs))  C) = 
-                                         calculateSNSet(< ID1 : SU | > < ID2 : SU | canReject : true > (ID2 ! O ==> ID1 ! I) 
+                                         calculateSNSet(< ID1 : SU | > < ID2 : SU | > (ID2 ! O ==> ID1 ! I) 
                                          (SNSet: (ID1 ++ ID2 ++ SUIDs)) C) 
                                          if not ID2 in SUIDs .
   

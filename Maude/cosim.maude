@@ -9,6 +9,7 @@ load LOOPSolver.maude
    op allSUinSimulation : Configuration -> Bool .
    op `{_`} : Configuration -> GlobalState .
    op getPorts : Configuration EPortIdSet -> EPortIdSet .
+   op simulationStepDone : Configuration -> Bool .
 
    vars ID1 ID2 : SUID .
    var SUIDs : SUIdSet .
@@ -24,6 +25,9 @@ load LOOPSolver.maude
    var LOOPS : AlgebraicLoops .  
    var M : Mode .
 
+  eq simulationStepDone(< ID1 : SU | time : T, inputs : INPUTS, outputs : OUTPUTS > C) = T > 0 and allDef(INPUTS, T) and allDef(OUTPUTS, T) and simulationStepDone(C) .
+  eq simulationStepDone(C) = true [owise] .
+
   *** Step Negotiation
   ceq performStepNegotiation(C SNSet: SUIDs stepSize: S Algorithm: AL) = 
                               C SNSet: emptySUSet 
@@ -34,7 +38,6 @@ load LOOPSolver.maude
 
   ceq performStepNegotiation(C SNSet: SUIDs) = C if not needsStepNegotiation(SUIDs) .  
 
-
   *** Get All ports in the scenario:
   ceq getPorts(< ID1 : SU | inputs : (< I : Input | > INPUTS) > C, P) = getPorts(< ID1 : SU | > C,  (ID1 ! I) ;; P )
             if not (ID1 ! I) in P .
@@ -44,30 +47,19 @@ load LOOPSolver.maude
 
   eq getPorts(C, P) = P [owise] . 
 
-  ***Calculation of Algebraic Loops
-  *** External Connection 
-
   *** All SUs are in the simulation state
   eq allSUinSimulation(< ID1 : SU | state : ST > C) = ST == Simulation and allSUinSimulation(C) . 
   eq allSUinSimulation(C) = true [owise] .
 
   *** Perform the global simulation step
-  *** Set reactive
-  ceq performGlobalStep(C < ID1 : SU | time : T1, inputs : (< I : Input | time : T1, type : r > INPUTS) > 
+  *** Set input
+  ceq performGlobalStep(C < ID1 : SU | time : T, inputs : (< I : Input | time : T1, type : M > INPUTS) > 
                           < ID2 : SU | outputs : (< O : Output | time : T2, status : Def > OUTPUTS) > 
                          (ID2 ! O ==> ID1 ! I) Algorithm: AL) = 
             performGlobalStep(C setAction( < ID1 : SU | >, I, T2) < ID2 : SU | > 
                          (ID2 ! O ==> ID1 ! I) 
                          Algorithm: (AL ; (event: Set SU: ID1 PId: I)))
-                         if T1 < T2 .
-
-  *** Set delayed
-  ceq performGlobalStep(C < ID1 : SU | time : T, inputs : (< I : Input | time : T1, type : d > INPUTS) > 
-                          < ID2 : SU | outputs : (< O : Output | time : T, status : Def > OUTPUTS) > 
-                         (ID2 ! O ==> ID1 ! I) Algorithm: AL) = 
-        performGlobalStep(C setAction( < ID1 : SU | >, I, T) < ID2 : SU | > 
-                         (ID2 ! O ==> ID1 ! I) Algorithm: (AL ; (event: Set SU: ID1 PId: I)))
-                         if T1 < T .
+                         if T1 < T2 and ((M == d and T1 < T) or (M == r and T == T1)) .
 
   *** Step
   ceq performGlobalStep(C < ID1 : SU | time : T, inputs : INPUTS, outputs : OUTPUTS > stepSize: S endTime: T2 Algorithm: AL)  = 
@@ -99,9 +91,9 @@ load LOOPSolver.maude
                 => < ID1 : SU | state : Simulation > C Algorithm: (AL ; (fmiEvent: ExitInitialization SU: ID1))
                 if allDef(INPUTS, 0) and allDef(OUTPUTS, 0) and allInputsSet(C) .
 
-  crl [terminate] : < ID1 : SU | time : T1, inputs : INPUTS , outputs : OUTPUTS , state : Simulation > endTime: T1 Algorithm: AL 
-                 => < ID1 : SU | state : Terminated > endTime: T1 Algorithm: (AL ; (fmiEvent: Terminate SU: ID1))
-                 if allDef(OUTPUTS, T1) and allDef(INPUTS, T1) .
+  crl [terminate] : < ID1 : SU | time : T, inputs : INPUTS , outputs : OUTPUTS , state : Simulation > endTime: T Algorithm: AL 
+                 => < ID1 : SU | state : Terminated > endTime: T Algorithm: (AL ; (fmiEvent: Terminate SU: ID1))
+                 if allDef(OUTPUTS, T) and allDef(INPUTS, T) .
 
   rl [free] : < ID1 : SU | state : Terminated > Algorithm: AL 
            => < ID1 : SU | state : InstanceFreed > Algorithm: (AL ; (fmiEvent: FreeInstance SU: ID1)) .
@@ -145,14 +137,14 @@ load LOOPSolver.maude
   op algeLoops : -> AlgebraicLoops .
 
 ***Encoding of the Scenario 
-eq externalConnection = ('msd1 ! 'x1 ==> 'msd2 ! 'x1) ('msd1 ! 'v1 ==> 'msd2 ! 'v1) ('msd2 ! 'fk ==> 'msd1 ! 'fk) .
+eq externalConnection = ('msd1 ! 'x1 ==> 'msd2 ! 'x1) ('msd1 ! 'z ==> 'msd2 ! 'z) ('msd2 ! 'fk ==> 'msd1 ! 'fk) .
 
-eq simulationUnits = (< 'msd1 : SU | time : 0, inputs : (< 'fk : Input | time : 0, type : d, status : Undef  >), outputs : (< 'x1 : Output | time : 0, status : Undef, dependsOn : emptySet >) (< 'v1 : Output | time : 0, status : Undef, dependsOn : emptySet >), state : Instantiated, canReject : true >)
+eq simulationUnits = (< 'msd2 : SU | time : 0, inputs : (< 'x1 : Input | time : 0, type : r, status : Undef  >) (< 'z : Input | time : 0, type : d, status : Undef  >), outputs : (< 'fk : Output | time : 0, status : Undef, dependsOn : emptySet >), state : Instantiated, canReject : false >)
 
- 	 (< 'msd2 : SU | time : 0, inputs : (< 'x1 : Input | time : 0, type : r, status : Undef  >) (< 'v1 : Input | time : 0, type : r, status : Undef  >), outputs : (< 'fk : Output | time : 0, status : Undef, dependsOn : ( 'x1 :: 'v1 ) >), state : Instantiated, canReject : true >) .
+ 	 (< 'msd1 : SU | time : 0, inputs : (< 'fk : Input | time : 0, type : r, status : Undef  >), outputs : (< 'x1 : Output | time : 0, status : Undef, dependsOn : emptySet >) (< 'z : Output | time : 0, status : Undef, dependsOn : emptySet >), state : Instantiated, canReject : false >) .
 
 
-  eq algeLoops = ('msd1 ! 'x1) ;; ('msd2 ! 'x1) ;; ('msd2 ! 'v1) ;; ('msd1 ! 'v1) .
+  eq algeLoops = (AlgebraicLoop: ('msd1 ! 'x1) ;; ('msd2 ! 'x1) ;; ('msd2 ! 'fk) ;; ('msd1 ! 'fk) Type: R) .
 
 
   eq setup = { calculateSNSet(simulationUnits externalConnection stepSize: 1 endTime: 1 Algorithm: emptyList SNSet: emptySUSet guessOn: emptyLoop SCC: algeLoops) } .

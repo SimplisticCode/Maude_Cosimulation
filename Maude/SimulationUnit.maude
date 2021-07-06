@@ -57,12 +57,10 @@ endom)
 
 (omod PerformActions is
   protecting SimulationUnit .
-  
   op getAction : Object PortId -> Object .
   op setAction : Object PortId Nat -> Object .
   op stepAction : Object NzNat -> Object .
 
-***Why can't I use these functions in other places
   var ID1 : SUID .
   vars I O : PortId .
   var S : NzNat .

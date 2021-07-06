@@ -5,4 +5,4 @@ eq simulationUnits = (< 'msd2 : SU | time : 0, inputs : (< 'x1 : Input | time : 
  	 (< 'msd1 : SU | time : 0, inputs : (< 'fk : Input | time : 0, type : r, status : Undef  >), outputs : (< 'x1 : Output | time : 0, status : Undef, dependsOn : emptySet >) (< 'z : Output | time : 0, status : Undef, dependsOn : emptySet >), state : Instantiated, canReject : false >) .
 
 
-  eq algeLoops = (AlgebraicLoop: ('msd1 ! 'x1) ;; ('msd2 ! 'x1) ;; ('msd2 ! 'fk) ('msd1 ! 'fk) Type: R) .
+  eq algeLoops = (AlgebraicLoop: ('msd1 ! 'x1) ;; ('msd2 ! 'x1) ;; ('msd2 ! 'fk) ;; ('msd1 ! 'fk) Type: R) .

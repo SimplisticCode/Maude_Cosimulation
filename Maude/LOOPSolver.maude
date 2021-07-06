@@ -4,7 +4,7 @@ load StepFinder.maude
   protecting PerformActions .
     op solveLoop : Configuration Algebraic  -> Configuration . 
     op breakLoop : EPortIdSet Configuration LoopType -> Configuration .
-    op loopStepActions : EPortIdSet Configuration LoopType ActionList -> ActionList .
+    op loopStepActions : EPortIdSet Configuration ActionList -> ActionList .
     op containsCycle : AlgebraicLoops -> Bool . 
 
     var L : AlgebraicLoops .  
@@ -17,6 +17,7 @@ load StepFinder.maude
     var T : Nat .
     var S : NzNat .
     var FT : PortIdSet .
+    var M : Mode .
 
    *** Does the scenario contain any loop
    eq containsCycle(noLoops) = false .
@@ -24,19 +25,24 @@ load StepFinder.maude
 
    eq solveLoop(C Algorithm: AL, AlgebraicLoop: PSet Type: K) = C 
         Algorithm: (AL ; (complexEvent: Loop SaveSUs: getSUs(PSet, emptySUSet) RestoreSUs: getSUs(PSet, emptySUSet) 
-        Actions: loopStepActions(PSet, breakLoop(PSet, C, K), K, emptyList))) .
+        Actions: loopStepActions(PSet, breakLoop(PSet, C, K), emptyList))) .
 
     *** Forget All Delayed Connections
     eq breakLoop((ID1 ! I) ;; PSet,   
-                     < ID1 : SU | inputs : (< I : Input | type : d > INPUTS) > 
-                     < ID2 : SU | outputs : (< O : Output | > OUTPUTS) > (ID2 ! O ==> ID1 ! I) guessOn: GSet C, F) = 
-                        breakLoop((ID1 ! I) ;; PSet, < ID1 : SU | > < ID2 : SU | > (ID2 ! O ==> ID1 ! I) guessOn: ((ID1 ! I) ;; GSet) C , F) .
+                     < ID1 : SU | inputs : (< I : Input | type : M > INPUTS) > 
+                     < ID2 : SU | outputs : (< O : Output | > OUTPUTS) > 
+                     (ID2 ! O ==> ID1 ! I) guessOn: GSet C, K) = 
+                        breakLoop((ID1 ! I) ;; PSet, < ID1 : SU | > < ID2 : SU | > guessOn: ((ID1 ! I) ;; GSet) C , K) 
+                        if K : R then M : r else M : d .
 
     *** Forget All Reactive Connections
     eq breakLoop((ID1 ! I) ;; PSet,
                  < ID1 : SU | inputs : (< I : Input | type : r > INPUTS) > 
                  < ID2 : SU | outputs : (< O : Output | > OUTPUTS) > (ID2 ! O ==> ID1 ! I) guessOn: GSet C , R) = 
-                breakLoop((ID1 ! I) ;; PSet, < ID1 : SU | > < ID2 : SU | > (ID2 ! O ==> ID1 ! I) guessOn: ((ID1 ! I) ;; GSet) C , R) .
+                breakLoop((ID1 ! I) ;; PSet, < ID1 : SU | > < ID2 : SU | > guessOn: ((ID1 ! I) ;; GSet) C , R) 
+                .
+    
+    *** Can loop forever
 
     eq breakLoop(PSet, C, K) = C [owise] .
 

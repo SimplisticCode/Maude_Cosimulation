@@ -72,14 +72,11 @@ endom)
 
   *** Updates the time and status of the input
   eq getAction(< ID1 : SU | time : T, outputs : (< O : Output | > OUTPUTS) >, O) = < ID1 : SU | outputs : (< O : Output | time : T, status : Def > OUTPUTS) > .
-  eq getAction(ST, O) = ST [owise] .
 
   eq setAction(< ID1 : SU | inputs : (< I : Input | > INPUTS) > , I, T) =  < ID1 : SU | inputs : (< I : Input | time : T, status : Def > INPUTS) > .
-  eq setAction(ST, I, T) = ST [owise] .
 
   *** Updates the time and the status of the outputs
   eq stepAction(< ID1 : SU | time : T, outputs : OUTPUTS >, S) = < ID1 : SU | time : (T + S), outputs : undefPorts(OUTPUTS, (T + S)) > .
-  eq stepAction(ST, S) = ST [owise] .
 
 endom)
 

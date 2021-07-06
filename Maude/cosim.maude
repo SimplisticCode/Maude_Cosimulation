@@ -23,13 +23,13 @@ load LOOPSolver.maude
    var L : Algebraic .  
    var LOOPS : AlgebraicLoops .  
 
-
-
   *** Step Negotiation
-  ceq performStepNegotiation(C SNSet: SUIDs stepSize: T Algorithm: AL) = 
+  ceq performStepNegotiation(C SNSet: SUIDs stepSize: S Algorithm: AL) = 
                               C SNSet: emptySUSet 
-                                Algorithm: (AL ; (complexEvent: StepNegotiation SaveSUs: SUIDs RestoreSUs: SUIDs Actions: getStepAction(SUIDs, C stepSize: T, emptyList)))
-                              (stepSize: findStep(SUIDs, C stepSize: T,C stepSize: T)) if needsStepNegotiation(SUIDs) .
+                                Algorithm: (AL ; (complexEvent: StepNegotiation SaveSUs: SUIDs RestoreSUs: SUIDs 
+                                Actions: getStepAction(SUIDs, C stepSize: S, emptyList)))
+                              (stepSize: (findStep(SUIDs, C stepSize: S, C stepSize: S)))
+                              if needsStepNegotiation(SUIDs) .
 
   ceq performStepNegotiation(C SNSet: SUIDs) = C if not needsStepNegotiation(SUIDs) .  
 
@@ -130,12 +130,12 @@ load LOOPSolver.maude
           { performStepNegotiation(C SNSet: SUIDs)}
           if needsStepNegotiation(SUIDs) and allSUinSimulation(C) .
 
+
   crl [simulationStep]: { C SNSet: SUIDs} => 
           { performGlobalStep(C SNSet: SUIDs) }
         if (not needsStepNegotiation(SUIDs)) and allSUinSimulation(C) .
 
- 
-  *** Definition of system
+   *** Definition of system
   op externalConnection : ->  Configuration .    *** External Connections - all ports have unique name
   op simulationUnits : -> Configuration .      *** SUs - ID * input ports * and outputs
 
@@ -144,13 +144,14 @@ load LOOPSolver.maude
   op algeLoops : -> AlgebraicLoops .
 
 ***Encoding of the Scenario 
-eq externalConnection = ('msd1 ! 'x1 ==> 'msd2 ! 'x1) ('msd1 ! 'v1 ==> 'msd2 ! 'v1) ('msd1 ! 'z ==> 'msd2 ! 'z) ('msd2 ! 'fk ==> 'msd1 ! 'fk) .
+eq externalConnection = ('msd1 ! 'x1 ==> 'msd2 ! 'x1) ('msd1 ! 'v1 ==> 'msd2 ! 'v1) ('msd2 ! 'fk ==> 'msd1 ! 'fk) .
 
-eq simulationUnits = (< 'msd1 : SU | time : 0, inputs : (< 'fk : Input | time : 0, type : r, status : Undef  >), outputs : (< 'x1 : Output | time : 0, status : Undef, dependsOn : emptySet >) (< 'z : Output | time : 0, status : Undef, dependsOn : emptySet >) (< 'v1 : Output | time : 0, status : Undef, dependsOn : emptySet >), state : Instantiated, canReject : false >)
+eq simulationUnits = (< 'msd1 : SU | time : 0, inputs : (< 'fk : Input | time : 0, type : d, status : Undef  >), outputs : (< 'x1 : Output | time : 0, status : Undef, dependsOn : emptySet >) (< 'v1 : Output | time : 0, status : Undef, dependsOn : emptySet >), state : Instantiated, canReject : true >)
 
- 	 (< 'msd2 : SU | time : 0, inputs : (< 'x1 : Input | time : 0, type : r, status : Undef  >) (< 'v1 : Input | time : 0, type : r, status : Undef  >) (< 'z : Input | time : 0, type : d, status : Undef  >), outputs : (< 'fk : Output | time : 0, status : Undef, dependsOn : ( 'x1 :: 'v1 ) >), state : Instantiated, canReject : false >) .
+ 	 (< 'msd2 : SU | time : 0, inputs : (< 'x1 : Input | time : 0, type : r, status : Undef  >) (< 'v1 : Input | time : 0, type : r, status : Undef  >), outputs : (< 'fk : Output | time : 0, status : Undef, dependsOn : ( 'x1 :: 'v1 ) >), state : Instantiated, canReject : true >) .
 
-  eq algeLoops = AlgebraicLoop: ('msd1 ! 'x1) ;; ('msd2 ! 'x1) ;; ('msd2 ! 'fk) ;; ('msd1 ! 'fk) Type: R .
+
+  eq algeLoops = noLoops .
 
 
   eq setup = { calculateSNSet(simulationUnits externalConnection stepSize: 1 endTime: 1 Algorithm: emptyList SNSet: emptySUSet guessOn: emptyLoop SCC: algeLoops) } .
@@ -163,7 +164,7 @@ eof
 (search setup =>! X:Configuration . )
 show search graph .
 
-( frew [50] setup . )
+( frew [20] setup . )
 
 ( frew [20] setup using fmi_rules_setExpt . )
 ( red needsStepNegotiation(setup) . )

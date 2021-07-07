@@ -137,15 +137,13 @@ load LOOPSolver
   op algeLoops : -> AlgebraicLoops .
 
 ***Encoding of the Scenario 
-eq externalConnection = ('msd1 ! 'x1 ==> 'msd2 ! 'x1) ('msd1 ! 'z ==> 'msd2 ! 'z) ('msd2 ! 'fk ==> 'msd1 ! 'fk) .
+eq externalConnection = ('msd1 ! 'x1 ==> 'msd2 ! 'x1) ('msd1 ! 'v1 ==> 'msd2 ! 'v1) ('msd1 ! 'z ==> 'msd2 ! 'z) ('msd2 ! 'fk ==> 'msd1 ! 'fk) .
 
-eq simulationUnits = (< 'msd2 : SU | time : 0, inputs : (< 'x1 : Input | time : 0, type : r, status : Undef  >) (< 'z : Input | time : 0, type : d, status : Undef  >), outputs : (< 'fk : Output | time : 0, status : Undef, dependsOn : emptySet >), state : Instantiated, canReject : false >)
+eq simulationUnits = (< 'msd1 : SU | time : 0, inputs : (< 'fk : Input | time : 0, type : r, status : Undef  >), outputs : (< 'x1 : Output | time : 0, status : Undef, dependsOn : emptySet >) (< 'z : Output | time : 0, status : Undef, dependsOn : emptySet >) (< 'v1 : Output | time : 0, status : Undef, dependsOn : emptySet >), state : Instantiated, canReject : false >)
 
- 	 (< 'msd1 : SU | time : 0, inputs : (< 'fk : Input | time : 0, type : r, status : Undef  >), outputs : (< 'x1 : Output | time : 0, status : Undef, dependsOn : emptySet >) (< 'z : Output | time : 0, status : Undef, dependsOn : emptySet >), state : Instantiated, canReject : false >) .
+(< 'msd2 : SU | time : 0, inputs : (< 'x1 : Input | time : 0, type : r, status : Undef  >) (< 'v1 : Input | time : 0, type : r, status : Undef  >) (< 'z : Input | time : 0, type : d, status : Undef  >), outputs : (< 'fk : Output | time : 0, status : Undef, dependsOn : ( 'x1 :: 'v1 ) >), state : Instantiated, canReject : false >) .
 
-
-  eq algeLoops = (AlgebraicLoop: ('msd1 ! 'x1) ;; ('msd2 ! 'x1) ;; ('msd2 ! 'fk) ;; ('msd1 ! 'fk) Type: R) .
-
+eq algeLoops = AlgebraicLoop: ('msd1 ! 'x1) ;; ('msd2 ! 'x1) ;; ('msd2 ! 'v1) ;; ('msd1 ! 'v1) ;; ('msd2 ! 'fk) ;; ('msd1 ! 'fk) Type: R .
 
   eq setup = { calculateSNSet(simulationUnits externalConnection stepSize: 1 endTime: 1 Algorithm: emptyList SNSet: emptySUSet guessOn: emptyLoop SCC: algeLoops) } .
 

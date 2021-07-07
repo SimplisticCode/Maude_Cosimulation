@@ -1,7 +1,187 @@
+load cosim 
 
-(omod ScenarioAnalyser
-    protecting SimulationUnit .
+(omod ScenarioAnalyser is
+    protecting COSIMULATION .
+    sort Environment IndexMap IndexMapEntry PStack DFSR PStackTuple PSCC .
+    subsort IndexMapEntry < IndexMap .
+    subsort EPortId < PStack .
+    subsort EPortIdSet < PSCC .
 
-    *** Implementation of Tarjan to find SCC in the scenario
+    op findSuccesors : EPortId Configuration -> EPortIdSet .
+    op succesors : EPortId Configuration EPortIdSet -> EPortIdSet .
+    op tarjan : Configuration -> AlgebraicLoops .
+    op split : EPortId PStack -> PStackTuple .
+
+    op dfs : EPortIdSet Environment Configuration -> DFSR .
+    op dfs1 : EPortId Environment Configuration -> DFSR .
+
+    op addStackIncr : EPortId Environment -> Environment .
+
+    op createIndexMap : EPortIdSet IndexMap -> IndexMap .
+    op nodeHasBeenVisited : EPortId Environment -> Bool .
+
+    *** Data constructors - can potentially be better (we have a lot of pairs)!
+    op env : PStack PSCC Nat IndexMap -> Environment [ctor] .
+    op map : EPortId Nat -> IndexMapEntry [ctor] .
+    op natEnv : Nat Environment -> DFSR [ctor] .
+    op pTuple : PStack PStack -> PStackTuple [ctor] .
+
+    *** Projection functions
+    op num : DFSR -> Nat .
+    op dfsrEnv : DFSR -> Environment .
+    op fstStack : PStackTuple -> PStack .
+    op sndStack : PStackTuple -> PStack .
+    op getLoops : DFSR Configuration -> AlgebraicLoops .
+    op isReactive : EPortIdSet Configuration -> Bool .
+    op createAlgebraic : PSCC Configuration AlgebraicLoops -> AlgebraicLoops .
+
+    op setInfty : EPortIdSet IndexMap -> IndexMap .
+    *** Get fields in Environment
+    op getSN : Environment -> Nat .
+    op getStack : DFSR -> PStack .
+    op getSCC : DFSR -> PSCC .
+    
+    op getIM : DFSF -> IndexMap .
+
+    op emptyMap : -> IndexMap [ctor] .
+    op _¨¨_ : IndexMap IndexMap -> IndexMap [ctor assoc comm id: emptyMap] .
+
+    op emptyStack : -> PStack [ctor] .
+    op _##_ : PStack PStack -> PStack [ctor assoc id: emptyStack] .
+
+    op emptyPSCC : -> PSCC [ctor] .
+    op _**_ : PSCC PSCC -> PSCC [ctor assoc comm id: emptyPSCC] .
+
+    vars ID1 ID2 : SUID .
+    vars I O : PortId .
+    var P : EPortId .
+    var PSet : EPortIdSet .
+    var FT : PortIdSet .
+    var IM : IndexMap .
+    vars C INPUTS OUTPUTS : Configuration .
+    vars STACK STACK1 STACK2 : PStack .
+    vars SCC L : PSCC .
+    var LOOPS : AlgebraicLoops .
+    var N : NzNat .
+    var M M1 : Nat .
+    var E : Environment .
+
+    eq getStack(natEnv(M, env(STACK, SCC, M, IM))) = STACK .
+    eq getSN(env(STACK, SCC, M, IM)) = M .
+    eq getSCC(natEnv(M, env(STACK, SCC, M, IM))) = SCC .
+    eq getIM(natEnv(M, env(STACK, SCC, M, IM))) = IM .
+
+    ***eq addStackIncr(P, env(STACK, SCC, M1, (map(P, M) ¨¨ IM))) = env(P ## STACK, SCC, (M1 + 1), (map(P, M1) ¨¨ IM))) .
+
+
+
+    *** P has been visisted before - N is non-zero!
+    eq dfs(P ;; PSet, env(STACK, SCC, M, map(P, N) ¨¨ IM), C) = natEnv(N, env(STACK, SCC, M, map(P, N) ¨¨ IM)) .
+
+    *** P has not been visited before
+    ceq dfs(P ;; PSet, E, C) = 
+        natEnv(
+            min(num(dfs1(P, E, C)), num(dfs(PSet, dfsrEnv(dfs1(P, E, C)), C))),
+            dfsrEnv(dfs(PSet, dfsrEnv(dfs1(P, E, C)), C))
+        ) 
+    if not (nodeHasBeenVisited(P, E)) .
+
+    *** Dead end!
+    eq dfs(emptyLoop, E, C) = natEnv(100000, E) .
+
+    eq nodeHasBeenVisited(P, env(STACK, SCC, M, map(P, N) ¨¨ IM)) = true .
+    eq nodeHasBeenVisited(P, E) = false [owise] .
+
+    *** If we can find a Node with a lower index we use the lower index
+    ceq dfs1(P, E, C) = dfs(findSuccesors(P, C), addStackIncr(P, E), C)
+        if(num (dfs(findSuccesors(P, C), addStackIncr(P, E), C)) < getSN(E)) .
+            
+
+    *** If we cannot find a Node with a lower index
+    ceq dfs1(P, E, C) =                 
+                natEnv(100000, 
+                    env(
+                        sndStack(split(P, getStack(dfs(findSuccesors(P, C), addStackIncr(P, E), C)))),
+                        getSCC(dfs(findSuccesors(P, C), addStackIncr(P, E), C)) 
+                            ## fstStack(split(P, getStack(dfs(findSuccesors(P, C), addStackIncr(P, E), C)))),
+                        getSN(dfsrEnv(dfs(findSuccesors(P, C), addStackIncr(P, E), C))),
+                        setInfty(
+                            fstStack(split(P, getStack(dfs(findSuccesors(P, C), addStackIncr(P, E), C)))), 
+                            getIM(dfs(findSuccesors(P, C), addStackIncr(P, E), C))
+                        )
+                    )
+                )
+        if(num (dfs(findSuccesors(P, C), addStackIncr(P, E), C)) >= getSN(E)) .       
+
+    *** Transform environment to Algebraic Loops
+    eq getLoops(natEnv(M , env(STACK, L , N, IM)), C) = createAlgebraic(L, C, noLoops) .
+
+    ***Encode everything as algebraic loops:
+    *** No more SCC to look at
+    eq createAlgebraic(emptyLoop, C, LOOPS) = LOOPS .
+
+    ceq createAlgebraic(PSet ** SCC, C, LOOPS) = createAlgebraic(SCC, C, (AlgebraicLoop: PSet Type: R) # LOOPS)  
+        if size(PSet) > 1 and isReactive(PSet, C) .
+
+    ceq createAlgebraic(PSet ** SCC, C, LOOPS) = createAlgebraic(SCC, C, (AlgebraicLoop: PSet Type: F) # LOOPS)  
+        if size(PSet) > 1 and not(isReactive(PSet, C)) .
+    
+    *** Trivial SCC should be forgotten
+    eq createAlgebraic(PSet ** SCC, C, LOOPS) = createAlgebraic(SCC, C, LOOPS) [owise] .
+
+    *** Check type of SCC
+    eq isReactive((ID1 ! I) ;; PSet, < ID1 : SU | inputs : (< I : Input | type : r > INPUTS) > C) = true .
+    eq isReactive(PSet, C) = false [owise] .
+
+    *** Split the DFS-result to its components 
+    eq num(natEnv(M , E)) = M .
+    eq dfsrEnv(natEnv(M , E)) = E .
+
+    *** Split the PStackTuple
+    eq fstStack(pTuple(STACK1, STACK2)) = STACK1 .
+    eq sndStack(pTuple(STACK1, STACK2)) = STACK2 .
+
+    *** Splits the stack at P
+    eq split(P, emptyStack) = pTuple(emptyStack, emptyStack) . *** Nothing is on the stack
+    eq split(P, STACK1 ## P ## STACK2 ) = pTuple(STACK1 ## P, STACK2) . *** P is on the stack
+    eq split(P, STACK1) = pTuple(STACK1, emptyStack) [owise] . *** P is not on the stack
+
+    *** Sets all nodes in the stack to infinity - to ensure they do not interfere with the future calculations
+    eq setInfty(emptyStack, IM) = IM .
+    eq setInfty(P ## STACK, map(P, N) ¨¨ IM) = setInfty(STACK, map(P, 100000) ¨¨ IM) .
+
+    *** Create the initial INDEX map
+    eq createIndexMap(emptyLoop, IM) = IM .
+    eq createIndexMap(P ;; PSet, map(P, N) ¨¨ IM) = createIndexMap(PSet, map(P, N) ¨¨ IM) .
+    eq createIndexMap(P ;; PSet, IM) = createIndexMap(PSet, map(P, 0) ¨¨ IM) [owise] .
+
+    *** Wrapper method
+    eq findSuccesors(P, C) = succesors(P, C, emptyLoop) .
+
+    *** Output
+    ceq succesors((ID2 ! O), 
+                < ID1 : SU | inputs : (< I : Input | > INPUTS) > 
+                < ID2 : SU | outputs : (< O : Output | > OUTPUTS) > 
+                         (ID2 ! O ==> ID1 ! I) C, PSet) = 
+                    succesors((ID1 ! O), < ID1 : SU | inputs : (< I : Input | > INPUTS) > 
+                                         < ID2 : SU | outputs : (< O : Output | > OUTPUTS) > 
+                                            (ID2 ! O ==> ID1 ! I) C, 
+                                         (ID1 ! I) ;; PSet) 
+                    if not (ID1 ! I) in PSet .
+
+    *** Input
+    ceq succesors((ID1 ! I),
+                    < ID1 : SU | inputs : (< I : Input | > INPUTS), outputs : (< O : Output | dependsOn : I :: FT > OUTPUTS) > C, PSet) 
+                    = 
+                    succesors((ID1 ! I), 
+                    < ID1 : SU | inputs : (< I : Input | > INPUTS), outputs : (< O : Output | dependsOn : I :: FT > OUTPUTS) > C,
+                    (ID1 ! O) ;; PSet) 
+                    if not (ID1 ! O) in PSet .
+
+
+    eq succesors(P, C, PSet) = PSet [owise] .
+
+
+
 
 endom)

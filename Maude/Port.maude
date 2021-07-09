@@ -35,10 +35,17 @@
  op _in_ : EPortId EPortIdSet -> Bool . 
  op _in_ : Connection Configuration -> Bool . 
 
+ op elems : PStack -> EPortIdSet .
+
  var P : EPortId .
  var PSet : EPortIdSet .
  var Cons : Configuration .
  var C : Connection .
+ var STACK : PStack .
+
+ eq elems(emptyST) = emptyLoop .
+ eq elems(P ## STACK) = P ;; elems(STACK) .
+
 
  eq P in P ;; PSet = true .
  eq P in PSet = false [owise] .

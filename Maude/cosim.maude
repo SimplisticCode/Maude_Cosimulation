@@ -145,7 +145,7 @@ eq simulationUnits = (< 'msd1 : SU | time : 0, inputs : (< 'fk : Input | time : 
 
 eq algeLoops = AlgebraicLoop: ('msd1 ! 'x1) ;; ('msd2 ! 'x1) ;; ('msd2 ! 'v1) ;; ('msd1 ! 'v1) ;; ('msd2 ! 'fk) ;; ('msd1 ! 'fk) Type: R .
 
-  eq setup = { calculateSNSet(simulationUnits externalConnection stepSize: 1 endTime: 1 Algorithm: emptyList SNSet: emptySUSet guessOn: emptyLoop SCC: algeLoops) } .
+eq setup = { calculateSNSet(simulationUnits externalConnection stepSize: 1 endTime: 1 Algorithm: emptyList SNSet: emptySUSet guessOn: emptyLoop SCC: algeLoops) } .
 
 endom)
 

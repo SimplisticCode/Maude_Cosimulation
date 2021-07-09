@@ -26,7 +26,7 @@ load cosim
     op dfsrEnv : DFSR -> Environment .
     op fstStack : PStackTuple -> PStack .
     op sndStack : PStackTuple -> PStack .
-    op getLoops : DFSR Configuration -> AlgebraicLoops .
+    op getLoops : Environment Configuration -> AlgebraicLoops .
     op isReactiveLoop : EPortIdSet Configuration -> Bool .
 
     *** Get fields in Environment
@@ -54,10 +54,10 @@ load cosim
     var E : Environment .
 
     *** Projection function
-    eq getStack(natEnv(M, env(STACK, SCCs, M, IM))) = STACK .
+    eq getStack(natEnv(M, env(STACK, SCCs, M1, IM))) = STACK .
     eq getSN(env(STACK, SCCs, M, IM)) = M .
-    eq getSCC(natEnv(M, env(STACK, SCCs, M, IM))) = SCCs .
-    eq getIM(natEnv(M, env(STACK, SCCs, M, IM))) = IM .
+    eq getSCC(natEnv(M, env(STACK, SCCs, M1, IM))) = SCCs .
+    eq getIM(natEnv(M, env(STACK, SCCs, M1, IM))) = IM .
 
     eq addStackIncr(P, env(STACK, SCCs, M1, map(P, M) ^^ IM)) = env(P ## STACK, SCCs, (M1 + 1), map(P, M1) ^^ IM) .
 
@@ -68,11 +68,11 @@ load cosim
 
     
     *** Transform environment to Algebraic Loops
-    eq getLoops(natEnv(M , env(STACK, L , M, IM)), C) = createAlgebraic(L, C, noLoops) .
+    eq getLoops(env(STACK, SCCs , M, IM), C) = createAlgebraic(SCCs, C, noLoops) .
 
     ***Encode everything as algebraic loops:
     *** No more SCC to look at
-    eq createAlgebraic(emptyLoop, C, LOOPS) = LOOPS .
+    eq createAlgebraic(sccNoNodes, C, LOOPS) = LOOPS .
 
     ceq createAlgebraic(PSet ** SCCs, C, LOOPS) = createAlgebraic(SCCs, C, (AlgebraicLoop: PSet Type: R) # LOOPS)  
         if size(PSet) > 1 and isReactiveLoop(PSet, C) .
@@ -88,8 +88,8 @@ load cosim
     eq isReactiveLoop(PSet, C) = false [owise] .
 
     *** Split the DFS-result to its components 
-    eq num(natEnv(M , E)) = M .
-    eq dfsrEnv(natEnv(M , E)) = E .
+    eq num(natEnv(M, E)) = M .
+    eq dfsrEnv(natEnv(M, E)) = E .
 
     *** Sets all nodes in the stack to infinity - to ensure they do not interfere with the future calculations
     eq setInfty(emptyST, IM) = IM .
@@ -123,14 +123,23 @@ load cosim
                                          (ID1 ! I) ;; PSet) 
                     if not (ID1 ! I) in PSet .
 
-    *** Input
+    *** Input - feed through
     ceq succesors((ID1 ! I),
                     < ID1 : SU | inputs : (< I : Input | > INPUTS), outputs : (< O : Output | dependsOn : I :: FT > OUTPUTS) > C, PSet) 
                     = 
                     succesors((ID1 ! I), 
-                    < ID1 : SU | inputs : (< I : Input | > INPUTS), outputs : (< O : Output | dependsOn : I :: FT > OUTPUTS) > C,
+                    < ID1 : SU | inputs : (< I : Input | > INPUTS), outputs : (< O : Output | > OUTPUTS) > C,
                     (ID1 ! O) ;; PSet) 
                     if not (ID1 ! O) in PSet .
+
+    *** Input - reactive
+    ceq succesors((ID1 ! I),
+                < ID1 : SU | inputs : (< I : Input | type : r > INPUTS), outputs : (< O : Output | > OUTPUTS) > C, PSet) 
+                = 
+                succesors((ID1 ! I), 
+                < ID1 : SU | inputs : (< I : Input | > INPUTS), outputs : (< O : Output | > OUTPUTS) > C,
+                (ID1 ! O) ;; PSet) 
+                if not (ID1 ! O) in PSet .
 
 
     eq succesors(P, C, PSet) = PSet [owise] .
@@ -150,41 +159,39 @@ endom)
     var P : EPortId .
     var PSet : EPortIdSet .
     var IM : IndexMap .
-    vars C INPUTS OUTPUTS : Configuration .
-    vars STACK  : PStack .
-    vars SCCs : Pscc .
+    var C : Configuration .
+    var STACK  : PStack .
+    var SCCs : PScc .
     var N : NzNat .
     var M : Nat .
     var E : Environment .
 
+    eq tarjan(C) = getLoops(dfsrEnv(dfs(getPorts(C, emptyLoop), env(emptyST, sccNoNodes, 1, createIndexMap(getPorts(C, emptyLoop), emptyMap)), C)), C) .
 
     *** P has been visisted before - N is non-zero!
     eq dfs(P ;; PSet, env(STACK, SCCs, M, map(P, N) ^^ IM), C) = natEnv(N, env(STACK, SCCs, M, map(P, N) ^^ IM)) .
 
-    *** P has not been visited before
-    ceq dfs(P ;; PSet, E, C) = 
-        natEnv(
-            min(num(dfs1(P, E, C)), num(dfs(PSet, dfsrEnv(dfs1(P, E, C)), C))),
-            dfsrEnv(dfs(PSet, dfsrEnv(dfs1(P, E, C)), C))
-        ) 
-    if not (nodeHasBeenVisited(P, E)) .
-
     *** Dead end - no successor!
     eq dfs(emptyLoop, E, C) = natEnv(100000, E) .
 
-
+    *** P has not been visited before
+    eq dfs(P ;; PSet, E, C) = 
+        natEnv(
+            min(num(dfs1(P, E, C)), num(dfs(PSet, dfsrEnv(dfs1(P, E, C)), C))),
+            dfsrEnv(dfs(PSet, dfsrEnv(dfs1(P, E, C)), C))
+        ) [owise] .
+    
     *** If we can find a Node with a lower index we use the lower index
     ceq dfs1(P, E, C) = dfs(findSuccesors(P, C), addStackIncr(P, E), C)
         if(num (dfs(findSuccesors(P, C), addStackIncr(P, E), C)) < getSN(E)) .
             
-
     *** If we cannot find a Node with a lower index
-    ceq dfs1(P, E, C) =                 
+    eq dfs1(P, E, C) =                 
                 natEnv(100000, 
                     env(
                         sndStack(split(P, getStack(dfs(findSuccesors(P, C), addStackIncr(P, E), C)))),
                         getSCC(dfs(findSuccesors(P, C), addStackIncr(P, E), C)) 
-                            ## fstStack(split(P, getStack(dfs(findSuccesors(P, C), addStackIncr(P, E), C)))),
+                            ** elems(fstStack(split(P, getStack(dfs(findSuccesors(P, C), addStackIncr(P, E), C))))),
                         getSN(dfsrEnv(dfs(findSuccesors(P, C), addStackIncr(P, E), C))),
                         setInfty(
                             fstStack(split(P, getStack(dfs(findSuccesors(P, C), addStackIncr(P, E), C)))), 
@@ -192,5 +199,38 @@ endom)
                         )
                     )
                 )
-        if(num (dfs(findSuccesors(P, C), addStackIncr(P, E), C)) >= getSN(E)) .     
+                [owise] .
+    
 endom)
+
+eof
+
+( red tarjan(simulationUnits externalConnection) . )
+
+( red getSCC(natEnv(100000,env('msd1 ! 'fk,sccNoNodes,2,map('msd1 ! 'fk,1) ^^ map('msd1 ! 'v1,0)^^ map('msd1 ! 'x1,0)^^ map('msd1 ! 'z,0)^^ map('msd2 !
+    'fk,0)^^ map('msd2 ! 'v1,0)^^ map('msd2 ! 'x1,0)^^ map('msd2 ! 'z,0)))) .
+)
+
+( red num(natEnv(100000,env('msd1 ! 'fk,sccNoNodes,2,map('msd1 ! 'fk,1) ^^ map('msd1 ! 'v1,0)^^ map('msd1 ! 'x1,0)^^ map('msd1 ! 'z,0)^^ map('msd2 !
+    'fk,0)^^ map('msd2 ! 'v1,0)^^ map('msd2 ! 'x1,0)^^ map('msd2 ! 'z,0)))) .
+)
+
+( red dfsrEnv(natEnv(100000,env('msd1 ! 'fk,sccNoNodes,2,map('msd1 ! 'fk,1) ^^ map('msd1 ! 'v1,0)^^ map('msd1 ! 'x1,0)^^ map('msd1 ! 'z,0)^^ map('msd2 !
+    'fk,0)^^ map('msd2 ! 'v1,0)^^ map('msd2 ! 'x1,0)^^ map('msd2 ! 'z,0)))) .
+)
+
+( red dfsrEnv(natEnv(100000,env(emptyST,
+    sccNoNodes ** 'msd1 ! 'fk, 2 ,map('msd1 ! 'fk,100000)^^ map('msd1 ! 'v1,0)^^ map('msd1 ! 'x1,0)^^ map('msd1 ! 'z,0)^^ map('msd2 ! 'fk,0)^^ map('msd2 ! 'v1,0)
+    ^^ map('msd2 ! 'x1,0)^^ map('msd2 ! 'z,0)))) . )
+
+
+
+( red findSuccesors(('msd2 ! 'fk), simulationUnits externalConnection) .)
+
+( red min(1000, 1) .)
+
+( red dfs(getPorts((simulationUnits externalConnection), emptyLoop), env(emptyST, sccNoNodes, 1, createIndexMap(getPorts((simulationUnits externalConnection), emptyLoop), emptyMap)), (simulationUnits externalConnection)) . )
+
+( red dfsrEnv(natEnv(100000,env(emptyST,('msd1 ! 'z)**('msd2 ! 'z)**('msd1 ! 'x1);;('msd2 ! 'v1);;('msd2 ! 'fk);;('msd1 !
+    'v1);; 'msd1 ! 'fk,8,map('msd1 ! 'fk,100000)^^ map('msd1 ! 'v1,100000)^^ map('msd1 ! 'x1,100000)^^ map('msd1 ! 'z,100000)^^ map('msd2 ! 'fk,100000)^^ map('msd2 ! 'v1,100000)^^ map('msd2 ! 'x1,0)^^
+    map('msd2 ! 'z,100000)))) . )

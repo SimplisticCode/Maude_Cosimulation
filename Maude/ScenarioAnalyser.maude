@@ -169,7 +169,11 @@ endom)
     eq tarjan(C) = getLoops(dfsrEnv(dfs(getPorts(C, emptyLoop), env(emptyST, sccNoNodes, 1, createIndexMap(getPorts(C, emptyLoop), emptyMap)), C)), C) .
 
     *** P has been visisted before - N is non-zero!
-    eq dfs(P ;; PSet, env(STACK, SCCs, M, map(P, N) ^^ IM), C) = natEnv(N, env(STACK, SCCs, M, map(P, N) ^^ IM)) .
+    eq dfs(P ;; PSet, env(STACK, SCCs, M, map(P, N) ^^ IM), C) = 
+        natEnv(
+            min(N, num(dfs(PSet, env(STACK, SCCs, M, map(P, N) ^^ IM), C))),
+            dfsrEnv(dfs(PSet, env(STACK, SCCs, M, map(P, N) ^^ IM), C))
+        ) .
 
     *** Dead end - no successor!
     eq dfs(emptyLoop, E, C) = natEnv(100000, E) .
@@ -225,7 +229,7 @@ eof
 
 
 
-( red findSuccesors(('msd2 ! 'fk), simulationUnits externalConnection) .)
+( red findSuccesors(('msd1 ! 'x1), simulationUnits externalConnection) .)
 
 ( red min(1000, 1) .)
 

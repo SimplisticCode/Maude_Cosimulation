@@ -9,6 +9,8 @@ load SimulationUnit
     op breakLoop : EPortIdSet Configuration LoopType -> Configuration .
     op containsCycle : AlgebraicLoops -> Bool . 
     op loopStep : EPortIdSet Configuration ActionList -> Pair .
+    op solveLoopConf : Configuration Algebraic -> Configuration .
+    op solveLoopAlgorithm : Configuration Algebraic -> ActionList .
 
     op fst : Pair -> ActionList .
     op snd : Pair -> Configuration .
@@ -32,9 +34,14 @@ load SimulationUnit
    eq containsCycle(noLoops) = false .
    eq containsCycle(L) = true [owise] .
 
-   eq solveLoop(C Algorithm: AL, AlgebraicLoop: PSet Type: K) = snd(loopStep(PSet, breakLoop(PSet, C, K), emptyList))
-        Algorithm: (AL ; (complexEvent: Loop SaveSUs: getSUs(PSet, emptySUSet) RestoreSUs: getSUs(PSet, emptySUSet) 
-        Actions: fst(loopStep(PSet, breakLoop(PSet, C, K), emptyList)))) .
+   eq solveLoop(C Algorithm: AL, AlgebraicLoop: PSet Type: K) = solveLoopConf(C, AlgebraicLoop: PSet Type: K)
+        Algorithm: (AL ; (solveLoopAlgorithm(C, AlgebraicLoop: PSet Type: K))) .
+
+  eq solveLoopConf(C, AlgebraicLoop: PSet Type: K) = snd(loopStep(PSet, breakLoop(PSet, C, K), emptyList)) .
+
+  eq solveLoopAlgorithm(C, AlgebraicLoop: PSet Type: K) = 
+    complexEvent: Loop SaveSUs: getSUs(PSet, emptySUSet) RestoreSUs: getSUs(PSet, emptySUSet) 
+        Actions: fst(loopStep(PSet, breakLoop(PSet, C, K), emptyList)) .
 
     *** Forget All Connections depending on type of loop 
     ceq breakLoop((ID1 ! I) ;; PSet,   

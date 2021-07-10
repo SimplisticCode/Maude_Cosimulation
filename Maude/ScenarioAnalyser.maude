@@ -205,7 +205,7 @@ endom)
                 )
                 [owise] .
 
-    eq setup = { calculateSNSet(simulationUnits externalConnection stepSize: 1 endTime: 1 Algorithm: emptyList SNSet: emptySUSet guessOn: emptyLoop SCC: tarjan(simulationUnits externalConnection)) } .
+    eq setup = { calculateSNSet(simulationUnits externalConnection stepSize: 1 endTime: 3 Algorithm: emptyList SNSet: emptySUSet guessOn: emptyLoop SCC: tarjan(simulationUnits externalConnection)) } .
 
     
 endom)

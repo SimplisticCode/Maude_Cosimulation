@@ -1,7 +1,7 @@
-load LOOPSolver
+load StepFinder
 
 (omod COSIMULATION is 
-   protecting StepFinder + LOOPSolver .
+   protecting StepFinder .
    sort GlobalState .
 
    op performStepNegotiation : Configuration -> Configuration .
@@ -115,6 +115,9 @@ load LOOPSolver
                            setAction(< ID1 : SU | >, I, 0)
                            < ID2 : SU | > (ID2 ! O ==> ID1 ! I) Algorithm: (AL ; (event: Set SU: ID1 PId: I)) .
 
+
+  ***rl [init-loop] : C SCC: (L # LOOPS) => solveLoop(C SCC: LOOPS, L) .                 
+
  ***Complex scenarios with save and restore - this should 
 
   ***If the scenario contains SUs that require step negotiation
@@ -137,15 +140,15 @@ load LOOPSolver
   op algeLoops : -> AlgebraicLoops .
 
 ***Encoding of the Scenario 
-eq externalConnection = ('msd1 ! 'x1 ==> 'msd2 ! 'x1) ('msd1 ! 'v1 ==> 'msd2 ! 'v1) ('msd1 ! 'z ==> 'msd2 ! 'z) ('msd2 ! 'fk ==> 'msd1 ! 'fk) .
+eq externalConnection = ('msd1 ! 'x1 ==> 'msd2 ! 'x1) ('msd1 ! 'v1 ==> 'msd2 ! 'v1) ('msd2 ! 'fk ==> 'msd1 ! 'fk) ('msd2 ! 'z ==> 'msd3 ! 'z) ('msd3 ! 'G ==> 'msd2 ! 'G) .
 
-eq simulationUnits = (< 'msd1 : SU | time : 0, inputs : (< 'fk : Input | time : 0, type : r, status : Undef  >), outputs : (< 'x1 : Output | time : 0, status : Undef, dependsOn : emptySet >) (< 'z : Output | time : 0, status : Undef, dependsOn : emptySet >) (< 'v1 : Output | time : 0, status : Undef, dependsOn : emptySet >), state : Instantiated, canReject : false >)
+eq simulationUnits = (< 'msd3 : SU | time : 0, inputs : (< 'z : Input | time : 0, type : d, status : Undef  >), outputs : (< 'G : Output | time : 0, status : Undef, dependsOn : ( 'z ) >), state : Instantiated, canReject : true >)
 
-(< 'msd2 : SU | time : 0, inputs : (< 'x1 : Input | time : 0, type : r, status : Undef  >) (< 'v1 : Input | time : 0, type : r, status : Undef  >) (< 'z : Input | time : 0, type : d, status : Undef  >), outputs : (< 'fk : Output | time : 0, status : Undef, dependsOn : ( 'x1 :: 'v1 ) >), state : Instantiated, canReject : false >) .
+ 	 (< 'msd2 : SU | time : 0, inputs : (< 'v1 : Input | time : 0, type : r, status : Undef  >) (< 'x1 : Input | time : 0, type : d, status : Undef  >) (< 'G : Input | time : 0, type : r, status : Undef  >), outputs : (< 'fk : Output | time : 0, status : Undef, dependsOn : ( 'x1 :: 'v1 ) >) (< 'z : Output | time : 0, status : Undef, dependsOn : emptySet >), state : Instantiated, canReject : true >)
 
-eq algeLoops = AlgebraicLoop: ('msd1 ! 'x1) ;; ('msd2 ! 'x1) ;; ('msd2 ! 'v1) ;; ('msd1 ! 'v1) ;; ('msd2 ! 'fk) ;; ('msd1 ! 'fk) Type: R .
+ 	 (< 'msd1 : SU | time : 0, inputs : (< 'fk : Input | time : 0, type : r, status : Undef  >), outputs : (< 'x1 : Output | time : 0, status : Undef, dependsOn : emptySet >) (< 'v1 : Output | time : 0, status : Undef, dependsOn : emptySet >), state : Instantiated, canReject : true >) .
 
-eq setup = { calculateSNSet(simulationUnits externalConnection stepSize: 1 endTime: 1 Algorithm: emptyList SNSet: emptySUSet guessOn: emptyLoop SCC: algeLoops) } .
+
 
 endom)
 

@@ -204,12 +204,19 @@ endom)
                     )
                 )
                 [owise] .
+
+    eq setup = { calculateSNSet(simulationUnits externalConnection stepSize: 1 endTime: 1 Algorithm: emptyList SNSet: emptySUSet guessOn: emptyLoop SCC: tarjan(simulationUnits externalConnection)) } .
+
     
 endom)
 
 eof
 
+( frew [20] setup . )
+
 ( red tarjan(simulationUnits externalConnection) . )
+
+
 
 ( red getSCC(natEnv(100000,env('msd1 ! 'fk,sccNoNodes,2,map('msd1 ! 'fk,1) ^^ map('msd1 ! 'v1,0)^^ map('msd1 ! 'x1,0)^^ map('msd1 ! 'z,0)^^ map('msd2 !
     'fk,0)^^ map('msd2 ! 'v1,0)^^ map('msd2 ! 'x1,0)^^ map('msd2 ! 'z,0)))) .

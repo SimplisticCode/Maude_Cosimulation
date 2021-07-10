@@ -1,7 +1,7 @@
-load SimulationUnit 
+load LOOPSolver 
 
 (omod StepFinder is
-  protecting PerformActions .
+  protecting LOOPSolver .
   sorts findStepPair .
       
   op <_++_> : NzNat ActionList -> findStepPair [ctor] .
@@ -11,6 +11,7 @@ load SimulationUnit
   op needsStepNegotiation : SUIdSet -> Bool .
   op getStep : findStepPair -> NzNat .
   op getAL : findStepPair -> ActionList .
+  op stepFindingDone : SUIdSet Configuration NzNat -> Bool .
 
    vars ID1 ID2 : SUID .
    var SUIDs : SUIdSet .
@@ -21,6 +22,12 @@ load SimulationUnit
    vars C C1 : Configuration .
    var AL : ActionList .
    var FT : PortIdSet .
+   var L : Algebraic .  
+   var LOOPS : AlgebraicLoops .  
+
+   eq stepFindingDone(emptySUSet, C, S) = true .
+   eq stepFindingDone(ID1 ++ SUIDs, < ID1 : SU | time : T1 > C, S) = T1 == S and stepFindingDone(SUIDs, C, S) .
+
 
    eq getStep( < S ++ AL >) = S .
    eq getAL( < S ++ AL >) = AL .
@@ -69,6 +76,14 @@ load SimulationUnit
               findStep(ID1 ++ ID2 ++ SUIDs, C1 stepSize: min(T1, T2), C1 stepSize: min(T1, T2), AL)   
                     if T1 =/= T2 . *** The simulations should both have stepped, but not to the same time
 
-   eq findStep(SUIDs, C stepSize: S, C1, AL) = < S ++ AL > [owise] . 
+  *** Solve Algebraic Loops
+   ***eq findStep(SUIDs, C SCC: (L # LOOPS), C1, AL) = findStep(SUIDs, solveLoop(C SCC: LOOPS, L), C1, AL) [owise] . 
+
+   ceq findStep(SUIDs, C stepSize: S, C1, AL) = < S ++ AL > if stepFindingDone(SUIDs, C, S) . 
 
 endom)
+
+eof 
+( red calculateSNSet(simulationUnits externalConnection SNSet: emptySUSet) . )
+
+( red findStep('msd1 ++ 'msd2 ++ 'msd3 , simulationUnits externalConnection, simulationUnits externalConnection, emptyList) . )

@@ -24,6 +24,7 @@ load StepFinder
    var L : Algebraic .  
    var LOOPS : AlgebraicLoops .  
    var M : Mode .
+   var STEPRes : findStepPair .
 
   eq simulationStepDone(< ID1 : SU | time : T, inputs : INPUTS, outputs : OUTPUTS > C) = T > 0 and allDef(INPUTS, T) and allDef(OUTPUTS, T) and simulationStepDone(C) .
   eq simulationStepDone(C) = true [owise] .
@@ -32,9 +33,9 @@ load StepFinder
   ceq performStepNegotiation(C SNSet: SUIDs stepSize: S Algorithm: AL) = 
                               C SNSet: emptySUSet 
                                 Algorithm: (AL ; (complexEvent: StepNegotiation SaveSUs: SUIDs RestoreSUs: SUIDs 
-                                Actions: getAL(findStep(SUIDs, C stepSize: S, C stepSize: S, emptyList))))
-                              (stepSize: getStep(findStep(SUIDs, C stepSize: S, C stepSize: S, emptyList)))
-                              if needsStepNegotiation(SUIDs) .
+                                Actions: getAL(STEPRes)))
+                              (stepSize: getStep(STEPRes))
+                              if needsStepNegotiation(SUIDs) /\ STEPRes := findStep(SUIDs, C stepSize: S, C stepSize: S, emptyList) .
 
   ceq performStepNegotiation(C SNSet: SUIDs) = C if not needsStepNegotiation(SUIDs) .  
 
@@ -135,9 +136,6 @@ load StepFinder
   op externalConnection : ->  Configuration .    *** External Connections - all ports have unique name
   op simulationUnits : -> Configuration .      *** SUs - ID * input ports * and outputs
 
-  op setup : -> GlobalState .
-
-  op algeLoops : -> AlgebraicLoops .
 
 ***Encoding of the Scenario 
 eq externalConnection = ('msd1 ! 'x1 ==> 'msd2 ! 'x1) ('msd1 ! 'v1 ==> 'msd2 ! 'v1) ('msd2 ! 'fk ==> 'msd1 ! 'fk) ('msd2 ! 'z ==> 'msd3 ! 'z) ('msd3 ! 'G ==> 'msd2 ! 'G) .

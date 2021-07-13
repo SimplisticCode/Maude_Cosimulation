@@ -1,10 +1,24 @@
 load LOOPSolver 
 
+ 
+(fmod PAIR{X :: TRIV, Y :: TRIV} is 
+ sort Pair{X, Y} . 
+ op <_;_> : X$Elt Y$Elt -> Pair{X, Y} . 
+ op 1st : Pair{X, Y} -> X$Elt . 
+ op 2nd : Pair{X, Y} -> Y$Elt . 
+ 
+ var A : X$Elt . 
+ var B : Y$Elt . 
+ eq 1st(< A ; B >) = A . 
+ eq 2nd(< A ; B >) = B . 
+endfm)
+
 (omod StepFinder is
   protecting LOOPSolver .
   sorts findStepPair .
       
   op <_++_> : NzNat ActionList -> findStepPair [ctor] .
+
   *** Current State x Initial State -> Nat
   op findStep : SUIdSet Configuration Configuration ActionList -> findStepPair .
   op calculateSNSet : Configuration -> Configuration .
@@ -38,12 +52,14 @@ load LOOPSolver
 
    *** Calculation of the members of the set of SUs that should be backtracked in the step negotiation
   ceq calculateSNSet(< ID1 : SU | inputs : (< I : Input | type : r > INPUTS) > 
-                      < ID2 : SU | outputs : (< O : Output | > OUTPUTS) > (ID2 ! O ==> ID1 ! I) (SNSet: (ID1 ++ SUIDs))  C) = 
-                                         calculateSNSet(< ID1 : SU | > < ID2 : SU | > (ID2 ! O ==> ID1 ! I) 
-                                         (SNSet: (ID1 ++ ID2 ++ SUIDs)) C) 
-                                         if not ID2 in SUIDs .
+                      < ID2 : SU | outputs : (< O : Output | > OUTPUTS) > 
+                      (ID2 ! O ==> ID1 ! I) (SNSet: (ID1 ++ SUIDs))  C) = 
+                      calculateSNSet(< ID1 : SU | > < ID2 : SU | > (ID2 ! O ==> ID1 ! I) 
+                      (SNSet: (ID1 ++ ID2 ++ SUIDs)) C) 
+                      if not ID2 in SUIDs .
   
-  ceq calculateSNSet(< ID1 : SU | canReject : true > (SNSet: SUIDs) C ) = calculateSNSet(< ID1 : SU | > (SNSet: (ID1 ++ SUIDs)) C )
+  ceq calculateSNSet(< ID1 : SU | canReject : true > (SNSet: SUIDs) C ) = 
+        calculateSNSet(< ID1 : SU | > (SNSet: (ID1 ++ SUIDs)) C )
                                          if not ID1 in SUIDs .                                    
   eq calculateSNSet(C) = C [owise] .
 
@@ -51,7 +67,8 @@ load LOOPSolver
   ceq findStep(ID1 ++ ID2 ++ SUIDs, 
                     < ID2 : SU | time : T, outputs : (< O : Output | status : Undef, dependsOn : FT > OUTPUTS), inputs : INPUTS1 >
                     < ID1 : SU | inputs : (< I : Input | type : r > INPUTS) > (ID2 ! O ==> ID1 ! I) C, C1, AL) = 
-                    findStep(ID1 ++ ID2 ++ SUIDs, getAction(< ID2 : SU | >, O) < ID1 : SU | >  (ID2 ! O ==> ID1 ! I) C, C1, AL ; (event: Get SU: ID2 PId: O)) 
+                    findStep(ID1 ++ ID2 ++ SUIDs, getAction(< ID2 : SU | >, O) < ID1 : SU | >  
+                    (ID2 ! O ==> ID1 ! I) C, C1, AL ; (event: Get SU: ID2 PId: O)) 
                     if feedthroughSatisfied(FT, INPUTS1, T) .
 
   *** Set case (only on reactive Inputs)
@@ -66,8 +83,8 @@ load LOOPSolver
   ceq findStep(ID1 ++ SUIDs,  
                     < ID1 : SU | time : T, outputs : OUTPUTS, inputs : INPUTS > stepSize: S C, C1, AL) = 
                   findStep(ID1 ++ SUIDs,
-                  stepAction(< ID1 : SU | >, (askStepSize(< ID1 : SU | >, S))) stepSize: (askStepSize(< ID1 : SU | >, S)) C, C1, AL ; (event: Step SU: ID1 PId: emptySet))
-                    if canStep(T, (T + S), INPUTS, OUTPUTS) .
+                  stepAction(< ID1 : SU | >, T1) stepSize: T1 C, C1, AL ; (event: Step SU: ID1 PId: emptySet))
+                    if canStep(T, (T + S), INPUTS, OUTPUTS) /\ T1 := askStepSize(< ID1 : SU | >, S) .
 
   *** Restart search and and update step size for next iteration of search
   ceq findStep(ID1 ++ ID2 ++ SUIDs, 

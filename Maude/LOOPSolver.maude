@@ -26,6 +26,7 @@ load SimulationUnit
     var S : NzNat .
     var FT : PortIdSet .
     var M : Mode .
+    var SUIDs : SUIdSet .
 
     eq fst(< AL ; C >) = AL . 
     eq snd(< AL ; C >) = C . 
@@ -39,9 +40,9 @@ load SimulationUnit
 
   eq solveLoopConf(C, AlgebraicLoop: PSet Type: K) = snd(loopStep(PSet, breakLoop(PSet, C, K), emptyList)) .
 
-  eq solveLoopAlgorithm(C, AlgebraicLoop: PSet Type: K) = 
-    complexEvent: Loop SaveSUs: getSUs(PSet, emptySUSet) RestoreSUs: getSUs(PSet, emptySUSet) 
-        Actions: fst(loopStep(PSet, breakLoop(PSet, C, K), emptyList)) .
+  ceq solveLoopAlgorithm(C, AlgebraicLoop: PSet Type: K) = 
+    complexEvent: Loop SaveSUs: SUIDs RestoreSUs: SUIDs Actions: fst(loopStep(PSet, breakLoop(PSet, C, K), emptyList))
+        if SUIDs := getSUs(PSet, emptySUSet) .
 
     *** Forget All Connections depending on type of loop 
     ceq breakLoop((ID1 ! I) ;; PSet,   

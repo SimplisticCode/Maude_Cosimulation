@@ -59,6 +59,7 @@ load cosim
     eq getSCC(natEnv(M, env(STACK, SCCs, M1, IM))) = SCCs .
     eq getIM(natEnv(M, env(STACK, SCCs, M1, IM))) = IM .
 
+    *** Add the element to the stack, update the index of the node and increments the counter
     eq addStackIncr(P, env(STACK, SCCs, M1, map(P, M) ^^ IM)) = env(P ## STACK, SCCs, (M1 + 1), map(P, M1) ^^ IM) .
 
 
@@ -83,7 +84,7 @@ load cosim
     *** Trivial SCC should be forgotten
     eq createAlgebraic(PSet ** SCCs, C, LOOPS) = createAlgebraic(SCCs, C, LOOPS) [owise] .
 
-    *** Check type of SCC
+    *** Check type of SCC - one reactive input makes it Reactive
     eq isReactiveLoop((ID1 ! I) ;; PSet, < ID1 : SU | inputs : (< I : Input | type : r > INPUTS) > C) = true .
     eq isReactiveLoop(PSet, C) = false [owise] .
 
@@ -117,8 +118,8 @@ load cosim
                 < ID1 : SU | inputs : (< I : Input | > INPUTS) > 
                 < ID2 : SU | outputs : (< O : Output | > OUTPUTS) > 
                          (ID2 ! O ==> ID1 ! I) C, PSet) = 
-                    succesors((ID1 ! O), < ID1 : SU | inputs : (< I : Input | > INPUTS) > 
-                                         < ID2 : SU | outputs : (< O : Output | > OUTPUTS) > 
+                    succesors((ID1 ! O), < ID1 : SU | > 
+                                         < ID2 : SU | > 
                                             (ID2 ! O ==> ID1 ! I) C, 
                                          (ID1 ! I) ;; PSet) 
                     if not (ID1 ! I) in PSet .
@@ -127,25 +128,17 @@ load cosim
     ceq succesors((ID1 ! I),
                     < ID1 : SU | inputs : (< I : Input | > INPUTS), outputs : (< O : Output | dependsOn : I :: FT > OUTPUTS) > C, PSet) 
                     = 
-                    succesors((ID1 ! I), 
-                    < ID1 : SU | inputs : (< I : Input | > INPUTS), outputs : (< O : Output | > OUTPUTS) > C,
-                    (ID1 ! O) ;; PSet) 
+                    succesors((ID1 ! I), < ID1 : SU | > C, (ID1 ! O) ;; PSet) 
                     if not (ID1 ! O) in PSet .
 
     *** Input - reactive
     ceq succesors((ID1 ! I),
                 < ID1 : SU | inputs : (< I : Input | type : r > INPUTS), outputs : (< O : Output | > OUTPUTS) > C, PSet) 
                 = 
-                succesors((ID1 ! I), 
-                < ID1 : SU | inputs : (< I : Input | > INPUTS), outputs : (< O : Output | > OUTPUTS) > C,
-                (ID1 ! O) ;; PSet) 
-                if not (ID1 ! O) in PSet .
+                succesors((ID1 ! I),  < ID1 : SU | > C, (ID1 ! O) ;; PSet) if not (ID1 ! O) in PSet .
 
 
     eq succesors(P, C, PSet) = PSet [owise] .
-
-
-
 
 endom)
 
@@ -155,57 +148,61 @@ endom)
     op tarjan : Configuration -> AlgebraicLoops .
     op dfs : EPortIdSet Environment Configuration -> DFSR .
     op dfs1 : EPortId Environment Configuration -> DFSR .
+    op setup : -> GlobalState .
 
     var P : EPortId .
-    var PSet : EPortIdSet .
+    vars PSet SUCCESORS : EPortIdSet .
     var IM : IndexMap .
     var C : Configuration .
-    var STACK  : PStack .
     var SCCs : PScc .
-    var N : NzNat .
+    var N N1 N2 : NzNat .
     var M : Nat .
-    var E : Environment .
+    vars E E1 E2 : Environment .
+    vars DFSRESULT DFSRESULT1 : DFSR .
+    var STACKTUPLE : PStackTuple .
+    vars OLDSTACK STACK SCCSTACK : PStack .
 
-    eq tarjan(C) = getLoops(dfsrEnv(dfs(getPorts(C, emptyLoop), env(emptyST, sccNoNodes, 1, createIndexMap(getPorts(C, emptyLoop), emptyMap)), C)), C) .
+    ceq tarjan(C) = getLoops(dfsrEnv(dfs(PSet, E, C)), C) 
+        if PSet := getPorts(C, emptyLoop) /\ IM := createIndexMap(PSet, emptyMap) /\ E := env(emptyST, sccNoNodes, 1, IM) .
 
     *** P has been visisted before - N is non-zero!
-    eq dfs(P ;; PSet, env(STACK, SCCs, M, map(P, N) ^^ IM), C) = 
-        natEnv(
-            min(N, num(dfs(PSet, env(STACK, SCCs, M, map(P, N) ^^ IM), C))),
-            dfsrEnv(dfs(PSet, env(STACK, SCCs, M, map(P, N) ^^ IM), C))
-        ) .
+    ceq dfs(P ;; PSet, env(STACK, SCCs, M, map(P, N) ^^ IM), C) = natEnv(min(N, N1), E) 
+       if DFSRESULT := dfs(PSet, env(STACK, SCCs, M, map(P, N) ^^ IM), C) /\ N1 := num(DFSRESULT) /\ E := dfsrEnv(DFSRESULT) .
 
     *** Dead end - no successor!
     eq dfs(emptyLoop, E, C) = natEnv(100000, E) .
 
-    *** P has not been visited before
-    eq dfs(P ;; PSet, E, C) = 
-        natEnv(
-            min(num(dfs1(P, E, C)), num(dfs(PSet, dfsrEnv(dfs1(P, E, C)), C))),
-            dfsrEnv(dfs(PSet, dfsrEnv(dfs1(P, E, C)), C))
-        ) [owise] .
-    
-    *** If we can find a Node with a lower index we use the lower index
-    ceq dfs1(P, E, C) = dfs(findSuccesors(P, C), addStackIncr(P, E), C)
-        if(num (dfs(findSuccesors(P, C), addStackIncr(P, E), C)) < getSN(E)) .
-            
-    *** If we cannot find a Node with a lower index
-    eq dfs1(P, E, C) =                 
-                natEnv(100000, 
-                    env(
-                        sndStack(split(P, getStack(dfs(findSuccesors(P, C), addStackIncr(P, E), C)))),
-                        getSCC(dfs(findSuccesors(P, C), addStackIncr(P, E), C)) 
-                            ** elems(fstStack(split(P, getStack(dfs(findSuccesors(P, C), addStackIncr(P, E), C))))),
-                        getSN(dfsrEnv(dfs(findSuccesors(P, C), addStackIncr(P, E), C))),
-                        setInfty(
-                            fstStack(split(P, getStack(dfs(findSuccesors(P, C), addStackIncr(P, E), C)))), 
-                            getIM(dfs(findSuccesors(P, C), addStackIncr(P, E), C))
-                        )
-                    )
-                )
-                [owise] .
 
-    eq setup = { calculateSNSet(simulationUnits externalConnection stepSize: 1 endTime: 3 Algorithm: emptyList SNSet: emptySUSet guessOn: emptyLoop SCC: tarjan(simulationUnits externalConnection)) } .
+    ceq dfs(P ;; PSet, E, C) =  natEnv(min(N1, N2), E2) 
+        if DFSRESULT := dfs1(P, E, C) /\
+            E1 := dfsrEnv(DFSRESULT) /\
+            N1 := num(DFSRESULT) /\
+            DFSRESULT1 := dfs(PSet, E1, C) /\
+            N2 := num(DFSRESULT1) /\
+            E2 := dfsrEnv(DFSRESULT) 
+         [owise] .
+
+    *** P has not been visited before
+
+
+    *** If we can find a Node with a lower index we use the lower index
+    ceq dfs1(P, E, C) = dfs(SUCCESORS, E1, C)
+        if SUCCESORS := findSuccesors(P, C) /\ 
+           E1 := addStackIncr(P, E) /\ 
+           (num (dfs(SUCCESORS, E1, C)) < getSN(E)) .
+            
+
+    *** If we cannot find a Node with a lower index
+    ceq dfs1(P, E, C) = natEnv(100000, 
+            env(OLDSTACK, getSCC(DFSRESULT) ** elems(SCCSTACK), getSN(dfsrEnv(DFSRESULT)), setInfty(SCCSTACK, getIM(DFSRESULT))))
+                if SUCCESORS := findSuccesors(P, C) 
+                /\ E1 := addStackIncr(P, E) 
+                /\ DFSRESULT := dfs(SUCCESORS, E1, C) 
+                /\ STACKTUPLE := split(P, getStack(DFSRESULT))
+                /\ OLDSTACK := sndStack(STACKTUPLE) 
+                /\ SCCSTACK := fstStack(STACKTUPLE) [owise] .
+
+    eq setup = { calculateSNSet(simulationUnits externalConnection stepSize: 1 endTime: 1 Algorithm: emptyList SNSet: emptySUSet guessOn: emptyLoop SCC: tarjan(simulationUnits externalConnection)) } .
 
     
 endom)

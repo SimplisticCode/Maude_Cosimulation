@@ -36,7 +36,7 @@ endfm)
    vars C C1 : Configuration .
    var AL : ActionList .
    var FT : PortIdSet .
-   var L : Algebraic .  
+   var LOOP : Algebraic .  
    var LOOPS : AlgebraicLoops .  
 
    eq stepFindingDone(emptySUSet, C, S) = true .
@@ -94,7 +94,7 @@ endfm)
                     if T1 =/= T2 . *** The simulations should both have stepped, but not to the same time
 
   *** Solve Algebraic Loops
-  eq findStep(SUIDs, C SCC: (L # LOOPS), C1 SCC: (L # LOOPS), AL) = findStep(SUIDs, solveLoopConf(C SCC: LOOPS, L), C1 SCC: LOOPS, AL ; solveLoopAlgorithm(C SCC: LOOPS, L)) [owise] . 
+  eq findStep(SUIDs, C SCC: (LOOP # LOOPS), C1 SCC: (LOOP # LOOPS), AL) = findStep(SUIDs, solveLoopConf(C SCC: LOOPS, LOOP), C1 SCC: LOOPS, AL ; solveLoopAlgorithm(C SCC: LOOPS, LOOP)) [owise] . 
 
   ceq findStep(SUIDs, C stepSize: S, C1, AL) = < S ++ AL > if stepFindingDone(SUIDs, C, S) . 
 

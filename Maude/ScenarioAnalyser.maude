@@ -172,18 +172,15 @@ endom)
     *** Dead end - no successor!
     eq dfs(emptyLoop, E, C) = natEnv(100000, E) .
 
-
+    *** P has not been visited before - none of the other cases match
     ceq dfs(P ;; PSet, E, C) =  natEnv(min(N1, N2), E2) 
         if DFSRESULT := dfs1(P, E, C) /\
             E1 := dfsrEnv(DFSRESULT) /\
             N1 := num(DFSRESULT) /\
             DFSRESULT1 := dfs(PSet, E1, C) /\
             N2 := num(DFSRESULT1) /\
-            E2 := dfsrEnv(DFSRESULT) 
+            E2 := dfsrEnv(DFSRESULT1) 
          [owise] .
-
-    *** P has not been visited before
-
 
     *** If we can find a Node with a lower index we use the lower index
     ceq dfs1(P, E, C) = dfs(SUCCESORS, E1, C)

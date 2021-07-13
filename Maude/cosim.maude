@@ -20,10 +20,10 @@ load StepFinder
    var AL : ActionList .
    var FT : PortIdSet .
    var P : EPortIdSet .
-   var S : NzNat .
+   vars S FUTURETIME ENDTIME : NzNat .
    var L : Algebraic .  
    var LOOPS : AlgebraicLoops .  
-   var M : Mode .
+   var INPUTTYPE : Mode .
    var STEPRes : findStepPair .
 
   eq simulationStepDone(< ID1 : SU | time : T, inputs : INPUTS, outputs : OUTPUTS > C) = T > 0 and allDef(INPUTS, T) and allDef(OUTPUTS, T) and simulationStepDone(C) .
@@ -32,9 +32,8 @@ load StepFinder
   *** Step Negotiation
   ceq performStepNegotiation(C SNSet: SUIDs stepSize: S Algorithm: AL) = 
                               C SNSet: emptySUSet 
-                                Algorithm: (AL ; (complexEvent: StepNegotiation SaveSUs: SUIDs RestoreSUs: SUIDs 
-                                Actions: getAL(STEPRes)))
-                              (stepSize: getStep(STEPRes))
+                              Algorithm: (AL ; (complexEvent: StepNegotiation SaveSUs: SUIDs RestoreSUs: SUIDs Actions: getAL(STEPRes)))
+                              stepSize: getStep(STEPRes)
                               if needsStepNegotiation(SUIDs) /\ STEPRes := findStep(SUIDs, C stepSize: S, C stepSize: S, emptyList) .
 
   ceq performStepNegotiation(C SNSet: SUIDs) = C if not needsStepNegotiation(SUIDs) .  
@@ -54,20 +53,20 @@ load StepFinder
 
   *** Perform the global simulation step
   *** Set input
-  ceq performGlobalStep(C < ID1 : SU | time : T, inputs : (< I : Input | time : T1, type : M > INPUTS) > 
+  ceq performGlobalStep(C < ID1 : SU | time : T, inputs : (< I : Input | time : T1, type : INPUTTYPE > INPUTS) > 
                           < ID2 : SU | outputs : (< O : Output | time : T2, status : Def > OUTPUTS) > 
                          (ID2 ! O ==> ID1 ! I) Algorithm: AL) = 
             performGlobalStep(C setAction( < ID1 : SU | >, I, T2) < ID2 : SU | > 
                          (ID2 ! O ==> ID1 ! I) 
                          Algorithm: (AL ; (event: Set SU: ID1 PId: I)))
-                         if T1 < T2 and ((M == d and T1 < T) or (M == r and T == T1)) .
+                         if T1 < T2 and ((INPUTTYPE == d and T1 < T) or (INPUTTYPE == r and T == T1)) .
 
   *** Step
-  ceq performGlobalStep(C < ID1 : SU | time : T, inputs : INPUTS, outputs : OUTPUTS > stepSize: S endTime: T2 Algorithm: AL)  = 
+  ceq performGlobalStep(C < ID1 : SU | time : T, inputs : INPUTS, outputs : OUTPUTS > stepSize: S endTime: ENDTIME Algorithm: AL)  = 
       performGlobalStep(C 
                         stepAction(< ID1 : SU | >, S)
-                        stepSize: S endTime: T2 Algorithm: (AL ; (event: Step SU: ID1 PId: emptySet)))
-                        if canStep(T, (T + S), INPUTS, OUTPUTS) and (T + S) <= T2 . 
+                        stepSize: S endTime: ENDTIME Algorithm: (AL ; (event: Step SU: ID1 PId: emptySet)))
+                        if FUTURETIME := T + S /\ canStep(T, FUTURETIME, INPUTS, OUTPUTS) and FUTURETIME <= ENDTIME . 
 
   *** Get
   ceq performGlobalStep(C < ID1 : SU | time : T, inputs : INPUTS, outputs : (< O : Output | status : Undef, dependsOn : FT > OUTPUTS) >       Algorithm: AL) =

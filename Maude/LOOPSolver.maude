@@ -16,7 +16,7 @@ load SimulationUnit
     op snd : Pair -> Configuration .
 
     var L : AlgebraicLoops .  
-    var K : LoopType .
+    var LOOPTYPE : LoopType .
     vars C OUTPUTS INPUTS : Configuration .
     vars I O : PortId .
     vars ID1 ID2 : SUID .
@@ -35,24 +35,24 @@ load SimulationUnit
    eq containsCycle(noLoops) = false .
    eq containsCycle(L) = true [owise] .
 
-   eq solveLoop(C Algorithm: AL, AlgebraicLoop: PSet Type: K) = solveLoopConf(C, AlgebraicLoop: PSet Type: K)
-        Algorithm: (AL ; (solveLoopAlgorithm(C, AlgebraicLoop: PSet Type: K))) .
+   eq solveLoop(C Algorithm: AL, AlgebraicLoop: PSet Type: LOOPTYPE) = solveLoopConf(C, AlgebraicLoop: PSet Type: LOOPTYPE)
+        Algorithm: (AL ; (solveLoopAlgorithm(C, AlgebraicLoop: PSet Type: LOOPTYPE))) .
 
-  eq solveLoopConf(C, AlgebraicLoop: PSet Type: K) = snd(loopStep(PSet, breakLoop(PSet, C, K), emptyList)) .
+  eq solveLoopConf(C, AlgebraicLoop: PSet Type: LOOPTYPE) = snd(loopStep(PSet, breakLoop(PSet, C, LOOPTYPE), emptyList)) .
 
-  ceq solveLoopAlgorithm(C, AlgebraicLoop: PSet Type: K) = 
-    complexEvent: Loop SaveSUs: SUIDs RestoreSUs: SUIDs Actions: fst(loopStep(PSet, breakLoop(PSet, C, K), emptyList))
+  ceq solveLoopAlgorithm(C, AlgebraicLoop: PSet Type: LOOPTYPE) = 
+    complexEvent: Loop SaveSUs: SUIDs RestoreSUs: SUIDs Actions: fst(loopStep(PSet, breakLoop(PSet, C, LOOPTYPE), emptyList))
         if SUIDs := getSUs(PSet, emptySUSet) .
 
     *** Forget All Connections depending on type of loop 
     ceq breakLoop((ID1 ! I) ;; PSet,   
                      < ID1 : SU | inputs : (< I : Input | type : M > INPUTS) > 
                      < ID2 : SU | outputs : (< O : Output | > OUTPUTS) > 
-                     (ID2 ! O ==> ID1 ! I) guessOn: GSet C, K) = 
-                        breakLoop((ID1 ! I) ;; PSet, < ID1 : SU | > < ID2 : SU | > guessOn: ((ID1 ! I) ;; GSet) C , K) 
-                        if (K == R and M == r) or (K == F and M == d) .
+                     (ID2 ! O ==> ID1 ! I) guessOn: GSet C, LOOPTYPE) = 
+                        breakLoop((ID1 ! I) ;; PSet, < ID1 : SU | > < ID2 : SU | > guessOn: ((ID1 ! I) ;; GSet) C, LOOPTYPE) 
+                        if (LOOPTYPE == R and M == r) or (LOOPTYPE == F and M == d) .
 
-    eq breakLoop(PSet, C, K) = C [owise] .
+    eq breakLoop(PSet, C, LOOPTYPE) = C [owise] .
 
     *** Set value using Guess
     ceq loopStep((ID1 ! I) ;; PSet, 

@@ -17,39 +17,39 @@ load Algorithm
    op allInputsSet : Configuration -> Bool .
    op canStep : Nat NzNat Configuration Configuration -> Bool .
 
-   var ID1 : SUID .
+   var ID : SUID .
    var PId : PortId .
-   vars T  SUTime : Nat .
+   vars TIME SUTIME : Nat .
    vars C Inputs Outputs : Configuration .
    var PS : PortStatus .
    var FT : PortIdSet .
-   vars FutureTime S : NzNat .
+   vars FutureTime STEP : NzNat .
 
    *** Checks if all feedthrough constraints are satisfied
-   eq feedthroughSatisfied(emptySet, C, T) = true .
-   eq feedthroughSatisfied(PId :: FT, < PId : Input | status : Undef > C, T) = false .
-   eq feedthroughSatisfied(PId :: FT, < PId : Input | time : T, status : Def > C, T) =  feedthroughSatisfied(FT, C, T) .
+   eq feedthroughSatisfied(emptySet, C, TIME) = true .
+   eq feedthroughSatisfied(PId :: FT, < PId : Input | status : Undef > C, TIME) = false .
+   eq feedthroughSatisfied(PId :: FT, < PId : Input | time : TIME, status : Def > C, TIME) =  feedthroughSatisfied(FT, C, TIME) .
 
-   eq allDef(none, T) = true .
-   eq allDef(< PId : Port | status : PS, time : T > C, T) = PS == Def and allDef(C, T) .
+   eq allDef(none, TIME) = true .
+   eq allDef(< PId : Port | status : PS, time : TIME > C, TIME) = PS == Def and allDef(C, TIME) .
 
-   eq allInputsDef(none, SUTime, FutureTime) = true .
-   eq allInputsDef(< PId : Input | time : SUTime, type : d, status : PS > C, SUTime, FutureTime) = PS == Def and allInputsDef(C, SUTime, FutureTime) .
-   eq allInputsDef(< PId : Input | time : FutureTime, type : r,  status : PS > C, SUTime, FutureTime ) = PS == Def and allInputsDef(C, SUTime, FutureTime) .
+   eq allInputsDef(none, SUTIME, FutureTime) = true .
+   eq allInputsDef(< PId : Input | time : SUTIME, type : d, status : PS > C, SUTIME, FutureTime) = PS == Def and allInputsDef(C, SUTIME, FutureTime) .
+   eq allInputsDef(< PId : Input | time : FutureTime, type : r,  status : PS > C, SUTIME, FutureTime ) = PS == Def and allInputsDef(C, SUTIME, FutureTime) .
 
-   eq undefPorts(none, T) = none .
-   eq undefPorts(< PId : Port | > C, T) =  < PId : Port | status : Undef, time : T > undefPorts(C, T) .
+   eq undefPorts(none, TIME) = none .
+   eq undefPorts(< PId : Port | > C, TIME) =  < PId : Port | status : Undef, time : TIME > undefPorts(C, TIME) .
 
    eq undefInputs(none) = none .
    eq undefInputs(< PId : Port | > C) =  < PId : Port | status : Undef > undefInputs(C) .
 
    eq allInputsSet(none) = true .
-   eq allInputsSet(< ID1 : SU | inputs : Inputs > C) = allDef(Inputs, 0) and allInputsSet(C) .
+   eq allInputsSet(< ID : SU | inputs : Inputs > C) = allDef(Inputs, 0) and allInputsSet(C) .
 
-   eq canStep(SUTime, FutureTime, Inputs, Outputs) =  allInputsDef(Inputs, SUTime, FutureTime) and allDef(Outputs, SUTime) . 
+   eq canStep(SUTIME, FutureTime, Inputs, Outputs) =  allInputsDef(Inputs, SUTIME, FutureTime) and allDef(Outputs, SUTIME) . 
 
    *** For the moment we allow all steps - should updated to reflect the nondeterminism of the step negotiation!
-   eq askStepSize(< ID1 : SU | time : SUTime, inputs : Inputs >, S) = S .
+   eq askStepSize(< ID : SU | time : SUTIME, inputs : Inputs >, STEP) = STEP .
 
 endom)
 
@@ -63,18 +63,19 @@ endom)
 
   var ID1 : SUID .
   vars I O : PortId .
-  var S : NzNat .
   vars INPUTS OUTPUTS : Configuration .
   var ST : Object .
-  var T : Nat .
+  var TIME : Nat .
+  vars FUTURETIME STEP : NzNat .
 
   *** Updates the time and status of the input
-  eq getAction(< ID1 : SU | time : T, outputs : (< O : Output | > OUTPUTS) >, O) = < ID1 : SU | outputs : (< O : Output | time : T, status : Def > OUTPUTS) > .
+  eq getAction(< ID1 : SU | time : TIME, outputs : (< O : Output | > OUTPUTS) >, O) = < ID1 : SU | outputs : (< O : Output | time : TIME, status : Def > OUTPUTS) > .
 
-  eq setAction(< ID1 : SU | inputs : (< I : Input | > INPUTS) > , I, T) =  < ID1 : SU | inputs : (< I : Input | time : T, status : Def > INPUTS) > .
+  eq setAction(< ID1 : SU | inputs : (< I : Input | > INPUTS) > , I, TIME) =  < ID1 : SU | inputs : (< I : Input | time : TIME, status : Def > INPUTS) > .
 
   *** Updates the time and the status of the outputs
-  eq stepAction(< ID1 : SU | time : T, outputs : OUTPUTS >, S) = < ID1 : SU | time : (T + S), outputs : undefPorts(OUTPUTS, (T + S)) > .
+  ceq stepAction(< ID1 : SU | time : TIME, outputs : OUTPUTS >, STEP) = < ID1 : SU | time : FUTURETIME, outputs : undefPorts(OUTPUTS, FUTURETIME) > 
+    if FUTURETIME := TIME + STEP .
 
 endom)
 

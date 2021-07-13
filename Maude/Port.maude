@@ -19,7 +19,6 @@
  ops d r : -> Mode [ctor] .   *** d = delayed, r = Reactive.
  ops Def Undef : -> PortStatus [ctor] .
 
-
  op emptySet : -> PortIdSet [ctor] .
  op _::_ : PortIdSet PortIdSet -> PortIdSet [ctor assoc comm id: emptySet] .
  
@@ -46,7 +45,6 @@
  eq elems(emptyST) = emptyLoop .
  eq elems(P ## STACK) = P ;; elems(STACK) .
 
-
  eq P in P ;; PSet = true .
  eq P in PSet = false [owise] .
 
@@ -54,9 +52,6 @@
  eq C in Cons = false [owise] .
 
  op size : EPortIdSet -> Nat .
-
  eq size(emptyLoop) = 0 .
  eq size(P ;; PSet) = 1 + size(PSet) .
-
-
 endom)

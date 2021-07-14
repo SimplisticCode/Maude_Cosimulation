@@ -2,8 +2,9 @@ load Algorithm
 (omod SimulationUnit is
    protecting Ports + Algorithm .
    sort fmiState .
-
-   ops Instantiated ExperimentSetup Initialize Simulation Terminated InstanceFreed Unloaded : -> fmiState [ctor] . *** The different states of the FMI standard
+   
+   *** The different states of the FMI standard
+   ops Instantiated ExperimentSetup Initialize Simulation Terminated InstanceFreed Unloaded : -> fmiState [ctor] . 
 
    ***Classes
    class SU | time : Nat, inputs : Configuration, outputs : Configuration, canReject : Bool, state : fmiState .
@@ -17,13 +18,17 @@ load Algorithm
    op allInputsSet : Configuration -> Bool .
    op canStep : Nat NzNat Configuration Configuration -> Bool .
 
+   op getAction : Object PortId -> Object .
+   op setAction : Object PortId Nat -> Object .
+   op stepAction : Object NzNat -> Object .
+
    var ID : SUID .
-   var PId : PortId .
+   vars PId I O : PortId .
    vars TIME SUTIME : Nat .
-   vars C Inputs Outputs : Configuration .
+   vars C INPUTS OUTPUTS : Configuration .
    var PS : PortStatus .
    var FT : PortIdSet .
-   vars FutureTime STEP : NzNat .
+   vars FUTURETIME STEP : NzNat .
 
    *** Checks if all feedthrough constraints are satisfied
    eq feedthroughSatisfied(emptySet, C, TIME) = true .
@@ -33,9 +38,9 @@ load Algorithm
    eq allDef(none, TIME) = true .
    eq allDef(< PId : Port | status : PS, time : TIME > C, TIME) = PS == Def and allDef(C, TIME) .
 
-   eq allInputsDef(none, SUTIME, FutureTime) = true .
-   eq allInputsDef(< PId : Input | time : SUTIME, type : d, status : PS > C, SUTIME, FutureTime) = PS == Def and allInputsDef(C, SUTIME, FutureTime) .
-   eq allInputsDef(< PId : Input | time : FutureTime, type : r,  status : PS > C, SUTIME, FutureTime ) = PS == Def and allInputsDef(C, SUTIME, FutureTime) .
+   eq allInputsDef(none, SUTIME, FUTURETIME) = true .
+   eq allInputsDef(< PId : Input | time : SUTIME, type : d, status : PS > C, SUTIME, FUTURETIME) = PS == Def and allInputsDef(C, SUTIME, FUTURETIME) .
+   eq allInputsDef(< PId : Input | time : FUTURETIME, type : r,  status : PS > C, SUTIME, FUTURETIME ) = PS == Def and allInputsDef(C, SUTIME, FUTURETIME) .
 
    eq undefPorts(none, TIME) = none .
    eq undefPorts(< PId : Port | > C, TIME) =  < PId : Port | status : Undef, time : TIME > undefPorts(C, TIME) .
@@ -44,38 +49,20 @@ load Algorithm
    eq undefInputs(< PId : Port | > C) =  < PId : Port | status : Undef > undefInputs(C) .
 
    eq allInputsSet(none) = true .
-   eq allInputsSet(< ID : SU | inputs : Inputs > C) = allDef(Inputs, 0) and allInputsSet(C) .
+   eq allInputsSet(< ID : SU | inputs : INPUTS > C) = allDef(INPUTS, 0) and allInputsSet(C) .
 
-   eq canStep(SUTIME, FutureTime, Inputs, Outputs) =  allInputsDef(Inputs, SUTIME, FutureTime) and allDef(Outputs, SUTIME) . 
+   eq canStep(SUTIME, FUTURETIME, INPUTS, OUTPUTS) =  allInputsDef(INPUTS, SUTIME, FUTURETIME) and allDef(OUTPUTS, SUTIME) . 
 
    *** For the moment we allow all steps - should updated to reflect the nondeterminism of the step negotiation!
-   eq askStepSize(< ID : SU | time : SUTIME, inputs : Inputs >, STEP) = STEP .
-
-endom)
-
-
-
-(omod PerformActions is
-  protecting SimulationUnit .
-  op getAction : Object PortId -> Object .
-  op setAction : Object PortId Nat -> Object .
-  op stepAction : Object NzNat -> Object .
-
-  var ID1 : SUID .
-  vars I O : PortId .
-  vars INPUTS OUTPUTS : Configuration .
-  var ST : Object .
-  var TIME : Nat .
-  vars FUTURETIME STEP : NzNat .
+   eq askStepSize(< ID : SU | >, STEP) = STEP .
 
   *** Updates the time and status of the input
-  eq getAction(< ID1 : SU | time : TIME, outputs : (< O : Output | > OUTPUTS) >, O) = < ID1 : SU | outputs : (< O : Output | time : TIME, status : Def > OUTPUTS) > .
+  eq getAction(< ID : SU | time : TIME, outputs : (< O : Output | > OUTPUTS) >, O) = < ID : SU | outputs : (< O : Output | time : TIME, status : Def > OUTPUTS) > .
 
-  eq setAction(< ID1 : SU | inputs : (< I : Input | > INPUTS) > , I, TIME) =  < ID1 : SU | inputs : (< I : Input | time : TIME, status : Def > INPUTS) > .
+  eq setAction(< ID : SU | inputs : (< I : Input | > INPUTS) > , I, TIME) =  < ID : SU | inputs : (< I : Input | time : TIME, status : Def > INPUTS) > .
 
   *** Updates the time and the status of the outputs
-  ceq stepAction(< ID1 : SU | time : TIME, outputs : OUTPUTS >, STEP) = < ID1 : SU | time : FUTURETIME, outputs : undefPorts(OUTPUTS, FUTURETIME) > 
+  ceq stepAction(< ID : SU | time : TIME, outputs : OUTPUTS >, STEP) = < ID : SU | time : FUTURETIME, outputs : undefPorts(OUTPUTS, FUTURETIME) > 
     if FUTURETIME := TIME + STEP .
 
 endom)
-

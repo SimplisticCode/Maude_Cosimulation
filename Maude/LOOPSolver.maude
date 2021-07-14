@@ -1,7 +1,7 @@
 load SimulationUnit
 
 (omod LOOPSolver is 
-  protecting PerformActions .
+  protecting SimulationUnit .
     sorts Pair .
 
     op <_;_> : ActionList Configuration -> Pair [ctor] .

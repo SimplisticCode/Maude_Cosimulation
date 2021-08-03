@@ -43,20 +43,20 @@ load Port
 
  var ID : SUID .
  var SUSet : SUIdSet .
- var L : AlgebraicLoops .
- var P : EPortId .
- var T : LoopType .
- var PSet : EPortIdSet .
- var PID : PortId .
+ var LOOPS : AlgebraicLoops .
+ var PORT : EPortId .
+ var LOOPTYPE : LoopType .
+ var PORTSET : EPortIdSet .
+ var PORTID : PortId .
 
  eq ID in ID ++ SUSet = true .
  eq ID in SUSet = false [owise] .
 
- eq P memberOf (AlgebraicLoop: (P ;; PSet)  Type: T) # L = true .
- eq P memberOf L = false [owise] .
+ eq PORT memberOf (AlgebraicLoop: (PORT ;; PORTSET)  Type: LOOPTYPE) # LOOPS = true .
+ eq PORT memberOf LOOPS = false [owise] .
 
  eq getSUs(emptyLoop, SUSet) = SUSet .
- ceq getSUs((ID ! PID) ;; PSet, SUSet) = getSUs(PSet, SUSet) if ID in SUSet .
- eq getSUs((ID ! PID) ;; PSet, SUSet) = getSUs(PSet, ID ++ SUSet) [owise] .
+ ceq getSUs((ID ! PORTID) ;; PORTSET, SUSet) = getSUs(PORTSET, SUSet) if ID in SUSet .
+ eq getSUs((ID ! PORTID) ;; PORTSET, SUSet) = getSUs(PORTSET, ID ++ SUSet) [owise] .
 
 endom)

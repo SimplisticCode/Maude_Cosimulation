@@ -15,82 +15,82 @@ load SimulationUnit
     op fst : Pair -> ActionList .
     op snd : Pair -> Configuration .
 
-    var L : AlgebraicLoops .  
+    var LOOPS : AlgebraicLoops .  
     var LOOPTYPE : LoopType .
     vars C OUTPUTS INPUTS : Configuration .
     vars I O : PortId .
     vars ID1 ID2 : SUID .
     vars PSet GSet : EPortIdSet .
-    var AL : ActionList .
+    var ALGO : ActionList .
     var T T1 : Nat .
-    var S : NzNat .
-    var FT : PortIdSet .
-    var M : Mode .
-    var SUIDs : SUIdSet .
+    var STEP : NzNat .
+    var FEEDTHROUGH : PortIdSet .
+    var MODE : Mode .
+    var SUIDS : SUIdSet .
 
-    eq fst(< AL ; C >) = AL . 
-    eq snd(< AL ; C >) = C . 
+    eq fst(< ALGO ; C >) = ALGO . 
+    eq snd(< ALGO ; C >) = C . 
 
    *** Does the scenario contain any loop
    eq containsCycle(noLoops) = false .
-   eq containsCycle(L) = true [owise] .
+   eq containsCycle(LOOPS) = true [owise] .
 
-   eq solveLoop(C Algorithm: AL, AlgebraicLoop: PSet Type: LOOPTYPE) = solveLoopConf(C, AlgebraicLoop: PSet Type: LOOPTYPE)
-        Algorithm: (AL ; (solveLoopAlgorithm(C, AlgebraicLoop: PSet Type: LOOPTYPE))) .
+   eq solveLoop(C Algorithm: ALGO, AlgebraicLoop: PSet Type: LOOPTYPE) = solveLoopConf(C, AlgebraicLoop: PSet Type: LOOPTYPE)
+        Algorithm: (ALGO ; (solveLoopAlgorithm(C, AlgebraicLoop: PSet Type: LOOPTYPE))) .
 
   eq solveLoopConf(C, AlgebraicLoop: PSet Type: LOOPTYPE) = snd(loopStep(PSet, breakLoop(PSet, C, LOOPTYPE), emptyList)) .
 
   ceq solveLoopAlgorithm(C, AlgebraicLoop: PSet Type: LOOPTYPE) = 
-    complexEvent: Loop SaveSUs: SUIDs RestoreSUs: SUIDs Actions: fst(loopStep(PSet, breakLoop(PSet, C, LOOPTYPE), emptyList))
-        if SUIDs := getSUs(PSet, emptySUSet) .
+    complexEvent: Loop SaveSUs: SUIDS RestoreSUs: SUIDS Actions: fst(loopStep(PSet, breakLoop(PSet, C, LOOPTYPE), emptyList))
+        if SUIDS := getSUs(PSet, emptySUSet) .
 
     *** Forget All Connections depending on type of loop 
     ceq breakLoop((ID1 ! I) ;; PSet,   
-                     < ID1 : SU | inputs : (< I : Input | type : M > INPUTS) > 
+                     < ID1 : SU | inputs : (< I : Input | type : MODE > INPUTS) > 
                      < ID2 : SU | outputs : (< O : Output | > OUTPUTS) > 
                      (ID2 ! O ==> ID1 ! I) guessOn: GSet C, LOOPTYPE) = 
                         breakLoop((ID1 ! I) ;; PSet, < ID1 : SU | > < ID2 : SU | > guessOn: ((ID1 ! I) ;; GSet) C, LOOPTYPE) 
-                        if (LOOPTYPE == R and M == r) or (LOOPTYPE == F and M == d) .
+                        if (LOOPTYPE == R and MODE == r) or (LOOPTYPE == F and MODE == d) .
 
     eq breakLoop(PSet, C, LOOPTYPE) = C [owise] .
 
     *** Set value using Guess
     ceq loopStep((ID1 ! I) ;; PSet, 
-                      < ID1 : SU | time : T, inputs : (< I : Input | time : T1, type : M > INPUTS) > 
-                    guessOn: ((ID1 ! I) ;; GSet) stepSize: S C, AL) = 
+                      < ID1 : SU | time : T, inputs : (< I : Input | time : T1, type : MODE > INPUTS) > 
+                    guessOn: ((ID1 ! I) ;; GSet) stepSize: STEP C, ALGO) = 
             loopStep(PSet, 
-                    setAction(< ID1 : SU | >, I, T1 + S)
-                    guessOn: GSet stepSize: S C, 
-                    (AL ; (event: Set SU: ID1 PId: I))) 
-                    if (M == r and T1 == T) or (M == d and T == (T1 + S)) .
+                    setAction(< ID1 : SU | >, I, T1 + STEP)
+                    guessOn: GSet stepSize: STEP C, 
+                    (ALGO ; (event: Set SU: ID1 PId: I))) 
+                    if (MODE == r and T1 == T) or (MODE == d and T == (T1 + STEP)) .
 
     *** Set value on input - Fix
     ceq loopStep((ID1 ! I) ;; PSet, 
-                      < ID1 : SU | inputs : (< I : Input | time : T, type : M > INPUTS) > 
+                      < ID1 : SU | inputs : (< I : Input | time : T, type : MODE > INPUTS) > 
                       < ID2 : SU | outputs : (< O : Output | time : T1, status : Def > OUTPUTS) > 
-                        (ID2 ! O ==> ID1 ! I) C, AL) = 
+                        (ID2 ! O ==> ID1 ! I) C, ALGO) = 
               loopStep(PSet, 
                       setAction(< ID1 : SU | >, I, T1)
                       < ID2 : SU | > (ID2 ! O ==> ID1 ! I) C, 
-                      (AL ; (event: Set SU: ID1 PId: I))) 
+                      (ALGO ; (event: Set SU: ID1 PId: I))) 
                       if T1 > T .
 
     *** Get output value
     ceq loopStep((ID1 ! O) ;; PSet, 
-                    < ID1 : SU | time : T, outputs : (< O : Output | status : Undef, dependsOn : FT > OUTPUTS), inputs : INPUTS > C, AL) = 
+                    < ID1 : SU | time : T, outputs : (< O : Output | status : Undef, dependsOn : FEEDTHROUGH > OUTPUTS), inputs : INPUTS > C, ALGO) = 
                     loopStep(PSet,
                       getAction(< ID1 : SU | >, O) C, 
-                      (AL ; (event: Get SU: ID1 PId: O))) 
-                      if feedthroughSatisfied(FT, INPUTS, T) .
+                      (ALGO ; (event: Get SU: ID1 PId: O))) 
+                      if feedthroughSatisfied(FEEDTHROUGH, INPUTS, T) .
 
     *** Step
     ceq loopStep((ID1 ! O) ;; PSet,  
-                    < ID1 : SU | time : T, outputs : OUTPUTS, inputs : INPUTS > stepSize: S C, AL) = 
+                    < ID1 : SU | time : T, outputs : OUTPUTS, inputs : INPUTS > stepSize: STEP C, ALGO) = 
                   loopStep((ID1 ! O) ;; PSet,
-                      stepAction(< ID1 : SU | >, S) 
-                      stepSize: S C, (AL ; (event: Step SU: ID1 PId: emptySet)))
-                    if canStep(T, (T + S), INPUTS, OUTPUTS) .
+                      stepAction(< ID1 : SU | >, STEP) 
+                      stepSize: STEP C, (ALGO ; (event: Step SU: ID1 PId: emptySet)))
+                    if canStep(T, (T + STEP), INPUTS, OUTPUTS) .
 
-    eq loopStep(emptyLoop,C, AL) = < AL ; C  > .
+    eq loopStep(emptyLoop,C, ALGO) = < ALGO ; C  > .
 
 endom)

@@ -36,22 +36,22 @@
 
  op elems : PStack -> EPortIdSet .
 
- var P : EPortId .
- var PSet : EPortIdSet .
- var Cons : Configuration .
- var C : Connection .
+ var PORT : EPortId .
+ var PORTSET : EPortIdSet .
+ var CONF : Configuration .
+ var CON : Connection .
  var STACK : PStack .
 
  eq elems(emptyST) = emptyLoop .
- eq elems(P ## STACK) = P ;; elems(STACK) .
+ eq elems(PORT ## STACK) = PORT ;; elems(STACK) .
 
- eq P in P ;; PSet = true .
- eq P in PSet = false [owise] .
+ eq PORT in PORT ;; PORTSET = true .
+ eq PORT in PORTSET = false [owise] .
 
- eq C in C Cons = true .
- eq C in Cons = false [owise] .
+ eq CON in CON CONF = true .
+ eq CON in CONF = false [owise] .
 
  op size : EPortIdSet -> Nat .
  eq size(emptyLoop) = 0 .
- eq size(P ;; PSet) = 1 + size(PSet) .
+ eq size(PORT ;; PORTSET) = 1 + size(PORTSET) .
 endom)

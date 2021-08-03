@@ -14,106 +14,106 @@ load StepFinder
    vars ID1 ID2 : SUID .
    var SUIDs : SUIdSet .
    vars I O : PortId .
-   vars T T1 T2 : Nat .
+   vars TIME TIME1 TIME2 : Nat .
    vars INPUTS OUTPUTS C : Configuration . 
-   var ST : fmiState .
-   var AL : ActionList .
-   var FT : PortIdSet .
-   var P : EPortIdSet .
-   vars S FUTURETIME ENDTIME : NzNat .
-   var L : Algebraic .  
+   var STATE : fmiState .
+   var ALGO : ActionList .
+   var FEEDTHROUGH : PortIdSet .
+   var PORTS : EPortIdSet .
+   vars STEPSIZE FUTURETIME ENDTIME : NzNat .
+   var LOOP : Algebraic .  
    var LOOPS : AlgebraicLoops .  
    var INPUTTYPE : Mode .
    var STEPRes : findStepPair .
 
-  eq simulationStepDone(< ID1 : SU | time : T, inputs : INPUTS, outputs : OUTPUTS > C) = T > 0 and allDef(INPUTS, T) and allDef(OUTPUTS, T) and simulationStepDone(C) .
+  eq simulationStepDone(< ID1 : SU | time : TIME, inputs : INPUTS, outputs : OUTPUTS > C) = TIME > 0 and allDef(INPUTS, TIME) and allDef(OUTPUTS, TIME) and simulationStepDone(C) .
   eq simulationStepDone(C) = true [owise] .
 
   *** Step Negotiation
-  ceq performStepNegotiation(C SNSet: SUIDs stepSize: S Algorithm: AL) = 
+  ceq performStepNegotiation(C SNSet: SUIDs stepSize: STEPSIZE Algorithm: ALGO) = 
                               C SNSet: emptySUSet 
-                              Algorithm: (AL ; (complexEvent: StepNegotiation SaveSUs: SUIDs RestoreSUs: SUIDs Actions: getAL(STEPRes)))
+                              Algorithm: (ALGO ; (complexEvent: StepNegotiation SaveSUs: SUIDs RestoreSUs: SUIDs Actions: getAL(STEPRes)))
                               stepSize: getStep(STEPRes)
-                              if needsStepNegotiation(SUIDs) /\ STEPRes := findStep(SUIDs, C stepSize: S, C stepSize: S, emptyList) .
+                              if needsStepNegotiation(SUIDs) /\ STEPRes := findStep(SUIDs, C stepSize: STEPSIZE, C stepSize: STEPSIZE, emptyList) .
 
   ceq performStepNegotiation(C SNSet: SUIDs) = C if not needsStepNegotiation(SUIDs) .  
 
   *** Get All ports in the scenario:
-  ceq getPorts(< ID1 : SU | inputs : (< I : Input | > INPUTS) > C, P) = getPorts(< ID1 : SU | > C,  (ID1 ! I) ;; P )
-            if not (ID1 ! I) in P .
+  ceq getPorts(< ID1 : SU | inputs : (< I : Input | > INPUTS) > C, PORTS) = getPorts(< ID1 : SU | > C,  (ID1 ! I) ;; PORTS )
+            if not (ID1 ! I) in PORTS .
 
-  ceq getPorts(< ID1 : SU | outputs : (< O : Output | > OUTPUTS) > C, P) = getPorts(< ID1 : SU | > C,  (ID1 ! O) ;; P )
-            if not (ID1 ! O) in P .
+  ceq getPorts(< ID1 : SU | outputs : (< O : Output | > OUTPUTS) > C, PORTS) = getPorts(< ID1 : SU | > C,  (ID1 ! O) ;; PORTS )
+            if not (ID1 ! O) in PORTS .
 
-  eq getPorts(C, P) = P [owise] . 
+  eq getPorts(C, PORTS) = PORTS [owise] . 
 
   *** All SUs are in the simulation state
-  eq allSUinSimulation(< ID1 : SU | state : ST > C) = ST == Simulation and allSUinSimulation(C) . 
+  eq allSUinSimulation(< ID1 : SU | state : STATE > C) = STATE == Simulation and allSUinSimulation(C) . 
   eq allSUinSimulation(C) = true [owise] .
 
   *** Perform the global simulation step
   *** Set input
-  ceq performGlobalStep(C < ID1 : SU | time : T, inputs : (< I : Input | time : T1, type : INPUTTYPE > INPUTS) > 
-                          < ID2 : SU | outputs : (< O : Output | time : T2, status : Def > OUTPUTS) > 
-                         (ID2 ! O ==> ID1 ! I) Algorithm: AL) = 
-            performGlobalStep(C setAction( < ID1 : SU | >, I, T2) < ID2 : SU | > 
+  ceq performGlobalStep(C < ID1 : SU | time : TIME, inputs : (< I : Input | time : TIME1, type : INPUTTYPE > INPUTS) > 
+                          < ID2 : SU | outputs : (< O : Output | time : TIME2, status : Def > OUTPUTS) > 
+                         (ID2 ! O ==> ID1 ! I) Algorithm: ALGO) = 
+            performGlobalStep(C setAction( < ID1 : SU | >, I, TIME2) < ID2 : SU | > 
                          (ID2 ! O ==> ID1 ! I) 
-                         Algorithm: (AL ; (event: Set SU: ID1 PId: I)))
-                         if T1 < T2 and ((INPUTTYPE == d and T1 < T) or (INPUTTYPE == r and T == T1)) .
+                         Algorithm: (ALGO ; (event: Set SU: ID1 PId: I)))
+                         if TIME1 < TIME2 and ((INPUTTYPE == d and TIME1 < TIME) or (INPUTTYPE == r and TIME == TIME1)) .
 
   *** Step
-  ceq performGlobalStep(C < ID1 : SU | time : T, inputs : INPUTS, outputs : OUTPUTS > stepSize: S endTime: ENDTIME Algorithm: AL)  = 
+  ceq performGlobalStep(C < ID1 : SU | time : TIME, inputs : INPUTS, outputs : OUTPUTS > stepSize: STEPSIZE endTime: ENDTIME Algorithm: ALGO)  = 
       performGlobalStep(C 
-                        stepAction(< ID1 : SU | >, S)
-                        stepSize: S endTime: ENDTIME Algorithm: (AL ; (event: Step SU: ID1 PId: emptySet)))
-                        if FUTURETIME := T + S /\ canStep(T, FUTURETIME, INPUTS, OUTPUTS) and FUTURETIME <= ENDTIME . 
+                        stepAction(< ID1 : SU | >, STEPSIZE)
+                        stepSize: STEPSIZE endTime: ENDTIME Algorithm: (ALGO ; (event: Step SU: ID1 PId: emptySet)))
+                        if FUTURETIME := TIME + STEPSIZE /\ canStep(TIME, FUTURETIME, INPUTS, OUTPUTS) and FUTURETIME <= ENDTIME . 
 
   *** Get
-  ceq performGlobalStep(C < ID1 : SU | time : T, inputs : INPUTS, outputs : (< O : Output | status : Undef, dependsOn : FT > OUTPUTS) >       Algorithm: AL) =
-                    performGlobalStep(C getAction(< ID1 : SU | >, O) Algorithm: (AL ; (event: Get SU: ID1 PId: O)))  
-                    if feedthroughSatisfied(FT, INPUTS, T) .
+  ceq performGlobalStep(C < ID1 : SU | time : TIME, inputs : INPUTS, outputs : (< O : Output | status : Undef, dependsOn : FEEDTHROUGH > OUTPUTS) >       Algorithm: ALGO) =
+                    performGlobalStep(C getAction(< ID1 : SU | >, O) Algorithm: (ALGO ; (event: Get SU: ID1 PId: O)))  
+                    if feedthroughSatisfied(FEEDTHROUGH, INPUTS, TIME) .
 
   *** Algebraic Loop - solve and remove loop
-  eq performGlobalStep(C SCC: (L # LOOPS)) = solveLoop(C SCC: LOOPS, L) [owise] .
+  eq performGlobalStep(C SCC: (LOOP # LOOPS)) = solveLoop(C SCC: LOOPS, LOOP) [owise] .
 
   *** 
   ceq performGlobalStep(C) = C if simulationStepDone(C) .
 
   *** FMI-standard state transition:
-  rl [setExp] : < ID1 : SU | state : Instantiated > Algorithm: AL 
-                 => < ID1 : SU | state : ExperimentSetup > Algorithm: (AL ; (fmiEvent: CreateExp SU: ID1)) .
+  rl [setExp] : < ID1 : SU | state : Instantiated > Algorithm: ALGO 
+                 => < ID1 : SU | state : ExperimentSetup > Algorithm: (ALGO ; (fmiEvent: CreateExp SU: ID1)) .
 
-  rl [init] : < ID1 : SU | inputs : INPUTS , outputs : OUTPUTS, state : ExperimentSetup >  Algorithm: AL 
+  rl [init] : < ID1 : SU | inputs : INPUTS , outputs : OUTPUTS, state : ExperimentSetup >  Algorithm: ALGO 
            => < ID1 : SU | inputs : undefPorts(INPUTS, 0), outputs : undefPorts(OUTPUTS, 0), state : Initialize > 
-              Algorithm: (AL ; (fmiEvent: EnterInitialization SU: ID1)).
+              Algorithm: (ALGO ; (fmiEvent: EnterInitialization SU: ID1)).
 
-  crl [simulate] : < ID1 : SU | inputs : INPUTS , outputs : OUTPUTS, state : Initialize > C Algorithm: AL 
-                => < ID1 : SU | state : Simulation > C Algorithm: (AL ; (fmiEvent: ExitInitialization SU: ID1))
+  crl [simulate] : < ID1 : SU | inputs : INPUTS , outputs : OUTPUTS, state : Initialize > C Algorithm: ALGO 
+                => < ID1 : SU | state : Simulation > C Algorithm: (ALGO ; (fmiEvent: ExitInitialization SU: ID1))
                 if allDef(INPUTS, 0) and allDef(OUTPUTS, 0) and allInputsSet(C) .
 
-  crl [terminate] : < ID1 : SU | time : T, inputs : INPUTS , outputs : OUTPUTS , state : Simulation > endTime: T Algorithm: AL 
-                 => < ID1 : SU | state : Terminated > endTime: T Algorithm: (AL ; (fmiEvent: Terminate SU: ID1))
-                 if allDef(OUTPUTS, T) and allDef(INPUTS, T) .
+  crl [terminate] : < ID1 : SU | time : TIME, inputs : INPUTS , outputs : OUTPUTS , state : Simulation > endTime: TIME Algorithm: ALGO 
+                 => < ID1 : SU | state : Terminated > endTime: TIME Algorithm: (ALGO ; (fmiEvent: Terminate SU: ID1))
+                 if allDef(OUTPUTS, TIME) and allDef(INPUTS, TIME) .
 
-  rl [free] : < ID1 : SU | state : Terminated > Algorithm: AL 
-           => < ID1 : SU | state : InstanceFreed > Algorithm: (AL ; (fmiEvent: FreeInstance SU: ID1)) .
+  rl [free] : < ID1 : SU | state : Terminated > Algorithm: ALGO 
+           => < ID1 : SU | state : InstanceFreed > Algorithm: (ALGO ; (fmiEvent: FreeInstance SU: ID1)) .
 
-  rl [unload] : < ID1 : SU | state : InstanceFreed > Algorithm: AL
-              => < ID1 : SU | state : Unloaded > Algorithm: (AL ; (fmiEvent: Unload SU: ID1)) .
+  rl [unload] : < ID1 : SU | state : InstanceFreed > Algorithm: ALGO
+              => < ID1 : SU | state : Unloaded > Algorithm: (ALGO ; (fmiEvent: Unload SU: ID1)) .
 
 
    *** Initalization Procedure 
-   crl [get-init] :  < ID1 : SU | outputs : ((< O : Output | status : Undef , dependsOn : FT >) OUTPUTS) , inputs : INPUTS, state : Initialize > Algorithm: AL 
+   crl [get-init] :  < ID1 : SU | outputs : ((< O : Output | status : Undef , dependsOn : FEEDTHROUGH >) OUTPUTS) , inputs : INPUTS, state : Initialize > Algorithm: ALGO 
                   => 
                   getAction(< ID1 : SU | >, O)                  
-                  Algorithm: (AL ; (event: Get SU: ID1 PId: O)) if feedthroughSatisfied(FT, INPUTS, 0) .
+                  Algorithm: (ALGO ; (event: Get SU: ID1 PId: O)) if feedthroughSatisfied(FEEDTHROUGH, INPUTS, 0) .
 
    *** Inputs can only rely on one connection 
-   rl [set-init] :  < ID1 : SU | inputs : (< I : Input | status : Undef > INPUTS), state : Initialize > Algorithm: AL 
+   rl [set-init] :  < ID1 : SU | inputs : (< I : Input | status : Undef > INPUTS), state : Initialize > Algorithm: ALGO 
                     < ID2 : SU | outputs : (< O : Output | status : Def > OUTPUTS) > (ID2 ! O ==> ID1 ! I)
                         => 
                            setAction(< ID1 : SU | >, I, 0)
-                           < ID2 : SU | > (ID2 ! O ==> ID1 ! I) Algorithm: (AL ; (event: Set SU: ID1 PId: I)) .
+                           < ID2 : SU | > (ID2 ! O ==> ID1 ! I) Algorithm: (ALGO ; (event: Set SU: ID1 PId: I)) .
 
 
   ***rl [init-loop] : C SCC: (L # LOOPS) => solveLoop(C SCC: LOOPS, L) .                 

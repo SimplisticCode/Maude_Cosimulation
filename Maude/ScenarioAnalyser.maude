@@ -163,7 +163,7 @@ endom)
     vars OLDSTACK STACK SCCSTACK : PStack .
 
     ceq tarjan(C) = getLoops(dfsrEnv(dfs(PSet, E, C)), C) 
-        if PSet := getPorts(C, emptyLoop) /\ IM := createIndexMap(PSet, emptyMap) /\ E := env(emptyST, sccNoNodes, 1, IM) .
+        if PSet := getAllPorts(C, emptyLoop) /\ IM := createIndexMap(PSet, emptyMap) /\ E := env(emptyST, sccNoNodes, 1, IM) .
 
     *** P has been visisted before - N is non-zero!
     ceq dfs(P ;; PSet, env(STACK, SCCs, M, map(P, N) ^^ IM), C) = natEnv(min(N, N1), E) 
@@ -234,11 +234,11 @@ eof
 
 ( red min(1000, 1) .)
 
-( red dfs(getPorts((simulationUnits externalConnection), emptyLoop), env(emptyST, sccNoNodes, 1, createIndexMap(getPorts((simulationUnits externalConnection), emptyLoop), emptyMap)), (simulationUnits externalConnection)) . )
+( red dfs(getAllPorts((simulationUnits externalConnection), emptyLoop), env(emptyST, sccNoNodes, 1, createIndexMap(getAllPorts((simulationUnits externalConnection), emptyLoop), emptyMap)), (simulationUnits externalConnection)) . )
 
 ( red dfsrEnv(natEnv(100000,env(emptyST,('msd1 ! 'z)**('msd2 ! 'z)**('msd1 ! 'x1);;('msd2 ! 'v1);;('msd2 ! 'fk);;('msd1 !
     'v1);; 'msd1 ! 'fk,8,map('msd1 ! 'fk,100000)^^ map('msd1 ! 'v1,100000)^^ map('msd1 ! 'x1,100000)^^ map('msd1 ! 'z,100000)^^ map('msd2 ! 'fk,100000)^^ map('msd2 ! 'v1,100000)^^ map('msd2 ! 'x1,0)^^
     map('msd2 ! 'z,100000)))) . )
 
 
-( red dfsrEnv(dfs(getPorts(simulationUnits externalConnection, emptyLoop), env(emptyST, sccNoNodes, 1, createIndexMap(getPorts(simulationUnits externalConnection, emptyLoop), emptyMap)), simulationUnits externalConnection)) . )
+( red dfsrEnv(dfs(getAllPorts(simulationUnits externalConnection, emptyLoop), env(emptyST, sccNoNodes, 1, createIndexMap(getAllPorts(simulationUnits externalConnection, emptyLoop), emptyMap)), simulationUnits externalConnection)) . )

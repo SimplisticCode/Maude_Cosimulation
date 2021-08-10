@@ -18,7 +18,7 @@ load Algorithm
    op allInputsSet : Configuration -> Bool .
    op canStep : Nat NzNat Configuration Configuration -> Bool .
 
-   op getAction : Object PortId -> Object .
+   op getAction : Object PortIdSet -> Object .
    op setAction : Object PortId Nat -> Object .
    op stepAction : Object NzNat -> Object .
 
@@ -27,7 +27,7 @@ load Algorithm
    vars TIME SUTIME : Nat .
    vars CONF INPUTS OUTPUTS : Configuration .
    var PORTSTATUS : PortStatus .
-   var FEEDTHROUGH : PortIdSet .
+   vars FEEDTHROUGH PORTS : PortIdSet .
    vars FUTURETIME STEP : NzNat .
 
    *** Checks if all feedthrough constraints are satisfied
@@ -57,9 +57,11 @@ load Algorithm
    eq askStepSize(< ID : SU | >, STEP) = STEP .
 
   *** Updates the time and status of the input
-  eq getAction(< ID : SU | time : TIME, outputs : (< OUTPUT : Output | > OUTPUTS) >, OUTPUT) = < ID : SU | outputs : (< OUTPUT : Output | time : TIME, status : Def > OUTPUTS) > .
+  eq getAction(< ID : SU | >, emptySet) = < ID : SU | > .
+  eq getAction(< ID : SU | time : TIME, outputs : (< OUTPUT : Output | > OUTPUTS) >, OUTPUT :: PORTS) = getAction(< ID : SU | outputs : (< OUTPUT : Output | time : TIME, status : Def > OUTPUTS) >, PORTS) .
 
-  eq setAction(< ID : SU | inputs : (< INPUT : Input | > INPUTS) > , INPUT, TIME) =  < ID : SU | inputs : (< INPUT : Input | time : TIME, status : Def > INPUTS) > .
+  eq setAction(< ID : SU | > , emptySet, TIME) =  < ID : SU | > .
+  eq setAction(< ID : SU | inputs : (< INPUT : Input | > INPUTS) > , INPUT :: PORTS, TIME) =  setAction(< ID : SU | inputs : (< INPUT : Input | time : TIME, status : Def > INPUTS) >, PORTS, TIME) .
 
   *** Updates the time and the status of the outputs
   ceq stepAction(< ID : SU | time : TIME, outputs : OUTPUTS >, STEP) = < ID : SU | time : FUTURETIME, outputs : undefPorts(OUTPUTS, FUTURETIME) > 

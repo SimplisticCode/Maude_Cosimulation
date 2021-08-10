@@ -35,12 +35,18 @@
  op _in_ : Connection Configuration -> Bool . 
 
  op elems : PStack -> EPortIdSet .
+ op getPortIDSet : Configuration -> PortIdSet .
 
+ var PID : PortId .
  var PORT : EPortId .
  var PORTSET : EPortIdSet .
- var CONF : Configuration .
+ var CONF PORTS : Configuration .
  var CON : Connection .
  var STACK : PStack .
+
+
+ eq getPortIDSet(none) = emptySet .
+ eq getPortIDSet(< PID : Output | > PORTS) = PID :: getPortIDSet(PORTS) .
 
  eq elems(emptyST) = emptyLoop .
  eq elems(PORT ## STACK) = PORT ;; elems(STACK) .

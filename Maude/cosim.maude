@@ -12,6 +12,7 @@ load StepFinder
    op simulationStepDone : Configuration -> Bool .
    op getActionEnabled : Configuration Configuration Nat -> PortIdSet .
    op setActionEnabled : Configuration SUID Nat Configuration -> PortMap .
+   op setActionEnabledInit : Configuration SUID Configuration -> PortMap .
 
 
    vars ID1 ID2 : SUID .
@@ -63,10 +64,15 @@ load StepFinder
   eq setActionEnabled(none, ID1, TIME, CONF) = emptyPortMap .
   ceq setActionEnabled(< INPUT : Input | time : TIME1, type : INPUTTYPE > INPUTS, ID1, TIME,
                                 CONF < ID2 : SU | outputs : (< OUTPUT : Output | time : TIME2, status : Def > OUTPUTS) > (ID2 ! OUTPUT ==> ID1 ! INPUT)) 
-                        = (INPUT => TIME2) :+ setActionEnabled(INPUTS, ID1, TIME, CONF < ID2 : SU | outputs : (< OUTPUT : Output | time : TIME2, status : Def > OUTPUTS) > (ID2 ! OUTPUT ==> ID1 ! INPUT)) 
+                        = (INPUT => TIME2) :+ setActionEnabled(INPUTS, ID1, TIME, CONF < ID2 : SU | > (ID2 ! OUTPUT ==> ID1 ! INPUT)) 
                         if TIME1 < TIME2 and ((INPUTTYPE == d and TIME1 < TIME) or (INPUTTYPE == r and TIME == TIME1)) .
 
   eq setActionEnabled(< INPUT : Input | > INPUTS, ID1, TIME, CONF) = setActionEnabled(INPUTS, ID1, TIME, CONF) [owise] .
+
+  eq setActionEnabledInit(none, ID1, CONF) = emptyPortMap .
+  eq setActionEnabledInit(< INPUT : Input | status : Undef > INPUTS, ID1, CONF < ID2 : SU | outputs : (< OUTPUT : Output | status : Def > OUTPUTS) > (ID2 ! OUTPUT ==> ID1 ! INPUT)) 
+                        = (INPUT => 0) :+ setActionEnabledInit(INPUTS, ID1, CONF < ID2 : SU | outputs : (< OUTPUT : Output | status : Def > OUTPUTS) > ) .
+  eq setActionEnabledInit(< INPUT : Input | > INPUTS, ID1, CONF) = setActionEnabledInit(INPUTS, ID1, CONF) [owise] .
 
   *** Perform the global simulation step
   *** Set input                     
@@ -123,11 +129,9 @@ load StepFinder
                 if getActionEnabled(OUTPUTS, INPUTS, 0) =/= emptySet .
 
    *** Inputs can only rely on one connection 
-   rl [set-init] :  < ID1 : SU | inputs : INPUTS, state : Initialize > Algorithm: ALGO CONF
-                        => 
-                           setAction(< ID1 : SU | >, INPUT, 0)
-                          Algorithm: (ALGO ; (event: Set SU: ID1 PId: INPUT)) .
-
+   crl [set-init] : < ID1 : SU | inputs : INPUTS, state : Initialize > Algorithm: ALGO CONF
+                        => setActionPortMap(< ID1 : SU | >, setActionEnabledInit(INPUTS, ID1, CONF)) Algorithm: (ALGO ; (event: Set SU: ID1 PId: getPortFromMap(setActionEnabledInit(INPUTS, ID1, CONF)))) CONF
+        if setActionEnabledInit(INPUTS, ID1, CONF) =/= emptyPortMap .
 
   ***rl [init-loop] : CONF SCC: (L # LOOPS) => solveLoop(CONF SCC: LOOPS, L) .                 
 

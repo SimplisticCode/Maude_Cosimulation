@@ -22,6 +22,8 @@ load Algorithm
    op setAction : Object PortId Nat -> Object .
    op stepAction : Object NzNat -> Object .
 
+   op setActionPortMap : Object PortMap -> Object .
+
    var ID : SUID .
    vars PId INPUT OUTPUT : PortId .
    vars TIME SUTIME : Nat .
@@ -29,6 +31,7 @@ load Algorithm
    var PORTSTATUS : PortStatus .
    vars FEEDTHROUGH PORTS : PortIdSet .
    vars FUTURETIME STEP : NzNat .
+   var PORTMAP : PortMap .
 
    *** Checks if all feedthrough constraints are satisfied
    eq feedthroughSatisfied(emptySet, CONF, TIME) = true .
@@ -62,6 +65,9 @@ load Algorithm
 
   eq setAction(< ID : SU | > , emptySet, TIME) =  < ID : SU | > .
   eq setAction(< ID : SU | inputs : (< INPUT : Input | > INPUTS) > , INPUT :: PORTS, TIME) =  setAction(< ID : SU | inputs : (< INPUT : Input | time : TIME, status : Def > INPUTS) >, PORTS, TIME) .
+
+  eq setActionPortMap(< ID : SU | > , emptyPortMap) =  < ID : SU | > .
+  eq setActionPortMap(< ID : SU | inputs : (< INPUT : Input | > INPUTS) > , (INPUT => TIME) :+ PORTMAP) =  setActionPortMap(< ID : SU | inputs : (< INPUT : Input | time : TIME, status : Def > INPUTS) >, PORTMAP).
 
   *** Updates the time and the status of the outputs
   ceq stepAction(< ID : SU | time : TIME, outputs : OUTPUTS >, STEP) = < ID : SU | time : FUTURETIME, outputs : undefPorts(OUTPUTS, FUTURETIME) > 

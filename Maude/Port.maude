@@ -1,6 +1,6 @@
 (omod Ports is 
  protecting QID + NAT .
- sorts PortId Mode PortStatus PortIdSet PStack .
+ sorts PortId Mode PortStatus PortIdSet PStack PortMap PortMapEntry .
  subsorts Qid < PortId < Oid .
  subsort PortId < PortIdSet .
 
@@ -10,6 +10,7 @@
  subsorts Qid < SUID < Oid .
  op _==>_ : EPortId EPortId -> Connection [ctor format(niy! d d d)] .
  subsort Connection < Configuration .
+ subsort PortMapEntry < PortMap .
  op _!_ : SUID PortId -> EPortId [ctor] .
 
  class Port | time : Nat, status : PortStatus . 
@@ -19,9 +20,15 @@
  ops d r : -> Mode [ctor] .   *** d = delayed, r = Reactive.
  ops Def Undef : -> PortStatus [ctor] .
 
+
  op emptySet : -> PortIdSet [ctor] .
  op _::_ : PortIdSet PortIdSet -> PortIdSet [ctor assoc comm id: emptySet] .
- 
+
+ op _=>_ : PortId Nat -> PortMapEntry [ctor] .
+
+ op emptyPortMap : -> PortMap [ctor] .
+ op _:+_ : PortMap PortMap -> PortMap [ctor assoc comm id: emptyPortMap] .
+
  op emptyLoop : -> EPortIdSet [ctor] .
  op _;;_ : EPortIdSet EPortIdSet -> EPortIdSet [ctor assoc comm id: emptyLoop] .
 
@@ -36,6 +43,7 @@
 
  op elems : PStack -> EPortIdSet .
  op getPortIDSet : Configuration -> PortIdSet .
+ op getPortFromMap : PortMap -> PortIdSet .
 
  var PID : PortId .
  var PORT : EPortId .
@@ -43,7 +51,8 @@
  var CONF PORTS : Configuration .
  var CON : Connection .
  var STACK : PStack .
-
+ var TIME : Nat .
+ var PORTMAP : PortMap .
 
  eq getPortIDSet(none) = emptySet .
  eq getPortIDSet(< PID : Output | > PORTS) = PID :: getPortIDSet(PORTS) .
@@ -60,4 +69,7 @@
  op size : EPortIdSet -> Nat .
  eq size(emptyLoop) = 0 .
  eq size(PORT ;; PORTSET) = 1 + size(PORTSET) .
+
+ eq getPortFromMap(emptyPortMap) = emptySet .
+ eq getPortFromMap((PID => TIME) :+ PORTMAP) = PID :: getPortFromMap(PORTMAP) .
 endom)

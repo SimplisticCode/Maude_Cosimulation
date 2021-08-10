@@ -11,7 +11,7 @@ load StepFinder
    op getAllPorts : Configuration EPortIdSet -> EPortIdSet .
    op simulationStepDone : Configuration -> Bool .
    op getActionEnabled : Configuration Configuration Nat -> PortIdSet .
-   op setActionEnabled : Configuration SUID Nat Configuration -> PortIdSet .
+   op setActionEnabled : Configuration SUID Nat Configuration -> PortMap .
 
 
    vars ID1 ID2 : SUID .
@@ -60,24 +60,19 @@ load StepFinder
 
   eq getActionEnabled(< OUTPUT : Output | > OUTPUTS, INPUTS, TIME) = getActionEnabled(OUTPUTS, INPUTS, TIME) [owise] .
 
-  eq setActionEnabled(none, ID1, TIME, CONF) = emptySet .
+  eq setActionEnabled(none, ID1, TIME, CONF) = emptyPortMap .
   ceq setActionEnabled(< INPUT : Input | time : TIME1, type : INPUTTYPE > INPUTS, ID1, TIME,
                                 CONF < ID2 : SU | outputs : (< OUTPUT : Output | time : TIME2, status : Def > OUTPUTS) > (ID2 ! OUTPUT ==> ID1 ! INPUT)) 
-                        = INPUT :: setActionEnabled(INPUTS, ID1, TIME, CONF < ID2 : SU | outputs : (< OUTPUT : Output | time : TIME2, status : Def > OUTPUTS) > (ID2 ! OUTPUT ==> ID1 ! INPUT)) 
+                        = (INPUT => TIME2) :+ setActionEnabled(INPUTS, ID1, TIME, CONF < ID2 : SU | outputs : (< OUTPUT : Output | time : TIME2, status : Def > OUTPUTS) > (ID2 ! OUTPUT ==> ID1 ! INPUT)) 
                         if TIME1 < TIME2 and ((INPUTTYPE == d and TIME1 < TIME) or (INPUTTYPE == r and TIME == TIME1)) .
 
   eq setActionEnabled(< INPUT : Input | > INPUTS, ID1, TIME, CONF) = setActionEnabled(INPUTS, ID1, TIME, CONF) [owise] .
 
   *** Perform the global simulation step
-  *** Set input
-  ceq performGlobalStep(CONF < ID1 : SU | time : TIME, inputs : (< INPUT : Input | time : TIME1, type : INPUTTYPE > INPUTS) > 
-                          < ID2 : SU | outputs : (< OUTPUT : Output | time : TIME2, status : Def > OUTPUTS) > 
-                         (ID2 ! OUTPUT ==> ID1 ! INPUT) Algorithm: ALGO) = 
-            performGlobalStep(CONF setAction( < ID1 : SU | >, INPUT, TIME2) < ID2 : SU | > 
-                         (ID2 ! OUTPUT ==> ID1 ! INPUT) 
-                         Algorithm: (ALGO ; (event: Set SU: ID1 PId: INPUT)))
-                         if TIME1 < TIME2 and ((INPUTTYPE == d and TIME1 < TIME) or (INPUTTYPE == r and TIME == TIME1)) .
-
+  *** Set input                     
+  ceq performGlobalStep(CONF < ID1 : SU | time : TIME, inputs : INPUTS > Algorithm: ALGO) = 
+      performGlobalStep(CONF setActionPortMap( < ID1 : SU | >, setActionEnabled(INPUTS, ID1, TIME, CONF)) Algorithm: (ALGO ; (event: Set SU: ID1 PId: getPortFromMap(setActionEnabled(INPUTS, ID1, TIME, CONF)))))
+                        if setActionEnabled(INPUTS, ID1, TIME, CONF) =/= emptyPortMap .
   *** Step
   ceq performGlobalStep(CONF < ID1 : SU | time : TIME, inputs : INPUTS, outputs : OUTPUTS > stepSize: STEPSIZE endTime: ENDTIME Algorithm: ALGO)  = 
       performGlobalStep(CONF 
@@ -121,17 +116,17 @@ load StepFinder
 
 
    *** Initalization Procedure 
-   crl [get-init] :  < ID1 : SU | outputs : ((< OUTPUT : Output | status : Undef , dependsOn : FEEDTHROUGH >) OUTPUTS) , inputs : INPUTS, state : Initialize > Algorithm: ALGO 
+   crl [get-init] : < ID1 : SU | outputs : OUTPUTS, inputs : INPUTS, state : Initialize > Algorithm: ALGO 
                   => 
-                  getAction(< ID1 : SU | >, OUTPUT)                  
-                  Algorithm: (ALGO ; (event: Get SU: ID1 PId: OUTPUT)) if feedthroughSatisfied(FEEDTHROUGH, INPUTS, 0) .
+                  getAction(< ID1 : SU | >, getActionEnabled(OUTPUTS, INPUTS, 0))                  
+                  Algorithm: (ALGO ; (event: Get SU: ID1 PId: getActionEnabled(OUTPUTS, INPUTS, 0))) 
+                if getActionEnabled(OUTPUTS, INPUTS, 0) =/= emptySet .
 
    *** Inputs can only rely on one connection 
-   rl [set-init] :  < ID1 : SU | inputs : (< INPUT : Input | status : Undef > INPUTS), state : Initialize > Algorithm: ALGO 
-                    < ID2 : SU | outputs : (< OUTPUT : Output | status : Def > OUTPUTS) > (ID2 ! OUTPUT ==> ID1 ! INPUT)
+   rl [set-init] :  < ID1 : SU | inputs : INPUTS, state : Initialize > Algorithm: ALGO CONF
                         => 
                            setAction(< ID1 : SU | >, INPUT, 0)
-                           < ID2 : SU | > (ID2 ! OUTPUT ==> ID1 ! INPUT) Algorithm: (ALGO ; (event: Set SU: ID1 PId: INPUT)) .
+                          Algorithm: (ALGO ; (event: Set SU: ID1 PId: INPUT)) .
 
 
   ***rl [init-loop] : CONF SCC: (L # LOOPS) => solveLoop(CONF SCC: LOOPS, L) .                 

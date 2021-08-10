@@ -206,7 +206,7 @@ endom)
 
 eof
 
-( frew [20] setup . )
+( frew [100] setup . )
 
 ( red tarjan(simulationUnits externalConnection) . )
 

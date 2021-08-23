@@ -169,6 +169,8 @@ endom)
 
 eof
 
+*** Validering af Input
+
 *** Check for termination - not useful 
 (search setup =>! X:Configuration . )
 show search graph .

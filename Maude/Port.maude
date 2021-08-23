@@ -20,7 +20,6 @@
  ops d r : -> Mode [ctor] .   *** d = delayed, r = Reactive.
  ops Def Undef : -> PortStatus [ctor] .
 
-
  op emptySet : -> PortIdSet [ctor] .
  op _::_ : PortIdSet PortIdSet -> PortIdSet [ctor assoc comm id: emptySet] .
 
@@ -72,4 +71,5 @@
 
  eq getPortFromMap(emptyPortMap) = emptySet .
  eq getPortFromMap((PID => TIME) :+ PORTMAP) = PID :: getPortFromMap(PORTMAP) .
+ 
 endom)

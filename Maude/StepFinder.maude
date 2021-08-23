@@ -13,6 +13,16 @@ load LOOPSolver
  eq 2nd(< A ; B >) = B . 
 endfm)
 
+view NzNatAsTRIV from TRIV to NAT is
+  sort Elt to NzNat .
+endv
+
+
+(fmod findStep is
+  protecting PAIR .
+  pr PAIR{NzNatAsTRIV, NzNatAsTRIV} .
+endfm)
+
 (omod StepFinder is
   protecting LOOPSolver .
   sorts findStepPair .

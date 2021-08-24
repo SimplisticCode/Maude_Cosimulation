@@ -30,77 +30,77 @@ endfm)
   op <_++_> : NzNat ActionList -> findStepPair [ctor] .
 
   *** Current State x Initial State -> Nat
-  op findStep : SUIdSet Configuration Configuration ActionList -> findStepPair .
+  op findStep : Set{SUIdAsTRIV} Configuration Configuration ActionList -> findStepPair .
   op calculateSNSet : Configuration -> Configuration .
-  op needsStepNegotiation : SUIdSet -> Bool .
+  op needsStepNegotiation : Set{SUIdAsTRIV} -> Bool .
   op getStep : findStepPair -> NzNat .
   op getAL : findStepPair -> ActionList .
-  op stepFindingDone : SUIdSet Configuration NzNat -> Bool .
+  op stepFindingDone : Set{SUIdAsTRIV}  Configuration NzNat -> Bool .
 
    vars ID1 ID2 : SUID .
-   var SUIDs : SUIdSet .
+   var SUIDs : Set{SUIdAsTRIV} .
    vars INPUT OUTPUT : PortId .
    vars TIME INPUTTIME OUTPUTTIME : Nat .
    vars STEPSIZE FUTURETIME1 FUTURETIME1 : NzNat .
    vars INPUTS OUTPUTS INPUTS1 : Configuration . 
    vars CONF SAVEDCONF : Configuration .
    var ALGO : ActionList .
-   var FEEDTHROUGH : PortIdSet .
+   var FEEDTHROUGH : Set{PortIdAsTRIV} .
    var LOOP : Algebraic .  
    var LOOPS : AlgebraicLoops .  
 
-   eq stepFindingDone(emptySUSet, CONF, STEPSIZE) = true .
-   eq stepFindingDone(ID1 ++ SUIDs, < ID1 : SU | time : FUTURETIME1 > CONF, STEPSIZE) = FUTURETIME1 == STEPSIZE and stepFindingDone(SUIDs, CONF, STEPSIZE) .
+   eq stepFindingDone(empty, CONF, STEPSIZE) = true .
+   eq stepFindingDone(ID1 ;; SUIDs, < ID1 : SU | time : FUTURETIME1 > CONF, STEPSIZE) = FUTURETIME1 == STEPSIZE and stepFindingDone(SUIDs, CONF, STEPSIZE) .
 
 
    eq getStep( < STEPSIZE ++ ALGO >) = STEPSIZE .
    eq getAL( < STEPSIZE ++ ALGO >) = ALGO .
 
   *** Step negotiation is needed if at least one SU can reject a Step
-  eq needsStepNegotiation(emptySUSet) = false .
+  eq needsStepNegotiation(empty) = false .
   eq needsStepNegotiation(SUIDs) = true [owise] .
 
    *** Calculation of the members of the set of SUs that should be backtracked in the step negotiation
   ceq calculateSNSet(< ID1 : SU | inputs : (< INPUT : Input | type : r > INPUTS) > 
                       < ID2 : SU | outputs : (< OUTPUT : Output | > OUTPUTS) > 
-                      (ID2 ! OUTPUT ==> ID1 ! INPUT) (SNSet: (ID1 ++ SUIDs))  CONF) = 
+                      (ID2 ! OUTPUT ==> ID1 ! INPUT) (SNSet: (ID1 ;; SUIDs))  CONF) = 
                       calculateSNSet(< ID1 : SU | > < ID2 : SU | > (ID2 ! OUTPUT ==> ID1 ! INPUT) 
-                      (SNSet: (ID1 ++ ID2 ++ SUIDs)) CONF) 
+                      (SNSet: (ID1 ;; ID2 ;; SUIDs)) CONF) 
                       if not ID2 in SUIDs .
   
   ceq calculateSNSet(< ID1 : SU | canReject : true > (SNSet: SUIDs) CONF ) = 
-        calculateSNSet(< ID1 : SU | > (SNSet: (ID1 ++ SUIDs)) CONF )
+        calculateSNSet(< ID1 : SU | > (SNSet: (ID1 ;; SUIDs)) CONF )
                                          if not ID1 in SUIDs .                                    
   eq calculateSNSet(CONF) = CONF [owise] .
 
   *** Get case (only on reactive outputs)
-  ceq findStep(ID1 ++ ID2 ++ SUIDs, 
+  ceq findStep(ID1 ;; ID2 ;; SUIDs, 
                     < ID2 : SU | time : TIME, outputs : (< OUTPUT : Output | status : Undef, dependsOn : FEEDTHROUGH > OUTPUTS), inputs : INPUTS1 >
                     < ID1 : SU | inputs : (< INPUT : Input | type : r > INPUTS) > (ID2 ! OUTPUT ==> ID1 ! INPUT) CONF, SAVEDCONF, ALGO) = 
-                    findStep(ID1 ++ ID2 ++ SUIDs, getAction(< ID2 : SU | >, OUTPUT) < ID1 : SU | >  
+                    findStep(ID1 ;; ID2 ;; SUIDs, getAction(< ID2 : SU | >, OUTPUT) < ID1 : SU | >  
                     (ID2 ! OUTPUT ==> ID1 ! INPUT) CONF, SAVEDCONF, ALGO ; (event: Get SU: ID2 PId: OUTPUT)) 
                     if feedthroughSatisfied(FEEDTHROUGH, INPUTS1, TIME) .
 
   *** Set case (only on reactive Inputs)
-  ceq findStep(ID1 ++ ID2 ++ SUIDs, 
+  ceq findStep(ID1 ;; ID2 ;; SUIDs, 
                       < ID1 : SU | inputs : (< INPUT : Input | time : INPUTTIME, type : r > INPUTS) > 
                       < ID2 : SU | outputs : (< OUTPUT : Output | time : OUTPUTTIME, status : Def > OUTPUTS) > 
                         (ID2 ! OUTPUT ==> ID1 ! INPUT) CONF, SAVEDCONF, ALGO) = 
-              findStep(ID1 ++ ID2 ++ SUIDs, setAction(< ID1 : SU | >, INPUT, OUTPUTTIME) < ID2 : SU | > (ID2 ! OUTPUT ==> ID1 ! INPUT) CONF, SAVEDCONF, ALGO ; (event: Set SU: ID1 PId: INPUT)) 
+              findStep(ID1 ;; ID2 ;; SUIDs, setAction(< ID1 : SU | >, INPUT, OUTPUTTIME) < ID2 : SU | > (ID2 ! OUTPUT ==> ID1 ! INPUT) CONF, SAVEDCONF, ALGO ; (event: Set SU: ID1 PId: INPUT)) 
               if INPUTTIME < OUTPUTTIME .
 
   ***Stepping case
-  ceq findStep(ID1 ++ SUIDs,  
+  ceq findStep(ID1 ;; SUIDs,  
                     < ID1 : SU | time : TIME, outputs : OUTPUTS, inputs : INPUTS > stepSize: STEPSIZE CONF, SAVEDCONF, ALGO) = 
-                  findStep(ID1 ++ SUIDs,
-                  stepAction(< ID1 : SU | >, FUTURETIME1) stepSize: FUTURETIME1 CONF, SAVEDCONF, ALGO ; (event: Step SU: ID1 PId: emptySet))
+                  findStep(ID1 ;; SUIDs,
+                  stepAction(< ID1 : SU | >, FUTURETIME1) stepSize: FUTURETIME1 CONF, SAVEDCONF, ALGO ; (event: Step SU: ID1 PId: empty))
                     if canStep(TIME, (TIME + STEPSIZE), INPUTS, OUTPUTS) /\ FUTURETIME1 := askStepSize(< ID1 : SU | >, STEPSIZE) .
 
   *** Restart search and and update step size for next iteration of search
-  ceq findStep(ID1 ++ ID2 ++ SUIDs, 
+  ceq findStep(ID1 ;; ID2 ;; SUIDs, 
                         < ID1 : SU | time : FUTURETIME1 > 
                         < ID2 : SU | time : FUTURETIME1 > CONF, SAVEDCONF stepSize: STEPSIZE, ALGO) = 
-              findStep(ID1 ++ ID2 ++ SUIDs, SAVEDCONF stepSize: min(FUTURETIME1, FUTURETIME1), SAVEDCONF stepSize: min(FUTURETIME1, FUTURETIME1), ALGO)   
+              findStep(ID1 ;; ID2 ;; SUIDs, SAVEDCONF stepSize: min(FUTURETIME1, FUTURETIME1), SAVEDCONF stepSize: min(FUTURETIME1, FUTURETIME1), ALGO)   
                     if FUTURETIME1 =/= FUTURETIME1 . 
                     *** The simulations should both have stepped, but not to the same time
 
@@ -114,4 +114,4 @@ endom)
 eof 
 ( red calculateSNSet(simulationUnits externalConnection SNSet: emptySUSet) . )
 
-( red findStep('msd1 ++ 'msd2 ++ 'msd3 , simulationUnits externalConnection, simulationUnits externalConnection, emptyList) . )
+( red findStep('msd1 ;; 'msd2 ;; 'msd3 , simulationUnits externalConnection, simulationUnits externalConnection, emptyList) . )

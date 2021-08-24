@@ -8,22 +8,22 @@ load StepFinder
    op performGlobalStep : Configuration -> Configuration .
    op allSUinSimulation : Configuration -> Bool .
    op `{_`} : Configuration -> GlobalState .
-   op getAllPorts : Configuration EPortIdSet -> EPortIdSet .
+   op getAllPorts : Configuration Set{EPortIdAsTRIV} -> Set{EPortIdAsTRIV} .
    op simulationStepDone : Configuration -> Bool .
-   op getActionEnabled : Configuration Configuration Nat -> PortIdSet .
-   op setActionEnabled : Configuration SUID Nat Configuration -> PortMap .
-   op setActionEnabledInit : Configuration SUID Configuration -> PortMap .
+   op getActionEnabled : Configuration Configuration Nat -> Set{PortIdAsTRIV} .
+   op setActionEnabled : Configuration SUID Nat Configuration -> Set{PortMapAsTRIV} .
+   op setActionEnabledInit : Configuration SUID Configuration -> Set{PortMapAsTRIV} .
 
 
    vars ID1 ID2 : SUID .
-   var SUIDs : SUIdSet .
+   var SUIDs : Set{SUIdAsTRIV} .
    vars INPUT OUTPUT : PortId .
    vars TIME TIME1 TIME2 : Nat .
    vars INPUTS OUTPUTS OUTPUTSSETABLE CONF : Configuration . 
    var STATE : fmiState .
    var ALGO : ActionList .
-   var FEEDTHROUGH : PortIdSet .
-   var PORTS : EPortIdSet .
+   var FEEDTHROUGH : Set{PortIdAsTRIV} .
+   var PORTS : Set{EPortIdAsTRIV} .
    vars STEPSIZE FUTURETIME ENDTIME : NzNat .
    var LOOP : Algebraic .  
    var LOOPS : AlgebraicLoops .  
@@ -35,7 +35,7 @@ load StepFinder
 
   *** Step Negotiation
   ceq performStepNegotiation(CONF SNSet: SUIDs stepSize: STEPSIZE Algorithm: ALGO) = 
-                              CONF SNSet: emptySUSet 
+                              CONF SNSet: empty 
                               Algorithm: (ALGO ; (complexEvent: StepNegotiation SaveSUs: SUIDs RestoreSUs: SUIDs Actions: getAL(STEPRes)))
                               stepSize: getStep(STEPRes)
                               if needsStepNegotiation(SUIDs) /\ STEPRes := findStep(SUIDs, CONF stepSize: STEPSIZE, CONF stepSize: STEPSIZE, emptyList) .
@@ -55,42 +55,42 @@ load StepFinder
   eq allSUinSimulation(< ID1 : SU | state : STATE > CONF) = STATE == Simulation and allSUinSimulation(CONF) . 
   eq allSUinSimulation(CONF) = true [owise] .
 
-  eq getActionEnabled(none, INPUTS, TIME) = emptySet . 
-  ceq getActionEnabled(< OUTPUT : Output | status : Undef, dependsOn : FEEDTHROUGH > OUTPUTS, INPUTS, TIME) = OUTPUT :: getActionEnabled(OUTPUTS, INPUTS, TIME)
+  eq getActionEnabled(none, INPUTS, TIME) = empty . 
+  ceq getActionEnabled(< OUTPUT : Output | status : Undef, dependsOn : FEEDTHROUGH > OUTPUTS, INPUTS, TIME) = OUTPUT ;; getActionEnabled(OUTPUTS, INPUTS, TIME)
         if feedthroughSatisfied(FEEDTHROUGH, INPUTS, TIME) .
 
   eq getActionEnabled(< OUTPUT : Output | > OUTPUTS, INPUTS, TIME) = getActionEnabled(OUTPUTS, INPUTS, TIME) [owise] .
 
-  eq setActionEnabled(none, ID1, TIME, CONF) = emptyPortMap .
+  eq setActionEnabled(none, ID1, TIME, CONF) = empty .
   ceq setActionEnabled(< INPUT : Input | time : TIME1, type : INPUTTYPE > INPUTS, ID1, TIME,
                                 CONF < ID2 : SU | outputs : (< OUTPUT : Output | time : TIME2, status : Def > OUTPUTS) > (ID2 ! OUTPUT ==> ID1 ! INPUT)) 
-                        = (INPUT => TIME2) :+ setActionEnabled(INPUTS, ID1, TIME, CONF < ID2 : SU | > (ID2 ! OUTPUT ==> ID1 ! INPUT)) 
+                        = (INPUT => TIME2) ;; setActionEnabled(INPUTS, ID1, TIME, CONF < ID2 : SU | > (ID2 ! OUTPUT ==> ID1 ! INPUT)) 
                         if TIME1 < TIME2 and ((INPUTTYPE == d and TIME1 < TIME) or (INPUTTYPE == r and TIME == TIME1)) .
 
   eq setActionEnabled(< INPUT : Input | > INPUTS, ID1, TIME, CONF) = setActionEnabled(INPUTS, ID1, TIME, CONF) [owise] .
 
-  eq setActionEnabledInit(none, ID1, CONF) = emptyPortMap .
+  eq setActionEnabledInit(none, ID1, CONF) = empty .
   eq setActionEnabledInit(< INPUT : Input | status : Undef > INPUTS, ID1, CONF < ID2 : SU | outputs : (< OUTPUT : Output | status : Def > OUTPUTS) > (ID2 ! OUTPUT ==> ID1 ! INPUT)) 
-                        = (INPUT => 0) :+ setActionEnabledInit(INPUTS, ID1, CONF < ID2 : SU | outputs : (< OUTPUT : Output | status : Def > OUTPUTS) > ) .
+                        = (INPUT => 0) ;; setActionEnabledInit(INPUTS, ID1, CONF < ID2 : SU | outputs : (< OUTPUT : Output | status : Def > OUTPUTS) > ) .
   eq setActionEnabledInit(< INPUT : Input | > INPUTS, ID1, CONF) = setActionEnabledInit(INPUTS, ID1, CONF) [owise] .
 
   *** Perform the global simulation step
   *** Set input                     
   ceq performGlobalStep(CONF < ID1 : SU | time : TIME, inputs : INPUTS > Algorithm: ALGO) = 
       performGlobalStep(CONF setActionPortMap( < ID1 : SU | >, setActionEnabled(INPUTS, ID1, TIME, CONF)) Algorithm: (ALGO ; (event: Set SU: ID1 PId: getPortFromMap(setActionEnabled(INPUTS, ID1, TIME, CONF)))))
-                        if setActionEnabled(INPUTS, ID1, TIME, CONF) =/= emptyPortMap .
+                        if setActionEnabled(INPUTS, ID1, TIME, CONF) =/= empty .
   *** Step
   ceq performGlobalStep(CONF < ID1 : SU | time : TIME, inputs : INPUTS, outputs : OUTPUTS > stepSize: STEPSIZE endTime: ENDTIME Algorithm: ALGO)  = 
       performGlobalStep(CONF 
                         stepAction(< ID1 : SU | >, STEPSIZE)
-                        stepSize: STEPSIZE endTime: ENDTIME Algorithm: (ALGO ; (event: Step SU: ID1 PId: emptySet)))
+                        stepSize: STEPSIZE endTime: ENDTIME Algorithm: (ALGO ; (event: Step SU: ID1 PId: empty)))
                         if FUTURETIME := TIME + STEPSIZE /\ canStep(TIME, FUTURETIME, INPUTS, OUTPUTS) and FUTURETIME <= ENDTIME . 
 
   *** Get
     ceq performGlobalStep(CONF < ID1 : SU | time : TIME, inputs : INPUTS, outputs : OUTPUTS >  Algorithm: ALGO) =
         performGlobalStep(CONF getAction(< ID1 : SU | >, getActionEnabled(OUTPUTS, INPUTS, TIME))
                          Algorithm: (ALGO ; (event: Get SU: ID1 PId: getActionEnabled(OUTPUTS, INPUTS, TIME)))) 
-                         if getActionEnabled(OUTPUTS, INPUTS, TIME) =/= emptySet .
+                         if getActionEnabled(OUTPUTS, INPUTS, TIME) =/= empty .
 
   *** Algebraic Loop - solve and remove loop
   eq performGlobalStep(CONF SCC: (LOOP # LOOPS)) = solveLoop(CONF SCC: LOOPS, LOOP) [owise] .
@@ -126,12 +126,12 @@ load StepFinder
                   => 
                   getAction(< ID1 : SU | >, getActionEnabled(OUTPUTS, INPUTS, 0))                  
                   Algorithm: (ALGO ; (event: Get SU: ID1 PId: getActionEnabled(OUTPUTS, INPUTS, 0))) 
-                if getActionEnabled(OUTPUTS, INPUTS, 0) =/= emptySet .
+                if getActionEnabled(OUTPUTS, INPUTS, 0) =/= empty .
 
    *** Inputs can only rely on one connection 
    crl [set-init] : < ID1 : SU | inputs : INPUTS, state : Initialize > Algorithm: ALGO CONF
                         => setActionPortMap(< ID1 : SU | >, setActionEnabledInit(INPUTS, ID1, CONF)) Algorithm: (ALGO ; (event: Set SU: ID1 PId: getPortFromMap(setActionEnabledInit(INPUTS, ID1, CONF)))) CONF
-        if setActionEnabledInit(INPUTS, ID1, CONF) =/= emptyPortMap .
+        if setActionEnabledInit(INPUTS, ID1, CONF) =/= empty .
 
   ***rl [init-loop] : CONF SCC: (L # LOOPS) => solveLoop(CONF SCC: LOOPS, L) .                 
 
@@ -156,13 +156,13 @@ load StepFinder
 ***Encoding of the Scenario 
 eq externalConnection = ('env ! 'psu ==> 'plant ! 'psu) ('env ! 'ref ==> 'ctrl ! 'ref) ('load ! 'xaft ==> 'ctrl ! 'xaft) ('ctrl ! 'o ==> 'plant ! 'o) ('plant ! 'w ==> 'ctrl ! 'w) ('load ! 'x ==> 'plant ! 'x) ('load ! 'v ==> 'plant ! 'v) ('plant ! 'f ==> 'load ! 'f) .
 
-eq simulationUnits = (< 'env : SU | time : 0, inputs : none, outputs : (< 'ref : Output | time : 0, status : Undef, dependsOn : emptySet >) (< 'psu : Output | time : 0, status : Undef, dependsOn : emptySet >), state : Instantiated, canReject : false >)
+eq simulationUnits = (< 'env : SU | time : 0, inputs : none, outputs : (< 'ref : Output | time : 0, status : Undef, dependsOn : empty >) (< 'psu : Output | time : 0, status : Undef, dependsOn : empty >), state : Instantiated, canReject : false >)
 
- 	 (< 'load : SU | time : 0, inputs : (< 'f : Input | time : 0, type : d, status : Undef  >), outputs : (< 'v : Output | time : 0, status : Undef, dependsOn : emptySet >) (< 'xaft : Output | time : 0, status : Undef, dependsOn : emptySet >) (< 'x : Output | time : 0, status : Undef, dependsOn : emptySet >), state : Instantiated, canReject : false >)
+ 	 (< 'load : SU | time : 0, inputs : (< 'f : Input | time : 0, type : d, status : Undef  >), outputs : (< 'v : Output | time : 0, status : Undef, dependsOn : empty >) (< 'xaft : Output | time : 0, status : Undef, dependsOn : empty >) (< 'x : Output | time : 0, status : Undef, dependsOn : empty >), state : Instantiated, canReject : false >)
 
- 	 (< 'ctrl : SU | time : 0, inputs : (< 'ref : Input | time : 0, type : d, status : Undef  >) (< 'w : Input | time : 0, type : d, status : Undef  >) (< 'xaft : Input | time : 0, type : d, status : Undef  >), outputs : (< 'o : Output | time : 0, status : Undef, dependsOn : emptySet >), state : Instantiated, canReject : false >)
+ 	 (< 'ctrl : SU | time : 0, inputs : (< 'ref : Input | time : 0, type : d, status : Undef  >) (< 'w : Input | time : 0, type : d, status : Undef  >) (< 'xaft : Input | time : 0, type : d, status : Undef  >), outputs : (< 'o : Output | time : 0, status : Undef, dependsOn : empty >), state : Instantiated, canReject : false >)
 
- 	 (< 'plant : SU | time : 0, inputs : (< 'x : Input | time : 0, type : r, status : Undef  >) (< 'v : Input | time : 0, type : r, status : Undef  >) (< 'o : Input | time : 0, type : d, status : Undef  >) (< 'psu : Input | time : 0, type : r, status : Undef  >), outputs : (< 'w : Output | time : 0, status : Undef, dependsOn : ( 'v ) >) (< 'f : Output | time : 0, status : Undef, dependsOn : ( 'v :: 'x ) >), state : Instantiated, canReject : false >) .
+ 	 (< 'plant : SU | time : 0, inputs : (< 'x : Input | time : 0, type : r, status : Undef  >) (< 'v : Input | time : 0, type : r, status : Undef  >) (< 'o : Input | time : 0, type : d, status : Undef  >) (< 'psu : Input | time : 0, type : r, status : Undef  >), outputs : (< 'w : Output | time : 0, status : Undef, dependsOn : ( 'v ) >) (< 'f : Output | time : 0, status : Undef, dependsOn : ( 'v ;; 'x ) >), state : Instantiated, canReject : false >) .
 
 
 endom)
@@ -181,9 +181,9 @@ show search graph .
 ( red needsStepNegotiation(setup) . )
 ( red allSUinSimulation(setup) . )
 
-( red breakLoop(('msd1 ! 'x1) ;; ('msd2 ! 'x1) ;; ('msd2 ! 'v1) ;; ('msd1 ! 'v1), (simulationUnits externalConnection stepSize: 1 endTime: 1 Algorithm: emptyList SNSet: emptySUSet guessOn: emptyLoop) , R) . )
+( red breakLoop(('msd1 ! 'x1) ;; ('msd2 ! 'x1) ;; ('msd2 ! 'v1) ;; ('msd1 ! 'v1), (simulationUnits externalConnection stepSize: 1 endTime: 1 Algorithm: emptyList SNSet: empty guessOn: emptyLoop) , R) . )
 
-( red getSUs(('msd1 ! 'x1) ;; ('msd2 ! 'x1) ;; ('msd2 ! 'v1) ;; ('msd1 ! 'v1), emptySUSet) .)
+( red getSUs(('msd1 ! 'x1) ;; ('msd2 ! 'x1) ;; ('msd2 ! 'v1) ;; ('msd1 ! 'v1), empty) .)
 
 ( red findStep(setup,setup) . )
 ( red getAllPorts(simulationUnits, emptyLoop) . )

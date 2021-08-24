@@ -1,14 +1,13 @@
 load SimulationUnit
-
 (omod LOOPSolver is 
   protecting SimulationUnit .
     sorts Pair .
 
     op <_;_> : ActionList Configuration -> Pair [ctor] .
     op solveLoop : Configuration Algebraic  -> Configuration . 
-    op breakLoop : EPortIdSet Configuration LoopType -> Configuration .
+    op breakLoop : Set{EPortIdAsTRIV} Configuration LoopType -> Configuration .
     op containsCycle : AlgebraicLoops -> Bool . 
-    op loopStep : EPortIdSet Configuration ActionList -> Pair .
+    op loopStep : Set{EPortIdAsTRIV}  Configuration ActionList -> Pair .
     op solveLoopConf : Configuration Algebraic -> Configuration .
     op solveLoopAlgorithm : Configuration Algebraic -> ActionList .
 
@@ -20,13 +19,13 @@ load SimulationUnit
     vars CONF OUTPUTS INPUTS : Configuration .
     vars INPUT OUTPUT : PortId .
     vars ID1 ID2 : SUID .
-    vars PSet GSet : EPortIdSet .
+    vars PSet GSet : Set{EPortIdAsTRIV} .
     var ALGO : ActionList .
     var TIME T1 : Nat .
     var STEP : NzNat .
-    var FEEDTHROUGH : PortIdSet .
+    var FEEDTHROUGH : Set{PortIdAsTRIV}  .
     var MODE : Mode .
-    var SUIDS : SUIdSet .
+    var SUIDS : Set{SUIdAsTRIV}  .
 
     eq fst(< ALGO ; CONF >) = ALGO . 
     eq snd(< ALGO ; CONF >) = CONF . 
@@ -42,7 +41,7 @@ load SimulationUnit
 
   ceq solveLoopAlgorithm(CONF, AlgebraicLoop: PSet Type: LOOPTYPE) = 
     complexEvent: Loop SaveSUs: SUIDS RestoreSUs: SUIDS Actions: fst(loopStep(PSet, breakLoop(PSet, CONF, LOOPTYPE), emptyList))
-        if SUIDS := getSUs(PSet, emptySUSet) .
+        if SUIDS := getSUs(PSet, empty) .
 
     *** Forget All Connections depending on type of loop 
     ceq breakLoop((ID1 ! INPUT) ;; PSet,   
@@ -88,9 +87,9 @@ load SimulationUnit
                     < ID1 : SU | time : TIME, outputs : OUTPUTS, inputs : INPUTS > stepSize: STEP CONF, ALGO) = 
                   loopStep((ID1 ! OUTPUT) ;; PSet,
                       stepAction(< ID1 : SU | >, STEP) 
-                      stepSize: STEP CONF, (ALGO ; (event: Step SU: ID1 PId: emptySet)))
+                      stepSize: STEP CONF, (ALGO ; (event: Step SU: ID1 PId: empty)))
                     if canStep(TIME, (TIME + STEP), INPUTS, OUTPUTS) .
 
-    eq loopStep(emptyLoop,CONF, ALGO) = < ALGO ; CONF  > .
+    eq loopStep(empty,CONF, ALGO) = < ALGO ; CONF  > .
 
 endom)

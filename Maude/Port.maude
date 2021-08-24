@@ -60,6 +60,7 @@ endv)
   sort Elt to EPortId .
 endv)
 
+
 (view PortMapAsTRIV from TRIV to PORTMAPENTRY is
   protecting PORTMAPENTRY .
   sort Elt to PortMapEntry .

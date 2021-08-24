@@ -25,8 +25,8 @@ load StepFinder
    var FEEDTHROUGH : Set{PortIdAsTRIV} .
    var PORTS : Set{EPortIdAsTRIV} .
    vars STEPSIZE FUTURETIME ENDTIME : NzNat .
-   var LOOP : Algebraic .  
-   var LOOPS : AlgebraicLoops .  
+   var LOOP : AlgebraicLoop .  
+   var LOOPS : Set{ALGEBRAICLOOPAsTRIV} .  
    var INPUTTYPE : Mode .
    var STEPRes : findStepPair .
 
@@ -93,7 +93,7 @@ load StepFinder
                          if getActionEnabled(OUTPUTS, INPUTS, TIME) =/= empty .
 
   *** Algebraic Loop - solve and remove loop
-  eq performGlobalStep(CONF SCC: (LOOP # LOOPS)) = solveLoop(CONF SCC: LOOPS, LOOP) [owise] .
+  eq performGlobalStep(CONF SCC: (LOOP ;; LOOPS)) = solveLoop(CONF SCC: LOOPS, LOOP) [owise] .
 
   *** 
   ceq performGlobalStep(CONF) = CONF if simulationStepDone(CONF) .
@@ -133,7 +133,7 @@ load StepFinder
                         => setActionPortMap(< ID1 : SU | >, setActionEnabledInit(INPUTS, ID1, CONF)) Algorithm: (ALGO ; (event: Set SU: ID1 PId: getPortFromMap(setActionEnabledInit(INPUTS, ID1, CONF)))) CONF
         if setActionEnabledInit(INPUTS, ID1, CONF) =/= empty .
 
-  ***rl [init-loop] : CONF SCC: (L # LOOPS) => solveLoop(CONF SCC: LOOPS, L) .                 
+  ***rl [init-loop] : CONF SCC: (L ;; LOOPS) => solveLoop(CONF SCC: LOOPS, L) .                 
 
  ***Complex scenarios with save and restore - this should 
 
@@ -154,15 +154,11 @@ load StepFinder
 
 
 ***Encoding of the Scenario 
-eq externalConnection = ('env ! 'psu ==> 'plant ! 'psu) ('env ! 'ref ==> 'ctrl ! 'ref) ('load ! 'xaft ==> 'ctrl ! 'xaft) ('ctrl ! 'o ==> 'plant ! 'o) ('plant ! 'w ==> 'ctrl ! 'w) ('load ! 'x ==> 'plant ! 'x) ('load ! 'v ==> 'plant ! 'v) ('plant ! 'f ==> 'load ! 'f) .
+eq externalConnection = ('msd1 ! 'x1 ==> 'msd2 ! 'x1) ('msd1 ! 'v1 ==> 'msd2 ! 'v1) ('msd1 ! 'z ==> 'msd2 ! 'z) ('msd2 ! 'fk ==> 'msd1 ! 'fk) .
 
-eq simulationUnits = (< 'env : SU | time : 0, inputs : none, outputs : (< 'ref : Output | time : 0, status : Undef, dependsOn : empty >) (< 'psu : Output | time : 0, status : Undef, dependsOn : empty >), state : Instantiated, canReject : false >)
+eq simulationUnits = (< 'msd1 : SU | time : 0, inputs : (< 'fk : Input | time : 0, type : r, status : Undef  >), outputs : (< 'x1 : Output | time : 0, status : Undef, dependsOn : empty >) (< 'z : Output | time : 0, status : Undef, dependsOn : empty >) (< 'v1 : Output | time : 0, status : Undef, dependsOn : empty >), state : Instantiated, canReject : false >)
 
- 	 (< 'load : SU | time : 0, inputs : (< 'f : Input | time : 0, type : d, status : Undef  >), outputs : (< 'v : Output | time : 0, status : Undef, dependsOn : empty >) (< 'xaft : Output | time : 0, status : Undef, dependsOn : empty >) (< 'x : Output | time : 0, status : Undef, dependsOn : empty >), state : Instantiated, canReject : false >)
-
- 	 (< 'ctrl : SU | time : 0, inputs : (< 'ref : Input | time : 0, type : d, status : Undef  >) (< 'w : Input | time : 0, type : d, status : Undef  >) (< 'xaft : Input | time : 0, type : d, status : Undef  >), outputs : (< 'o : Output | time : 0, status : Undef, dependsOn : empty >), state : Instantiated, canReject : false >)
-
- 	 (< 'plant : SU | time : 0, inputs : (< 'x : Input | time : 0, type : r, status : Undef  >) (< 'v : Input | time : 0, type : r, status : Undef  >) (< 'o : Input | time : 0, type : d, status : Undef  >) (< 'psu : Input | time : 0, type : r, status : Undef  >), outputs : (< 'w : Output | time : 0, status : Undef, dependsOn : ( 'v ) >) (< 'f : Output | time : 0, status : Undef, dependsOn : ( 'v ;; 'x ) >), state : Instantiated, canReject : false >) .
+ 	 (< 'msd2 : SU | time : 0, inputs : (< 'x1 : Input | time : 0, type : r, status : Undef  >) (< 'v1 : Input | time : 0, type : r, status : Undef  >) (< 'z : Input | time : 0, type : d, status : Undef  >), outputs : (< 'fk : Output | time : 0, status : Undef, dependsOn : ( 'x1 ;; 'v1 ) >), state : Instantiated, canReject : false >) .
 
 
 endom)

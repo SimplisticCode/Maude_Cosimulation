@@ -4,17 +4,17 @@ load SimulationUnit
     sorts Pair .
 
     op <_;_> : ActionList Configuration -> Pair [ctor] .
-    op solveLoop : Configuration Algebraic  -> Configuration . 
+    op solveLoop : Configuration AlgebraicLoop  -> Configuration . 
     op breakLoop : Set{EPortIdAsTRIV} Configuration LoopType -> Configuration .
-    op containsCycle : AlgebraicLoops -> Bool . 
+    op containsCycle : Set{ALGEBRAICLOOPAsTRIV} -> Bool . 
     op loopStep : Set{EPortIdAsTRIV}  Configuration ActionList -> Pair .
-    op solveLoopConf : Configuration Algebraic -> Configuration .
-    op solveLoopAlgorithm : Configuration Algebraic -> ActionList .
+    op solveLoopConf : Configuration AlgebraicLoop -> Configuration .
+    op solveLoopAlgorithm : Configuration AlgebraicLoop -> ActionList .
 
     op fst : Pair -> ActionList .
     op snd : Pair -> Configuration .
 
-    var LOOPS : AlgebraicLoops .  
+    var LOOPS : Set{ALGEBRAICLOOPAsTRIV} .  
     var LOOPTYPE : LoopType .
     vars CONF OUTPUTS INPUTS : Configuration .
     vars INPUT OUTPUT : PortId .
@@ -31,7 +31,7 @@ load SimulationUnit
     eq snd(< ALGO ; CONF >) = CONF . 
 
    *** Does the scenario contain any loop
-   eq containsCycle(noLoops) = false .
+   eq containsCycle(empty) = false .
    eq containsCycle(LOOPS) = true [owise] .
 
    eq solveLoop(CONF Algorithm: ALGO, AlgebraicLoop: PSet Type: LOOPTYPE) = solveLoopConf(CONF, AlgebraicLoop: PSet Type: LOOPTYPE)

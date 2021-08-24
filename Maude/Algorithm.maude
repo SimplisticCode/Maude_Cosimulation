@@ -2,54 +2,90 @@ load Port
 
 *** create generic list
 
+(fmod LISTCONS{X :: TRIV} is
+    protecting NAT .
+    sorts NeList{X} List{X} .
+    subsort NeList{X} < List{X} .
+    op emptyList : -> List{X} [ctor] .
+    op _:_ : X$Elt List{X} -> NeList{X} [ctor] .
+    op tail : NeList{X} -> List{X} .
+    op head : NeList{X} -> X$Elt .
+    var E : X$Elt .
+    var N : Nat .
+    vars L L1 : List{X} .
+    eq tail(E : L) = L .
+    eq head(E : L) = E .
+    op _++_ : List{X} List{X} -> List{X} .
+    op length : List{X} -> Nat .
+    op reverse : List{X} -> List{X} .
+    eq emptyList ++ L = L .
+    eq (E : L) ++ L1 = E : (L ++ L1) .
+    eq length(emptyList) = 0 .
+    eq length(E : L) = 1 + length(L) .
+    eq reverse(emptyList) = emptyList .
+    eq reverse(E : L) = reverse(L) ++ (E : emptyList) .
+endfm)
+
+
+(fmod ALGEBRAICLOOP is
+    protecting Ports .
+    sort AlgebraicLoop LoopType .
+    ops F R : -> LoopType [ctor] . 
+    op AlgebraicLoop:_Type:_ : Set{EPortIdAsTRIV} LoopType -> AlgebraicLoop [ctor] . 
+endfm )
+
 *** Create view of 
 ***view 
 
+(view ALGEBRAICLOOPAsTRIV from TRIV to ALGEBRAICLOOP is
+  protecting ALGEBRAICLOOP .
+  sort Elt to AlgebraicLoop .
+endv)
+
+(fmod ALGEBRAICLOOPSET is
+    pr BASICSET{ALGEBRAICLOOPAsTRIV} .
+endfm)
+
+
 (omod Algorithm is 
- protecting Ports + SUIDSET .
- sorts ActionType FMIActionType ComplexActionType ActionList Action LoopType Algebraic AlgebraicLoops .
+ protecting Ports + SUIDSET + ALGEBRAICLOOPSET .
+ sorts ActionType FMIActionType ComplexActionType ActionList Action  .
  subsort Action < ActionList .
- subsort Algebraic < AlgebraicLoops .
     
  *** Types
  ops CreateExp EnterInitialization ExitInitialization Terminate FreeInstance Unload : -> FMIActionType [ctor] . 
  ops Set Get Step Save CreateExp : -> ActionType [ctor] . 
  ops StepNegotiation Loop : -> ComplexActionType [ctor] . 
- ops F R : -> LoopType [ctor] . 
  *** Rename loop type
  op fmiEvent:_SU:_ : FMIActionType PortId -> Action [ctor format(nib! d d d d)] .
  op event:_SU:_PId:_ : ActionType SUID Set{PortIdAsTRIV} -> Action [ctor format(ni! d d d d d d)] .
  op complexEvent:_SaveSUs:_RestoreSUs:_Actions:_ : ComplexActionType Set{SUIdAsTRIV} Set{SUIdAsTRIV} ActionList -> Action [ctor format(niy! d d d d d d d d)] .
- op AlgebraicLoop:_Type:_ : Set{EPortIdAsTRIV} LoopType -> Algebraic[ctor] . 
  
  *** Configuration fields
  op Algorithm:_ : ActionList -> Configuration [ctor format(nir! d d)] . 
  op SNSet:_ : Set{PortIdAsTRIV} -> Configuration [ctor format(ni d d)] .
  op stepSize:_ : NzNat -> Configuration [ctor format(nig! d d)] . 
  op endTime:_ : NzNat -> Configuration [ctor format(nim! d d)] . 
- op SCC:_ : AlgebraicLoops -> Configuration [ctor format(nim! d d)] . 
+ op SCC:_ : Set{ALGEBRAICLOOPAsTRIV} -> Configuration [ctor format(nim! d d)] . 
  op guessOn:_ : Set{EPortIdAsTRIV} -> Configuration [ctor format(nip! d d)] .
 
  ***Operations
- op _memberOf_ : EPortId AlgebraicLoops -> Bool . 
+ op _memberOf_ : EPortId Set{ALGEBRAICLOOPAsTRIV} -> Bool . 
 
  op emptyList : -> ActionList [ctor] .
  op _;_ : ActionList ActionList -> ActionList [ctor assoc id: emptyList] .
-
- op noLoops : -> AlgebraicLoops [ctor] .
- op _#_ : AlgebraicLoops AlgebraicLoops -> AlgebraicLoops [ctor assoc id: noLoops] .
 
  op getSUs : Set{EPortIdAsTRIV} Set{SUIdAsTRIV} -> Set{SUIdAsTRIV} .
 
  var ID : SUID .
  var SUSet : Set{SUIdAsTRIV} .
- var LOOPS : AlgebraicLoops .
+ var LOOPS : Set{ALGEBRAICLOOPAsTRIV} .
  var PORT : EPortId .
  var LOOPTYPE : LoopType .
  var PORTSET : Set{EPortIdAsTRIV} .
  var PORTID : PortId .
 
- eq PORT memberOf (AlgebraicLoop: (PORT ;; PORTSET)  Type: LOOPTYPE) # LOOPS = true .
+ eq PORT memberOf (AlgebraicLoop: (PORT ;; PORTSET)  Type: LOOPTYPE) ;; LOOPS = true .
  eq PORT memberOf LOOPS = false [owise] .
 
  eq getSUs(empty, SUSet) = SUSet .

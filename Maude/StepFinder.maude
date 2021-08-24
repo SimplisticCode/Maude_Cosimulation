@@ -18,11 +18,6 @@ view NzNatAsTRIV from TRIV to NAT is
 endv
 
 
-(fmod findStep is
-  protecting PAIR .
-  pr PAIR{NzNatAsTRIV, NzNatAsTRIV} .
-endfm)
-
 (omod StepFinder is
   protecting LOOPSolver .
   sorts findStepPair .
@@ -46,8 +41,8 @@ endfm)
    vars CONF SAVEDCONF : Configuration .
    var ALGO : ActionList .
    var FEEDTHROUGH : Set{PortIdAsTRIV} .
-   var LOOP : Algebraic .  
-   var LOOPS : AlgebraicLoops .  
+   var LOOP : AlgebraicLoop .  
+   var LOOPS : Set{ALGEBRAICLOOPAsTRIV} .  
 
    eq stepFindingDone(empty, CONF, STEPSIZE) = true .
    eq stepFindingDone(ID1 ;; SUIDs, < ID1 : SU | time : FUTURETIME1 > CONF, STEPSIZE) = FUTURETIME1 == STEPSIZE and stepFindingDone(SUIDs, CONF, STEPSIZE) .
@@ -105,13 +100,13 @@ endfm)
                     *** The simulations should both have stepped, but not to the same time
 
   *** Solve Algebraic Loops *** Information should be carried over!
-  eq findStep(SUIDs, CONF SCC: (LOOP # LOOPS), SAVEDCONF SCC: (LOOP # LOOPS), ALGO) = findStep(SUIDs, solveLoopConf(CONF SCC: LOOPS, LOOP), SAVEDCONF SCC: LOOPS, ALGO ; solveLoopAlgorithm(CONF SCC: LOOPS, LOOP)) [owise] . 
+  eq findStep(SUIDs, CONF SCC: (LOOP ;; LOOPS), SAVEDCONF SCC: (LOOP ;; LOOPS), ALGO) = findStep(SUIDs, solveLoopConf(CONF SCC: LOOPS, LOOP), SAVEDCONF SCC: LOOPS, ALGO ; solveLoopAlgorithm(CONF SCC: LOOPS, LOOP)) [owise] . 
 
   ceq findStep(SUIDs, CONF stepSize: STEPSIZE, SAVEDCONF, ALGO) = < STEPSIZE ++ ALGO > if stepFindingDone(SUIDs, CONF, STEPSIZE) . 
 
 endom)
 
 eof 
-( red calculateSNSet(simulationUnits externalConnection SNSet: emptySUSet) . )
+( red calculateSNSet(simulationUnits externalConnection SNSet: empty) . )
 
 ( red findStep('msd1 ;; 'msd2 ;; 'msd3 , simulationUnits externalConnection, simulationUnits externalConnection, emptyList) . )

@@ -2,30 +2,6 @@ load Port
 
 *** create generic list
 
-(fmod LISTCONS{X :: TRIV} is
-    protecting NAT .
-    sorts NeList{X} List{X} .
-    subsort NeList{X} < List{X} .
-    op emptyList : -> List{X} [ctor] .
-    op _:_ : X$Elt List{X} -> NeList{X} [ctor] .
-    op tail : NeList{X} -> List{X} .
-    op head : NeList{X} -> X$Elt .
-    var E : X$Elt .
-    var N : Nat .
-    vars L L1 : List{X} .
-    eq tail(E : L) = L .
-    eq head(E : L) = E .
-    op _++_ : List{X} List{X} -> List{X} .
-    op length : List{X} -> Nat .
-    op reverse : List{X} -> List{X} .
-    eq emptyList ++ L = L .
-    eq (E : L) ++ L1 = E : (L ++ L1) .
-    eq length(emptyList) = 0 .
-    eq length(E : L) = 1 + length(L) .
-    eq reverse(emptyList) = emptyList .
-    eq reverse(E : L) = reverse(L) ++ (E : emptyList) .
-endfm)
-
 
 (fmod ALGEBRAICLOOP is
     protecting Ports .
@@ -48,7 +24,7 @@ endfm)
 
 
 (omod Algorithm is 
- protecting Ports + SUIDSET + ALGEBRAICLOOPSET .
+ protecting Ports + ALGEBRAICLOOPSET .
  sorts ActionType FMIActionType ComplexActionType ActionList Action  .
  subsort Action < ActionList .
     
@@ -58,12 +34,12 @@ endfm)
  ops StepNegotiation Loop : -> ComplexActionType [ctor] . 
  *** Rename loop type
  op fmiEvent:_SU:_ : FMIActionType PortId -> Action [ctor format(nib! d d d d)] .
- op event:_SU:_PId:_ : ActionType SUID Set{PortIdAsTRIV} -> Action [ctor format(ni! d d d d d d)] .
- op complexEvent:_SaveSUs:_RestoreSUs:_Actions:_ : ComplexActionType Set{SUIdAsTRIV} Set{SUIdAsTRIV} ActionList -> Action [ctor format(niy! d d d d d d d d)] .
+ op event:_SU:_PId:_ : ActionType SUID Set{OIdAsTRIV} -> Action [ctor format(ni! d d d d d d)] .
+ op complexEvent:_SaveSUs:_RestoreSUs:_Actions:_ : ComplexActionType Set{OIdAsTRIV} Set{OIdAsTRIV} ActionList -> Action [ctor format(niy! d d d d d d d d)] .
  
  *** Configuration fields
  op Algorithm:_ : ActionList -> Configuration [ctor format(nir! d d)] . 
- op SNSet:_ : Set{PortIdAsTRIV} -> Configuration [ctor format(ni d d)] .
+ op SNSet:_ : Set{OIdAsTRIV} -> Configuration [ctor format(ni d d)] .
  op stepSize:_ : NzNat -> Configuration [ctor format(nig! d d)] . 
  op endTime:_ : NzNat -> Configuration [ctor format(nim! d d)] . 
  op SCC:_ : Set{ALGEBRAICLOOPAsTRIV} -> Configuration [ctor format(nim! d d)] . 
@@ -75,10 +51,10 @@ endfm)
  op emptyList : -> ActionList [ctor] .
  op _;_ : ActionList ActionList -> ActionList [ctor assoc id: emptyList] .
 
- op getSUs : Set{EPortIdAsTRIV} Set{SUIdAsTRIV} -> Set{SUIdAsTRIV} .
+ op getSUs : Set{EPortIdAsTRIV} Set{OIdAsTRIV} -> Set{OIdAsTRIV} .
 
  var ID : SUID .
- var SUSet : Set{SUIdAsTRIV} .
+ var SUSet : Set{OIdAsTRIV} .
  var LOOPS : Set{ALGEBRAICLOOPAsTRIV} .
  var PORT : EPortId .
  var LOOPTYPE : LoopType .
@@ -93,3 +69,9 @@ endfm)
  eq getSUs((ID ! PORTID) ;; PORTSET, SUSet) = getSUs(PORTSET, ID ;; SUSet) [owise] .
 
 endom)
+
+
+eof
+(red getSUs(('SU2 ! 'R) ;; ('SU1 ! 'S) ;; ('SU1 ! 'T), empty) . )
+
+(red getSUs(empty, empty) . )

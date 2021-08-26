@@ -9,7 +9,7 @@ load Algorithm
    ***Classes
    class SU | time : Nat, inputs : Configuration, outputs : Configuration, canReject : Bool, state : fmiState .
    op askStepSize : Object NzNat -> NzNat .
-   op feedthroughSatisfied : Set{PortIdAsTRIV} Configuration Nat -> Bool .
+   op feedthroughSatisfied : Set{OIdAsTRIV} Configuration Nat -> Bool .
    op allDef : Configuration Nat -> Bool .
    op undefPorts : Configuration Nat -> Configuration .
    op undefInputs : Configuration -> Configuration .  
@@ -17,7 +17,7 @@ load Algorithm
    op allInputsSet : Configuration -> Bool .
    op canStep : Nat NzNat Configuration Configuration -> Bool .
 
-   op getAction : Object Set{PortIdAsTRIV} -> Object .
+   op getAction : Object Set{OIdAsTRIV} -> Object .
    op setAction : Object PortId Nat -> Object .
    op stepAction : Object NzNat -> Object .
 
@@ -28,7 +28,7 @@ load Algorithm
    vars TIME SUTIME : Nat .
    vars CONF INPUTS OUTPUTS : Configuration .
    var PORTSTATUS : PortStatus .
-   vars FEEDTHROUGH PORTS : Set{PortIdAsTRIV} .
+   vars FEEDTHROUGH PORTS : Set{OIdAsTRIV} .
    vars FUTURETIME STEP : NzNat .
    var PORTMAP : Set{PortMapAsTRIV} .
 

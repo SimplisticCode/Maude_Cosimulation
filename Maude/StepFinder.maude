@@ -25,22 +25,22 @@ endv
   op <_++_> : NzNat ActionList -> findStepPair [ctor] .
 
   *** Current State x Initial State -> Nat
-  op findStep : Set{SUIdAsTRIV} Configuration Configuration ActionList -> findStepPair .
+  op findStep : Set{OIdAsTRIV} Configuration Configuration ActionList -> findStepPair .
   op calculateSNSet : Configuration -> Configuration .
-  op needsStepNegotiation : Set{SUIdAsTRIV} -> Bool .
+  op needsStepNegotiation : Set{OIdAsTRIV} -> Bool .
   op getStep : findStepPair -> NzNat .
   op getAL : findStepPair -> ActionList .
-  op stepFindingDone : Set{SUIdAsTRIV}  Configuration NzNat -> Bool .
+  op stepFindingDone : Set{OIdAsTRIV}  Configuration NzNat -> Bool .
 
    vars ID1 ID2 : SUID .
-   var SUIDs : Set{SUIdAsTRIV} .
+   var SUIDs : Set{OIdAsTRIV} .
    vars INPUT OUTPUT : PortId .
    vars TIME INPUTTIME OUTPUTTIME : Nat .
    vars STEPSIZE FUTURETIME1 FUTURETIME1 : NzNat .
    vars INPUTS OUTPUTS INPUTS1 : Configuration . 
    vars CONF SAVEDCONF : Configuration .
    var ALGO : ActionList .
-   var FEEDTHROUGH : Set{PortIdAsTRIV} .
+   var FEEDTHROUGH : Set{OIdAsTRIV} .
    var LOOP : AlgebraicLoop .  
    var LOOPS : Set{ALGEBRAICLOOPAsTRIV} .  
 

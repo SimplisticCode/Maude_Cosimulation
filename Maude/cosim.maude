@@ -10,19 +10,19 @@ load StepFinder
    op `{_`} : Configuration -> GlobalState .
    op getAllPorts : Configuration Set{EPortIdAsTRIV} -> Set{EPortIdAsTRIV} .
    op simulationStepDone : Configuration -> Bool .
-   op getActionEnabled : Configuration Configuration Nat -> Set{PortIdAsTRIV} .
+   op getActionEnabled : Configuration Configuration Nat -> Set{OIdAsTRIV} .
    op setActionEnabled : Configuration SUID Nat Configuration -> Set{PortMapAsTRIV} .
    op setActionEnabledInit : Configuration SUID Configuration -> Set{PortMapAsTRIV} .
 
 
    vars ID1 ID2 : SUID .
-   var SUIDs : Set{SUIdAsTRIV} .
+   var SUIDs : Set{OIdAsTRIV} .
    vars INPUT OUTPUT : PortId .
    vars TIME TIME1 TIME2 : Nat .
    vars INPUTS OUTPUTS OUTPUTSSETABLE CONF : Configuration . 
    var STATE : fmiState .
    var ALGO : ActionList .
-   var FEEDTHROUGH : Set{PortIdAsTRIV} .
+   var FEEDTHROUGH : Set{OIdAsTRIV} .
    var PORTS : Set{EPortIdAsTRIV} .
    vars STEPSIZE FUTURETIME ENDTIME : NzNat .
    var LOOP : AlgebraicLoop .  

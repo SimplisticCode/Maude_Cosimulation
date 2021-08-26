@@ -23,9 +23,9 @@ load SimulationUnit
     var ALGO : ActionList .
     var TIME T1 : Nat .
     var STEP : NzNat .
-    var FEEDTHROUGH : Set{PortIdAsTRIV}  .
+    var FEEDTHROUGH : Set{OIdAsTRIV}  .
     var MODE : Mode .
-    var SUIDS : Set{SUIdAsTRIV}  .
+    var SUIDS : Set{OIdAsTRIV}  .
 
     eq fst(< ALGO ; CONF >) = ALGO . 
     eq snd(< ALGO ; CONF >) = CONF . 

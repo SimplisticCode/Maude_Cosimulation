@@ -18,7 +18,7 @@ load StepFinder
    var SUIDs : Set{OIdAsTRIV} .
    vars INPUT OUTPUT : PortId .
    vars TIME TIME1 TIME2 VALUE : Nat .
-   vars INPUTS OUTPUTS OUTPUTSSETABLE CONF : Configuration . 
+   vars INPUTS OUTPUTS CONF CONNECTIONS : Configuration . 
    var STATE : fmiState .
    vars ALGO STEPNEGOALGO : ActionList .
    vars FEEDTHROUGH PORTIDSET : Set{OIdAsTRIV} .
@@ -164,6 +164,11 @@ load StepFinder
   op externalConnection : ->  Configuration .    *** External Connections - all ports have unique name
   op simulationUnits : -> Configuration .      *** SUs - ID * input ports * and outputs
 
+  op validScenario : Configuration Configuration -> Bool .
+
+  eq validScenario((ID1 ! OUTPUT ==> ID2 ! INPUT ) CONNECTIONS,  < ID1 : SU | outputs : < OUTPUT : Output | > OUTPUTS > < ID2 : SU | inputs : < INPUT : Input | > INPUTS > CONF) = validScenario(CONNECTIONS, < ID1 : SU | > < ID2 : SU | > CONF) .
+  eq validScenario(none, CONF) = true .
+  eq validScenario(CONNECTIONS, CONF) = false [owise] .
 
 ***Encoding of the Scenario 
 eq externalConnection = ('msd1 ! 'x1 ==> 'msd2 ! 'x1) ('msd1 ! 'v1 ==> 'msd2 ! 'v1) ('msd1 ! 'z ==> 'msd2 ! 'z) ('msd2 ! 'fk ==> 'msd1 ! 'fk) ('msd3 ! 'B ==> 'msd4 ! 'A) ('msd4 ! 'B ==> 'msd3 ! 'A) .
@@ -186,6 +191,8 @@ eof
 *** Check for termination - not useful 
 (search setup =>! X:Configuration . )
 show search graph .
+
+(red validScenario(externalConnection, simulationUnits) . )
 
 ( frew [20] setup . )
 

@@ -6,7 +6,7 @@ load GenericDT
  op _==>_ : EPortId EPortId -> Connection [ctor format(niy! d d d)] .
  subsort Connection < Configuration .
 
- *** Values are natural numbers
+ *** Values are currently natural numbers - maybe different types should be different syb-types
  class Port | value : Nat, type : PortType, time : Nat, status : PortStatus . 
  class Input | contract : Contract .
  class Output | dependsOn : Set{OIdAsTRIV} .

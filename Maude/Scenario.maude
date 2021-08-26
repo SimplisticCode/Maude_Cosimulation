@@ -39,11 +39,15 @@ load ScenarioAnalyser
 
 
   ***Encoding of the Scenario 
-eq externalConnection = ('msd1 ! 'x1 ==> 'msd2 ! 'x1) ('msd1 ! 'v1 ==> 'msd2 ! 'v1) ('msd1 ! 'z ==> 'msd2 ! 'z) ('msd2 ! 'fk ==> 'msd1 ! 'fk) .
+eq externalConnection = ('env ! 'psu ==> 'plant ! 'psu) ('env ! 'ref ==> 'ctrl ! 'ref) ('load ! 'xaft ==> 'ctrl ! 'xaft) ('ctrl ! 'o ==> 'plant ! 'o) ('plant ! 'w ==> 'ctrl ! 'w) ('load ! 'x ==> 'plant ! 'x) ('load ! 'v ==> 'plant ! 'v) ('plant ! 'f ==> 'load ! 'f) .
 
-eq simulationUnits = (< 'msd1 : SU | path : "A" , time : 0, inputs : (< 'fk : Input | value : 0, type : natural, time : 0, contract : r, status : Undef  >), outputs : (< 'x1 : Output | value : 0, type : natural, time : 0, status : Undef, dependsOn : empty >) (< 'z : Output | value : 0, type : natural, time : 0, status : Undef, dependsOn : empty >) (< 'v1 : Output | value : 0, type : natural, time : 0, status : Undef, dependsOn : empty >), state : Instantiated, canReject : false >)
+eq simulationUnits = (< 'env : SU | path : "A" , time : 0, inputs : none, outputs : (< 'ref : Output | value : 0, type : natural, time : 0, status : Undef, dependsOn : empty >) (< 'psu : Output | value : 0, type : natural, time : 0, status : Undef, dependsOn : empty >), state : Instantiated, canReject : false >)
 
- 	 (< 'msd2 : SU | path : "A" , time : 0, inputs : (< 'x1 : Input | value : 0, type : natural, time : 0, contract : r, status : Undef  >) (< 'v1 : Input | value : 0, type : natural, time : 0, contract : r, status : Undef  >) (< 'z : Input | value : 0, type : natural, time : 0, contract : d, status : Undef  >), outputs : (< 'fk : Output | value : 0, type : natural, time : 0, status : Undef, dependsOn : ( 'x1 ;; 'v1 ) >), state : Instantiated, canReject : false >) .
+ 	 (< 'load : SU | path : "A" , time : 0, inputs : (< 'f : Input | value : 0, type : natural, time : 0, contract : d, status : Undef  >), outputs : (< 'v : Output | value : 0, type : natural, time : 0, status : Undef, dependsOn : empty >) (< 'xaft : Output | value : 0, type : natural, time : 0, status : Undef, dependsOn : empty >) (< 'x : Output | value : 0, type : natural, time : 0, status : Undef, dependsOn : empty >), state : Instantiated, canReject : false >)
+
+ 	 (< 'ctrl : SU | path : "A" , time : 0, inputs : (< 'ref : Input | value : 0, type : natural, time : 0, contract : d, status : Undef  >) (< 'w : Input | value : 0, type : natural, time : 0, contract : d, status : Undef  >) (< 'xaft : Input | value : 0, type : natural, time : 0, contract : d, status : Undef  >), outputs : (< 'o : Output | value : 0, type : natural, time : 0, status : Undef, dependsOn : empty >), state : Instantiated, canReject : false >)
+
+ 	 (< 'plant : SU | path : "A" , time : 0, inputs : (< 'x : Input | value : 0, type : natural, time : 0, contract : r, status : Undef  >) (< 'v : Input | value : 0, type : natural, time : 0, contract : r, status : Undef  >) (< 'o : Input | value : 0, type : natural, time : 0, contract : d, status : Undef  >) (< 'psu : Input | value : 0, type : natural, time : 0, contract : r, status : Undef  >), outputs : (< 'w : Output | value : 0, type : natural, time : 0, status : Undef, dependsOn : ( 'v ) >) (< 'f : Output | value : 0, type : natural, time : 0, status : Undef, dependsOn : ( 'v ;; 'x ) >), state : Instantiated, canReject : false >) .
 
 
   ceq scenario(CONNECTIONS, SUs) = CONNECTIONS SUs 

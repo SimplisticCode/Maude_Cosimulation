@@ -1,0 +1,5 @@
+eq externalConnection = ('msd1 ! 'x1 ==> 'msd2 ! 'x1) ('msd1 ! 'v1 ==> 'msd2 ! 'v1) ('msd2 ! 'fk ==> 'msd1 ! 'fk) .
+
+eq simulationUnits = (< 'msd1 : SU | path : "A" , time : 0, inputs : (< 'fk : Input | value : 0, type : natural, time : 0, contract : d, status : Undef  >), outputs : (< 'x1 : Output | value : 0, type : natural, time : 0, status : Undef, dependsOn : empty >) (< 'v1 : Output | value : 0, type : natural, time : 0, status : Undef, dependsOn : empty >), state : Instantiated, canReject : true >)
+
+ 	 (< 'msd2 : SU | path : "A" , time : 0, inputs : (< 'x1 : Input | value : 0, type : natural, time : 0, contract : r, status : Undef  >) (< 'v1 : Input | value : 0, type : natural, time : 0, contract : r, status : Undef  >), outputs : (< 'fk : Output | value : 0, type : natural, time : 0, status : Undef, dependsOn : ( 'x1 ;; 'v1 ) >), state : Instantiated, canReject : true >) .

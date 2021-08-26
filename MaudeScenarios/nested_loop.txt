@@ -1,7 +1,0 @@
-eq externalConnection = ('msd1 ! 'x1 ==> 'msd2 ! 'x1) ('msd1 ! 'v1 ==> 'msd2 ! 'v1) ('msd2 ! 'fk ==> 'msd1 ! 'fk) ('msd2 ! 'z ==> 'msd3 ! 'z) ('msd3 ! 'G ==> 'msd2 ! 'G) .
-
-eq simulationUnits = (< 'msd3 : SU | time : 0, inputs : (< 'z : Input | time : 0, type : d, status : Undef  >), outputs : (< 'G : Output | time : 0, status : Undef, dependsOn : ( 'z ) >), state : Instantiated, canReject : true >)
-
-(< 'msd2 : SU | time : 0, inputs : (< 'v1 : Input | time : 0, type : r, status : Undef  >) (< 'x1 : Input | time : 0, type : d, status : Undef  >) (< 'G : Input | time : 0, type : r, status : Undef  >), outputs : (< 'v1 : Output | time : 0, status : Undef, dependsOn : ( 'x1 :: 'v1 ) >) (< 'z : Output | time : 0, status : Undef, dependsOn : emptySet >), state : Instantiated, canReject : true >)
-
-(< 'msd1 : SU | time : 0, inputs : (< 'fk : Input | time : 0, type : r, status : Undef  >), outputs : (< 'x1 : Output | time : 0, status : Undef, dependsOn : emptySet >) (< 'v1 : Output | time : 0, status : Undef, dependsOn : emptySet >), state : Instantiated, canReject : true >) .

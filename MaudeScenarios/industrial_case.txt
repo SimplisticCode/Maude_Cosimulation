@@ -1,9 +1,0 @@
-eq externalConnection = ('env ! 'psu ==> 'plant ! 'psu) ('env ! 'ref ==> 'ctrl ! 'ref) ('load ! 'xaft ==> 'ctrl ! 'xaft) ('ctrl ! 'o ==> 'plant ! 'o) ('plant ! 'w ==> 'ctrl ! 'w) ('load ! 'x ==> 'plant ! 'x) ('load ! 'v ==> 'plant ! 'v) ('plant ! 'f ==> 'load ! 'f) .
-
-eq simulationUnits = (< 'env : SU | time : 0, inputs : none, outputs : (< 'ref : Output | time : 0, status : Undef, dependsOn : emptySet >) (< 'psu : Output | time : 0, status : Undef, dependsOn : emptySet >), state : Instantiated, canReject : false >)
-
- 	 (< 'load : SU | time : 0, inputs : (< 'f : Input | time : 0, type : d, status : Undef  >), outputs : (< 'v : Output | time : 0, status : Undef, dependsOn : emptySet >) (< 'xaft : Output | time : 0, status : Undef, dependsOn : emptySet >) (< 'x : Output | time : 0, status : Undef, dependsOn : emptySet >), state : Instantiated, canReject : false >)
-
- 	 (< 'ctrl : SU | time : 0, inputs : (< 'ref : Input | time : 0, type : d, status : Undef  >) (< 'w : Input | time : 0, type : d, status : Undef  >) (< 'xaft : Input | time : 0, type : d, status : Undef  >), outputs : (< 'o : Output | time : 0, status : Undef, dependsOn : emptySet >), state : Instantiated, canReject : false >)
-
- 	 (< 'plant : SU | time : 0, inputs : (< 'x : Input | time : 0, type : r, status : Undef  >) (< 'v : Input | time : 0, type : r, status : Undef  >) (< 'o : Input | time : 0, type : d, status : Undef  >) (< 'psu : Input | time : 0, type : r, status : Undef  >), outputs : (< 'w : Output | time : 0, status : Undef, dependsOn : ( 'v ) >) (< 'f : Output | time : 0, status : Undef, dependsOn : ( 'v :: 'x ) >), state : Instantiated, canReject : false >) .

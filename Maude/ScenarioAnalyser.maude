@@ -161,6 +161,8 @@ endom)
     op dfs1 : EPortId Environment Configuration -> DFSR .
     op setup : -> GlobalState .
 
+    op portInMap : EPortId Set{IndexMapAsTRIV} -> Bool .
+
     var P : EPortId .
     vars PSet SUCCESORS : Set{EPortIdAsTRIV} .
     var IM : Set{IndexMapAsTRIV} .
@@ -196,6 +198,10 @@ endom)
             E2 := dfsrEnv(DFSRESULT1) 
          [owise] .
 
+
+    eq portInMap(P, map(P, M) ;; IM) = true .
+    eq portInMap(P, IM) = false [owise] .
+
     *** If we can find a Node with a lower index we use the lower index
     ceq dfs1(P, E, C) = dfs(SUCCESORS, E1, C)
         if SUCCESORS := findSuccesors(P, C) /\ 
@@ -227,7 +233,7 @@ eof
 
 ( red tarjan(simulationUnits externalConnection) . )
 
-
+( red portInMap('msd1 ! 'fk, map('msd1 ! 'fk,1) ;; map('msd1 ! 'v1,0)) .)
 
 ( red getSCC(natEnv(100000,env('msd1 ! 'fk :: emptyList,sccNoNodes,2,map('msd1 ! 'fk,1) ;; map('msd1 ! 'v1,0);; map('msd1 ! 'x1,0);; map('msd1 ! 'z,0);; map('msd2 !
     'fk,0);; map('msd2 ! 'v1,0);; map('msd2 ! 'x1,0);; map('msd2 ! 'z,0)))) .)
@@ -270,4 +276,14 @@ eof
     Output | dependsOn :('v1 ;; 'x1),status : Undef,time : 0 >,state : Instantiated,time : 0 >) . )
 
 
-
+(red dfs1(('msd1 ! 'fk), env(emptyList,
+    sccNoNodes,1,map('msd1 ! 'fk,0);; map('msd1 ! 'v1,0);; map('msd1 ! 'x1,0);; map('msd1 ! 'z,0);; map('msd2 ! 'fk,0);; map('msd2 ! 'v1,0);;
+    map('msd2 ! 'x1,0);; map('msd2 ! 'z,0)), (
+'msd1 ! 'v1 ==> 'msd2 ! 'v1)(
+'msd1 ! 'x1 ==> 'msd2 ! 'x1)(
+'msd1 ! 'z ==> 'msd2 ! 'z)(
+'msd2 ! 'fk ==> 'msd1 ! 'fk)< 'msd1 : SU | canReject : false,inputs : < 'fk : Input | status : Undef,time : 0,type : r >,outputs :(< 'v1 :
+    Output | dependsOn : empty,status : Undef,time : 0 > < 'x1 : Output | dependsOn : empty,status : Undef,time : 0 > < 'z : Output | dependsOn
+    : empty,status : Undef,time : 0 >),state : Instantiated,time : 0 > < 'msd2 : SU | canReject : false,inputs :(< 'v1 : Input | status : Undef,
+    time : 0,type : r > < 'x1 : Input | status : Undef,time : 0,type : r > < 'z : Input | status : Undef,time : 0,type : d >),outputs : < 'fk :
+    Output | dependsOn :('v1 ;; 'x1),status : Undef,time : 0 >,state : Instantiated,time : 0 >) . )

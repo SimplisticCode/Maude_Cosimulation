@@ -1,9 +1,5 @@
 load LOOPSolver 
 
- 
-
-
-
 (omod StepFinder is
   protecting LOOPSolver .
   sorts findStepPair .

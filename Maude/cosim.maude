@@ -120,7 +120,6 @@ load StepFinder
   rl [unload] : < ID1 : SU | state : InstanceFreed > Algorithm: ALGO
               => < ID1 : SU | state : Unloaded > Algorithm: (ALGO ; (fmiEvent: Unload SU: ID1)) .
 
-
    *** Initalization Procedure 
    crl [get-init] : < ID1 : SU | outputs : OUTPUTS, inputs : INPUTS, state : Initialize > Algorithm: ALGO 
                   => 

@@ -14,7 +14,11 @@ endv)
 (fmod INDEXMAPSET is
     pr BASICSET{IndexMapAsTRIV} .
 endfm)
-
+***(
+(fmod PSTACKPAIR is
+    pr PAIR{List{EPortIdAsTRIV}, List{EPortIdAsTRIV}} .
+endfm)
+)
 
 (omod ScenarioEnvironment is
     protecting COSIMULATION + INDEXMAPSET .
@@ -238,10 +242,6 @@ eof
 ( red dfsrEnv(natEnv(100000,env('msd1 ! 'fk,nil,2,map('msd1 ! 'fk,1) ;; map('msd1 ! 'v1,0);; map('msd1 ! 'x1,0);; map('msd1 ! 'z,0);; map('msd2 !
     'fk,0);; map('msd2 ! 'v1,0);; map('msd2 ! 'x1,0);; map('msd2 ! 'z,0)))) .
 )
-
-( red dfsrEnv(natEnv(100000,env(emptyST,
-    nil ; 'msd1 ! 'fk, 2 ,map('msd1 ! 'fk,100000);; map('msd1 ! 'v1,0);; map('msd1 ! 'x1,0);; map('msd1 ! 'z,0);; map('msd2 ! 'fk,0);; map('msd2 ! 'v1,0)
-    ;; map('msd2 ! 'x1,0);; map('msd2 ! 'z,0)))) . )
 
 ( red findSuccesors(('msd1 ! 'x1), simulationUnits externalConnection) .)
 

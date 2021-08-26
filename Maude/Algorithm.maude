@@ -10,9 +10,6 @@ load Port
     op AlgebraicLoop:_Type:_ : Set{EPortIdAsTRIV} LoopType -> AlgebraicLoop [ctor] . 
 endfm )
 
-*** Create view of 
-***view 
-
 (view ALGEBRAICLOOPAsTRIV from TRIV to ALGEBRAICLOOP is
   protecting ALGEBRAICLOOP .
   sort Elt to AlgebraicLoop .

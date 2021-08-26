@@ -131,7 +131,7 @@ endfm)
 
 (omod Ports is 
  protecting QID + NAT + PORTMAPENTRY + EPORTSET + OIDSET + PORTMAPSET + EPORTLIST + PORTSCC .
- sorts Mode PortStatus Connection PScc .
+ sorts Mode PortStatus Connection .
  op _==>_ : EPortId EPortId -> Connection [ctor format(niy! d d d)] .
  subsort Connection < Configuration .
 
@@ -143,7 +143,6 @@ endfm)
  ops Def Undef : -> PortStatus [ctor] .
 
  op _in_ : Connection Configuration -> Bool . 
-
  op elems : List{EPortIdAsTRIV} -> Set{EPortIdAsTRIV} .
  op getPortIDSet : Configuration -> Set{OIdAsTRIV} .
  op getPortFromMap : Set{PortMapAsTRIV} -> Set{OIdAsTRIV} .
@@ -163,9 +162,9 @@ endfm)
  eq elems(emptyList) = empty .
  eq elems(PORT :: STACK) = PORT ;; elems(STACK) .
 
-eq indexOf(PORT, PORT :: STACK) = 1 .
-eq indexOf(PORT, PORTX :: STACK) = 1 + indexOf(PORT, STACK) .
-eq indexOf(PORT, emptyList) = 1 .
+ eq indexOf(PORT, PORT :: STACK) = 1 .
+ eq indexOf(PORT, PORTX :: STACK) = 1 + indexOf(PORT, STACK) .
+ eq indexOf(PORT, emptyList) = 1 .
 
  eq CON in CON CONF = true .
  eq CON in CONF = false [owise] .

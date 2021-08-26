@@ -13,13 +13,14 @@ load ScenarioAnalyser
     op `{_`} : Configuration -> GlobalState .
     op calculateSNSet : Configuration -> Configuration .
 
-
   vars ID1 ID2 : SUID .
   vars INPUT OUTPUT : PortId .
-  vars SUs CONNECTIONS INPUTS OUTPUTS CONF : Configuration .
+  vars SUs CONNECTIONS INPUTS OUTPUTS CONF SCENARIOMODEL : Configuration .
   var SUIDs : Set{OIdAsTRIV} .
+  var TYPE : PortType .
+  var SCCs : Set{ALGEBRAICLOOPAsTRIV} .
 
-  eq validScenario((ID1 ! OUTPUT ==> ID2 ! INPUT ) CONNECTIONS,  < ID1 : SU | outputs : < OUTPUT : Output | > OUTPUTS > < ID2 : SU | inputs : < INPUT : Input | > INPUTS > SUs) = validScenario(CONNECTIONS, < ID1 : SU | > < ID2 : SU | > SUs) .
+  eq validScenario((ID1 ! OUTPUT ==> ID2 ! INPUT ) CONNECTIONS,  < ID1 : SU | outputs : < OUTPUT : Output | type : TYPE > OUTPUTS > < ID2 : SU | inputs : < INPUT : Input | type : TYPE > INPUTS > SUs) = validScenario(CONNECTIONS, < ID1 : SU | > < ID2 : SU | > SUs) .
   eq validScenario(none, SUs) = true .
   eq validScenario(CONNECTIONS, SUs) = false [owise] .
 
@@ -38,23 +39,22 @@ load ScenarioAnalyser
 
 
   ***Encoding of the Scenario 
-  eq externalConnection = ('msd1 ! 'x1 ==> 'msd2 ! 'x1) ('msd1 ! 'v1 ==> 'msd2 ! 'v1) ('msd1 ! 'z ==> 'msd2 ! 'z) ('msd2 ! 'fk ==> 'msd1 ! 'fk) ('msd3 ! 'B ==> 'msd4 ! 'A) ('msd4 ! 'B ==> 'msd3 ! 'A) .
+eq externalConnection = ('msd1 ! 'x1 ==> 'msd2 ! 'x1) ('msd1 ! 'v1 ==> 'msd2 ! 'v1) ('msd1 ! 'z ==> 'msd2 ! 'z) ('msd2 ! 'fk ==> 'msd1 ! 'fk) .
 
-  eq simulationUnits = (< 'msd1 : SU | path : "A" , time : 0, inputs : (< 'fk : Input | value : 0, time : 0, contract : r, status : Undef  >), outputs : (< 'x1 : Output | value : 0, time : 0, status : Undef, dependsOn : empty >) (< 'z : Output | value : 0, time : 0, status : Undef, dependsOn : empty >) (< 'v1 : Output | value : 0, time : 0, status : Undef, dependsOn : empty >), state : Instantiated, canReject : false >)
+eq simulationUnits = (< 'msd1 : SU | path : "A" , time : 0, inputs : (< 'fk : Input | value : 0, type : natural, time : 0, contract : r, status : Undef  >), outputs : (< 'x1 : Output | value : 0, type : natural, time : 0, status : Undef, dependsOn : empty >) (< 'z : Output | value : 0, type : natural, time : 0, status : Undef, dependsOn : empty >) (< 'v1 : Output | value : 0, type : natural, time : 0, status : Undef, dependsOn : empty >), state : Instantiated, canReject : false >)
 
-    (< 'msd2 : SU | path : "A" , time : 0, inputs : (< 'x1 : Input | value : 0, time : 0, contract : r, status : Undef  >) (< 'v1 : Input | value : 0, time : 0, contract : r, status : Undef  >) (< 'z : Input | value : 0, time : 0, contract : d, status : Undef  >), outputs : (< 'fk : Output | value : 0, time : 0, status : Undef, dependsOn : ( 'x1 ;; 'v1 ) >), state : Instantiated, canReject : false >)
+ 	 (< 'msd2 : SU | path : "A" , time : 0, inputs : (< 'x1 : Input | value : 0, type : natural, time : 0, contract : r, status : Undef  >) (< 'v1 : Input | value : 0, type : natural, time : 0, contract : r, status : Undef  >) (< 'z : Input | value : 0, type : natural, time : 0, contract : d, status : Undef  >), outputs : (< 'fk : Output | value : 0, type : natural, time : 0, status : Undef, dependsOn : ( 'x1 ;; 'v1 ) >), state : Instantiated, canReject : false >) .
 
-   (< 'msd3 : SU | path : "A" , time : 0, inputs : (< 'A : Input | value : 0, time : 0, contract : r, status : Undef  >), outputs : (< 'B : Output | value : 0, time : 0, status : Undef, dependsOn : empty >), state : Instantiated, canReject : false >)
-
-   (< 'msd4 : SU | path : "A" , time : 0, inputs : (< 'A : Input | value : 0, time : 0, contract : r, status : Undef  >), outputs : (< 'B : Output | value : 0, time : 0, status : Undef, dependsOn : empty >), state : Instantiated, canReject : false >) .
 
   ceq scenario(CONNECTIONS, SUs) = CONNECTIONS SUs 
     if validScenario(CONNECTIONS, SUs) .
 
-   eq setup = { calculateSNSet(simulationUnits externalConnection stepSize: 1 endTime: 1 Algorithm: emptyList SNSet: empty guessOn: empty       SolvedSCC: empty UnsolvedSCC: tarjan(simulationUnits externalConnection)) } .
+  eq scenario(CONNECTIONS, SUs) = none [owise] .
+
+
+  ceq setup = { CONF }
+    if SCENARIOMODEL := scenario(externalConnection, simulationUnits)
+    /\ SCCs := tarjan(SCENARIOMODEL)
+    /\ CONF := calculateSNSet(SCENARIOMODEL stepSize: 1 endTime: 1 Algorithm: emptyList SNSet: empty guessOn: empty SolvedSCC: empty UnsolvedSCC: SCCs) .
    
 endom)
-
-
-eof
-

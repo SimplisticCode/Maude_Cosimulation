@@ -38,7 +38,7 @@ load LOOPSolver
   eq needsStepNegotiation(SUIDs) = true [owise] .
 
    *** Calculation of the members of the set of SUs that should be backtracked in the step negotiation
-  ceq calculateSNSet(< ID1 : SU | inputs : (< INPUT : Input | type : r > INPUTS) > 
+  ceq calculateSNSet(< ID1 : SU | inputs : (< INPUT : Input | contract : r > INPUTS) > 
                       < ID2 : SU | outputs : (< OUTPUT : Output | > OUTPUTS) > 
                       (ID2 ! OUTPUT ==> ID1 ! INPUT) (SNSet: (ID1 ;; SUIDs))  CONF) = 
                       calculateSNSet(< ID1 : SU | > < ID2 : SU | > (ID2 ! OUTPUT ==> ID1 ! INPUT) 
@@ -53,14 +53,14 @@ load LOOPSolver
   *** Get case (only on reactive outputs)
   ceq findStep(ID1 ;; ID2 ;; SUIDs, 
                     < ID2 : SU | time : TIME, outputs : (< OUTPUT : Output | status : Undef, dependsOn : FEEDTHROUGH > OUTPUTS), inputs : INPUTS1 >
-                    < ID1 : SU | inputs : (< INPUT : Input | type : r > INPUTS) > (ID2 ! OUTPUT ==> ID1 ! INPUT) CONF, SAVEDCONF, ALGO) = 
+                    < ID1 : SU | inputs : (< INPUT : Input | contract : r > INPUTS) > (ID2 ! OUTPUT ==> ID1 ! INPUT) CONF, SAVEDCONF, ALGO) = 
                     findStep(ID1 ;; ID2 ;; SUIDs, getAction(< ID2 : SU | >, OUTPUT) < ID1 : SU | >  
                     (ID2 ! OUTPUT ==> ID1 ! INPUT) CONF, SAVEDCONF, ALGO ; (portEvent: Get SU: ID2 PId: OUTPUT)) 
                     if feedthroughSatisfied(FEEDTHROUGH, INPUTS1, TIME) .
 
   *** Set case (only on reactive Inputs)
   ceq findStep(ID1 ;; ID2 ;; SUIDs, 
-                      < ID1 : SU | inputs : (< INPUT : Input | time : INPUTTIME, type : r > INPUTS) > 
+                      < ID1 : SU | inputs : (< INPUT : Input | time : INPUTTIME, contract : r > INPUTS) > 
                       < ID2 : SU | outputs : (< OUTPUT : Output | time : OUTPUTTIME, status : Def > OUTPUTS) > 
                         (ID2 ! OUTPUT ==> ID1 ! INPUT) CONF, SAVEDCONF, ALGO) = 
               findStep(ID1 ;; ID2 ;; SUIDs, setAction(< ID1 : SU | >, INPUT, OUTPUTTIME) < ID2 : SU | > (ID2 ! OUTPUT ==> ID1 ! INPUT) CONF, SAVEDCONF, ALGO ; (portEvent: Set SU: ID1 PId: INPUT)) 

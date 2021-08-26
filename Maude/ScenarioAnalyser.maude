@@ -14,11 +14,7 @@ endv)
 (fmod INDEXMAPSET is
     pr BASICSET{IndexMapAsTRIV} .
 endfm)
-***(
-(fmod PSTACKPAIR is
-    pr PAIR{List{EPortIdAsTRIV}, List{EPortIdAsTRIV}} .
-endfm)
-)
+
 
 (omod ScenarioEnvironment is
     protecting COSIMULATION + INDEXMAPSET .
@@ -98,7 +94,7 @@ endfm)
     eq createAlgebraic(PSet ; SCCs, C, LOOPS) = createAlgebraic(SCCs, C, LOOPS) [owise] .
 
     *** Check type of SCC - one reactive input makes it Reactive
-    eq isReactiveLoop((ID1 ! I) ;; PSet, < ID1 : SU | inputs : (< I : Input | type : r > INPUTS) > C) = true .
+    eq isReactiveLoop((ID1 ! I) ;; PSet, < ID1 : SU | inputs : (< I : Input | contract : r > INPUTS) > C) = true .
     eq isReactiveLoop(PSet, C) = false [owise] .
 
     *** Split the DFS-result to its components 
@@ -148,7 +144,7 @@ endfm)
 
     *** Input - reactive
     ceq succesors((ID1 ! I),
-                < ID1 : SU | inputs : (< I : Input | type : r > INPUTS), outputs : (< O : Output | > OUTPUTS) > C, PSet) 
+                < ID1 : SU | inputs : (< I : Input | contract : r > INPUTS), outputs : (< O : Output | > OUTPUTS) > C, PSet) 
                 = 
                 succesors((ID1 ! I),  < ID1 : SU | > C, (ID1 ! O) ;; PSet) if not (ID1 ! O) in PSet .
 
@@ -263,10 +259,10 @@ eof
 'msd1 ! 'v1 ==> 'msd2 ! 'v1)(
 'msd1 ! 'x1 ==> 'msd2 ! 'x1)(
 'msd1 ! 'z ==> 'msd2 ! 'z)(
-'msd2 ! 'fk ==> 'msd1 ! 'fk)< 'msd1 : SU | canReject : false,inputs : < 'fk : Input | status : Undef,time : 0,type : r >,outputs :(< 'v1 :
+'msd2 ! 'fk ==> 'msd1 ! 'fk)< 'msd1 : SU | canReject : false,inputs : < 'fk : Input | status : Undef,time : 0,contract : r >,outputs :(< 'v1 :
     Output | dependsOn : empty,status : Undef,time : 0 > < 'x1 : Output | dependsOn : empty,status : Undef,time : 0 > < 'z : Output | dependsOn
     : empty,status : Undef,time : 0 >),state : Instantiated,time : 0 > < 'msd2 : SU | canReject : false,inputs :(< 'v1 : Input | status : Undef,
-    time : 0,type : r > < 'x1 : Input | status : Undef,time : 0,type : r > < 'z : Input | status : Undef,time : 0,type : d >),outputs : < 'fk :
+    time : 0,contract : r > < 'x1 : Input | status : Undef,time : 0,contract : r > < 'z : Input | status : Undef,time : 0,contract : d >),outputs : < 'fk :
     Output | dependsOn :('v1 ;; 'x1),status : Undef,time : 0 >,state : Instantiated,time : 0 >) . )
 
 
@@ -276,8 +272,8 @@ eof
 'msd1 ! 'v1 ==> 'msd2 ! 'v1)(
 'msd1 ! 'x1 ==> 'msd2 ! 'x1)(
 'msd1 ! 'z ==> 'msd2 ! 'z)(
-'msd2 ! 'fk ==> 'msd1 ! 'fk)< 'msd1 : SU | canReject : false,inputs : < 'fk : Input | status : Undef,time : 0,type : r >,outputs :(< 'v1 :
+'msd2 ! 'fk ==> 'msd1 ! 'fk)< 'msd1 : SU | canReject : false,inputs : < 'fk : Input | status : Undef,time : 0,contract : r >,outputs :(< 'v1 :
     Output | dependsOn : empty,status : Undef,time : 0 > < 'x1 : Output | dependsOn : empty,status : Undef,time : 0 > < 'z : Output | dependsOn
     : empty,status : Undef,time : 0 >),state : Instantiated,time : 0 > < 'msd2 : SU | canReject : false,inputs :(< 'v1 : Input | status : Undef,
-    time : 0,type : r > < 'x1 : Input | status : Undef,time : 0,type : r > < 'z : Input | status : Undef,time : 0,type : d >),outputs : < 'fk :
+    time : 0,contract : r > < 'x1 : Input | status : Undef,time : 0,contract : r > < 'z : Input | status : Undef,time : 0,contract : d >),outputs : < 'fk :
     Output | dependsOn :('v1 ;; 'x1),status : Undef,time : 0 >,state : Instantiated,time : 0 >) . )

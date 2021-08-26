@@ -2,15 +2,17 @@ load GenericDT
 
 (omod Ports is 
  protecting QID + NAT + PORTMAPENTRY + EPORTSET + OIDSET + PORTMAPSET + EPORTLIST + PORTSCC .
- sorts Mode PortStatus Connection .
+ sorts Contract PortStatus Connection Value .
  op _==>_ : EPortId EPortId -> Connection [ctor format(niy! d d d)] .
  subsort Connection < Configuration .
 
+ subsort Value < Nat .
+
  class Port | time : Nat, status : PortStatus . 
- class Input | type : Mode .
+ class Input | contract : Contract .
  class Output | dependsOn : Set{OIdAsTRIV} .
  subclasses Input Output < Port . 
- ops d r : -> Mode [ctor] .   *** d = delayed, r = Reactive.
+ ops d r : -> Contract [ctor] .   *** d = delayed, r = Reactive.
  ops Def Undef : -> PortStatus [ctor] .
 
  op _in_ : Connection Configuration -> Bool . 

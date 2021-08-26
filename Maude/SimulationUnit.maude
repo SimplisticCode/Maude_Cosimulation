@@ -41,8 +41,8 @@ load Algorithm
    eq allDef(< PId : Port | status : PORTSTATUS, time : TIME > CONF, TIME) = PORTSTATUS == Def and allDef(CONF, TIME) .
 
    eq allInputsDef(none, SUTIME, FUTURETIME) = true .
-   eq allInputsDef(< PId : Input | time : SUTIME, type : d, status : PORTSTATUS > CONF, SUTIME, FUTURETIME) = PORTSTATUS == Def and allInputsDef(CONF, SUTIME, FUTURETIME) .
-   eq allInputsDef(< PId : Input | time : FUTURETIME, type : r,  status : PORTSTATUS > CONF, SUTIME, FUTURETIME ) = PORTSTATUS == Def and allInputsDef(CONF, SUTIME, FUTURETIME) .
+   eq allInputsDef(< PId : Input | time : SUTIME, contract : d, status : PORTSTATUS > CONF, SUTIME, FUTURETIME) = PORTSTATUS == Def and allInputsDef(CONF, SUTIME, FUTURETIME) .
+   eq allInputsDef(< PId : Input | time : FUTURETIME, contract : r,  status : PORTSTATUS > CONF, SUTIME, FUTURETIME ) = PORTSTATUS == Def and allInputsDef(CONF, SUTIME, FUTURETIME) .
 
    eq undefPorts(none, TIME) = none .
    eq undefPorts(< PId : Port | > CONF, TIME) =  < PId : Port | status : Undef, time : TIME > undefPorts(CONF, TIME) .

@@ -27,7 +27,7 @@ endfm)
     
  *** Types
  ops CreateExp EnterInitialization ExitInitialization Terminate FreeInstance Unload : -> FMIActionType [ctor] . 
- ops Set Get Step Save CreateExp : -> ActionType [ctor] . 
+ ops Set Get Step Save : -> ActionType [ctor] . 
  ops StepNegotiation Loop : -> ComplexActionType [ctor] . 
  *** Rename loop type
  op fmiEvent:_SU:_ : FMIActionType PortId -> Action [ctor format(nir! d d d d)] .

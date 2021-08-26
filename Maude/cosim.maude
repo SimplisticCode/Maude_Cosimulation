@@ -27,7 +27,7 @@ load StepFinder
    vars STEPSIZE FUTURETIME ENDTIME : NzNat .
    var LOOP : AlgebraicLoop .  
    vars LOOPS SOLVEDLOOPS : Set{ALGEBRAICLOOPAsTRIV} .  
-   var INPUTTYPE : Mode .
+   var INPUTTYPE : Contract .
    var STEPRes : findStepPair .
 
   eq simulationStepDone(< ID1 : SU | time : TIME, inputs : INPUTS, outputs : OUTPUTS > CONF) = TIME > 0 and allDef(INPUTS, TIME) and allDef(OUTPUTS, TIME) and simulationStepDone(CONF) .
@@ -62,7 +62,7 @@ load StepFinder
   eq getActionEnabled(< OUTPUT : Output | > OUTPUTS, INPUTS, TIME) = getActionEnabled(OUTPUTS, INPUTS, TIME) [owise] .
 
   eq setActionEnabled(none, ID1, TIME, CONF) = empty .
-  ceq setActionEnabled(< INPUT : Input | time : TIME1, type : INPUTTYPE > INPUTS, ID1, TIME,
+  ceq setActionEnabled(< INPUT : Input | time : TIME1, contract : INPUTTYPE > INPUTS, ID1, TIME,
                                 CONF < ID2 : SU | outputs : (< OUTPUT : Output | time : TIME2, status : Def > OUTPUTS) > (ID2 ! OUTPUT ==> ID1 ! INPUT)) 
                         = (INPUT => TIME2) ;; setActionEnabled(INPUTS, ID1, TIME, CONF < ID2 : SU | > (ID2 ! OUTPUT ==> ID1 ! INPUT)) 
                         if TIME1 < TIME2 and ((INPUTTYPE == d and TIME1 < TIME) or (INPUTTYPE == r and TIME == TIME1)) .
@@ -155,9 +155,9 @@ load StepFinder
 ***Encoding of the Scenario 
 eq externalConnection = ('msd1 ! 'x1 ==> 'msd2 ! 'x1) ('msd1 ! 'v1 ==> 'msd2 ! 'v1) ('msd1 ! 'z ==> 'msd2 ! 'z) ('msd2 ! 'fk ==> 'msd1 ! 'fk) .
 
-eq simulationUnits = (< 'msd1 : SU | time : 0, inputs : (< 'fk : Input | time : 0, type : r, status : Undef  >), outputs : (< 'x1 : Output | time : 0, status : Undef, dependsOn : empty >) (< 'z : Output | time : 0, status : Undef, dependsOn : empty >) (< 'v1 : Output | time : 0, status : Undef, dependsOn : empty >), state : Instantiated, canReject : false >)
+eq simulationUnits = (< 'msd1 : SU | time : 0, inputs : (< 'fk : Input | time : 0, contract : r, status : Undef  >), outputs : (< 'x1 : Output | time : 0, status : Undef, dependsOn : empty >) (< 'z : Output | time : 0, status : Undef, dependsOn : empty >) (< 'v1 : Output | time : 0, status : Undef, dependsOn : empty >), state : Instantiated, canReject : false >)
 
- 	 (< 'msd2 : SU | time : 0, inputs : (< 'x1 : Input | time : 0, type : r, status : Undef  >) (< 'v1 : Input | time : 0, type : r, status : Undef  >) (< 'z : Input | time : 0, type : d, status : Undef  >), outputs : (< 'fk : Output | time : 0, status : Undef, dependsOn : ( 'x1 ;; 'v1 ) >), state : Instantiated, canReject : false >) .
+ 	 (< 'msd2 : SU | time : 0, inputs : (< 'x1 : Input | time : 0, contract : r, status : Undef  >) (< 'v1 : Input | time : 0, contract : r, status : Undef  >) (< 'z : Input | time : 0, contract : d, status : Undef  >), outputs : (< 'fk : Output | time : 0, status : Undef, dependsOn : ( 'x1 ;; 'v1 ) >), state : Instantiated, canReject : false >) .
 
 
 endom)

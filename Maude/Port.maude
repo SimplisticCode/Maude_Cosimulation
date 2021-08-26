@@ -1,63 +1,72 @@
-(omod Ports is 
- protecting QID + NAT .
- sorts PortId Mode PortStatus PortIdSet PStack .
- subsorts Qid < PortId < Oid .
- subsort PortId < PortIdSet .
+load GenericDT
 
- sorts Connection SUID EPortId EPortIdSet PScc .
- subsort EPortId < EPortIdSet < PScc .
- subsort EPortId < PStack .
- subsorts Qid < SUID < Oid .
+(omod Ports is 
+ protecting QID + NAT + PORTMAPENTRY + EPORTSET + OIDSET + PORTMAPSET + EPORTLIST + PORTSCC .
+ sorts Mode PortStatus Connection .
  op _==>_ : EPortId EPortId -> Connection [ctor format(niy! d d d)] .
  subsort Connection < Configuration .
- op _!_ : SUID PortId -> EPortId [ctor] .
 
  class Port | time : Nat, status : PortStatus . 
  class Input | type : Mode .
- class Output | dependsOn : PortIdSet .
+ class Output | dependsOn : Set{OIdAsTRIV} .
  subclasses Input Output < Port . 
  ops d r : -> Mode [ctor] .   *** d = delayed, r = Reactive.
  ops Def Undef : -> PortStatus [ctor] .
 
- op emptySet : -> PortIdSet [ctor] .
- op _::_ : PortIdSet PortIdSet -> PortIdSet [ctor assoc comm id: emptySet] .
- 
- op emptyLoop : -> EPortIdSet [ctor] .
- op _;;_ : EPortIdSet EPortIdSet -> EPortIdSet [ctor assoc comm id: emptyLoop] .
-
- op emptyST : -> PStack [ctor] .
- op _##_ : PStack PStack -> PStack [ctor assoc id: emptyST] .
-
- op sccNoNodes : -> PScc [ctor] .
- op _**_ : PScc PScc -> PScc [ctor assoc comm id: sccNoNodes] .
-
- op _in_ : EPortId EPortIdSet -> Bool . 
  op _in_ : Connection Configuration -> Bool . 
-
- op elems : PStack -> EPortIdSet .
- op getPortIDSet : Configuration -> PortIdSet .
+ op elems : List{EPortIdAsTRIV} -> Set{EPortIdAsTRIV} .
+ op getPortIDSet : Configuration -> Set{OIdAsTRIV} .
+ op getPortFromMap : Set{PortMapAsTRIV} -> Set{OIdAsTRIV} .
+ op indexOf : EPortId List{EPortIdAsTRIV} -> Nat .
 
  var PID : PortId .
- var PORT : EPortId .
- var PORTSET : EPortIdSet .
+ vars PORT PORTX : EPortId .
  var CONF PORTS : Configuration .
  var CON : Connection .
- var STACK : PStack .
+ var STACK : List{EPortIdAsTRIV} .
+ var TIME : Nat .
+ var PORTMAP : Set{PortMapAsTRIV} .
 
+ eq getPortIDSet(none) = empty .
+ eq getPortIDSet(< PID : Output | > PORTS) = PID ;; getPortIDSet(PORTS) .
 
- eq getPortIDSet(none) = emptySet .
- eq getPortIDSet(< PID : Output | > PORTS) = PID :: getPortIDSet(PORTS) .
+ eq elems(emptyList) = empty .
+ eq elems(PORT :: STACK) = PORT ;; elems(STACK) .
 
- eq elems(emptyST) = emptyLoop .
- eq elems(PORT ## STACK) = PORT ;; elems(STACK) .
-
- eq PORT in PORT ;; PORTSET = true .
- eq PORT in PORTSET = false [owise] .
+ eq indexOf(PORT, PORT :: STACK) = 1 .
+ eq indexOf(PORT, PORTX :: STACK) = 1 + indexOf(PORT, STACK) .
+ eq indexOf(PORT, emptyList) = 1 .
 
  eq CON in CON CONF = true .
  eq CON in CONF = false [owise] .
 
- op size : EPortIdSet -> Nat .
- eq size(emptyLoop) = 0 .
- eq size(PORT ;; PORTSET) = 1 + size(PORTSET) .
+ eq getPortFromMap(empty) = empty .
+ eq getPortFromMap((PID => TIME) ;; PORTMAP) = PID ;; getPortFromMap(PORTMAP) .
+
 endom)
+
+
+eof
+
+(red ('P ;; 'Q ;; 'S) .)
+(red 'P in ('P ;; 'Q ;; 'S) .)
+(red ('SU1 ! 'R) :: ('SU1 ! 'Q) :: ('SU1 ! 'S) . )
+(red 'SU1!'P in ('SU1!'P ;; 'SU1!'Q ;; 'SU1!'S) .)
+(red 'SU1!'P in ('SU1!'R ;; 'SU1!'Q ;; 'SU1!'S) .)
+
+(red getPortFromMap(('P => 1) ;; ('Q => 1) ;; ('S => 1)) .)
+(red ('SU1 ! 'R) :: (('SU1 ! 'S) :: (('SU1 ! 'T) :: emptyList)) . )
+(red ('SU1 ! 'R) ;; ('SU1 ! 'Q) ;; ('SU1 ! 'S) . )
+
+(red getPortIDSet(< 'A : Output | > none ) . )
+(red elems(('SU1 ! 'R) :: (('SU1 ! 'S) :: (('SU1 ! 'T) :: emptyList)) ) .)
+
+
+
+(red take (indexOf(('SU1 ! 'R), ('SU1 ! 'R) :: (('SU1 ! 'S) :: (('SU1 ! 'T) :: emptyList)))) from ('SU1 ! 'R) :: (('SU1 ! 'S) :: (('SU1 ! 'T) :: emptyList)) . )
+
+(red take 3 from ('SU1 ! 'R) :: (('SU1 ! 'S) :: (('SU1 ! 'T) :: emptyList)) . )
+(red indexOf(('SU1 ! 'R), ('SU1 ! 'R) :: (('SU1 ! 'S) :: (('SU1 ! 'T) :: emptyList))) . )
+
+(red ('SU1 ! 'T) in elems(('SU1 ! 'R) :: (('SU1 ! 'S) :: (('SU1 ! 'T) :: emptyList))) . )
+(red length(('SU1 ! 'R) :: (('SU1 ! 'S) :: (('SU1 ! 'T) :: emptyList))) . )

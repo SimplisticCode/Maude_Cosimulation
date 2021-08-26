@@ -1,6 +1,6 @@
 load Algorithm
 (omod SimulationUnit is
-   protecting Ports + Algorithm .
+   protecting Algorithm .
    sort fmiState .
    
    *** The different states of the FMI standard
@@ -8,9 +8,8 @@ load Algorithm
 
    ***Classes
    class SU | time : Nat, inputs : Configuration, outputs : Configuration, canReject : Bool, state : fmiState .
-
    op askStepSize : Object NzNat -> NzNat .
-   op feedthroughSatisfied : PortIdSet Configuration Nat -> Bool .
+   op feedthroughSatisfied : Set{OIdAsTRIV} Configuration Nat -> Bool .
    op allDef : Configuration Nat -> Bool .
    op undefPorts : Configuration Nat -> Configuration .
    op undefInputs : Configuration -> Configuration .  
@@ -18,22 +17,25 @@ load Algorithm
    op allInputsSet : Configuration -> Bool .
    op canStep : Nat NzNat Configuration Configuration -> Bool .
 
-   op getAction : Object PortIdSet -> Object .
+   op getAction : Object Set{OIdAsTRIV} -> Object .
    op setAction : Object PortId Nat -> Object .
    op stepAction : Object NzNat -> Object .
+
+   op setActionPortMap : Object Set{PortMapAsTRIV} -> Object .
 
    var ID : SUID .
    vars PId INPUT OUTPUT : PortId .
    vars TIME SUTIME : Nat .
    vars CONF INPUTS OUTPUTS : Configuration .
    var PORTSTATUS : PortStatus .
-   vars FEEDTHROUGH PORTS : PortIdSet .
+   vars FEEDTHROUGH PORTS : Set{OIdAsTRIV} .
    vars FUTURETIME STEP : NzNat .
+   var PORTMAP : Set{PortMapAsTRIV} .
 
    *** Checks if all feedthrough constraints are satisfied
-   eq feedthroughSatisfied(emptySet, CONF, TIME) = true .
-   eq feedthroughSatisfied(PId :: FEEDTHROUGH, < PId : Input | status : Undef > CONF, TIME) = false .
-   eq feedthroughSatisfied(PId :: FEEDTHROUGH, < PId : Input | time : TIME, status : Def > CONF, TIME) =  feedthroughSatisfied(FEEDTHROUGH, CONF, TIME) .
+   eq feedthroughSatisfied(empty, CONF, TIME) = true .
+   eq feedthroughSatisfied(PId ;; FEEDTHROUGH, < PId : Input | status : Undef > CONF, TIME) = false .
+   eq feedthroughSatisfied(PId ;; FEEDTHROUGH, < PId : Input | time : TIME, status : Def > CONF, TIME) =  feedthroughSatisfied(FEEDTHROUGH, CONF, TIME) .
 
    eq allDef(none, TIME) = true .
    eq allDef(< PId : Port | status : PORTSTATUS, time : TIME > CONF, TIME) = PORTSTATUS == Def and allDef(CONF, TIME) .
@@ -57,11 +59,14 @@ load Algorithm
    eq askStepSize(< ID : SU | >, STEP) = STEP .
 
   *** Updates the time and status of the input
-  eq getAction(< ID : SU | >, emptySet) = < ID : SU | > .
-  eq getAction(< ID : SU | time : TIME, outputs : (< OUTPUT : Output | > OUTPUTS) >, OUTPUT :: PORTS) = getAction(< ID : SU | outputs : (< OUTPUT : Output | time : TIME, status : Def > OUTPUTS) >, PORTS) .
+  eq getAction(< ID : SU | >, empty) = < ID : SU | > .
+  eq getAction(< ID : SU | time : TIME, outputs : (< OUTPUT : Output | > OUTPUTS) >, OUTPUT ;; PORTS) = getAction(< ID : SU | outputs : (< OUTPUT : Output | time : TIME, status : Def > OUTPUTS) >, PORTS) .
 
-  eq setAction(< ID : SU | > , emptySet, TIME) =  < ID : SU | > .
-  eq setAction(< ID : SU | inputs : (< INPUT : Input | > INPUTS) > , INPUT :: PORTS, TIME) =  setAction(< ID : SU | inputs : (< INPUT : Input | time : TIME, status : Def > INPUTS) >, PORTS, TIME) .
+  eq setAction(< ID : SU | > ,  empty, TIME) =  < ID : SU | > .
+  eq setAction(< ID : SU | inputs : (< INPUT : Input | > INPUTS) > , INPUT ;; PORTS, TIME) =  setAction(< ID : SU | inputs : (< INPUT : Input | time : TIME, status : Def > INPUTS) >, PORTS, TIME) .
+
+  eq setActionPortMap(< ID : SU | > , empty) =  < ID : SU | > .
+  eq setActionPortMap(< ID : SU | inputs : (< INPUT : Input | > INPUTS) > , (INPUT => TIME) ;; PORTMAP) =  setActionPortMap(< ID : SU | inputs : (< INPUT : Input | time : TIME, status : Def > INPUTS) >, PORTMAP).
 
   *** Updates the time and the status of the outputs
   ceq stepAction(< ID : SU | time : TIME, outputs : OUTPUTS >, STEP) = < ID : SU | time : FUTURETIME, outputs : undefPorts(OUTPUTS, FUTURETIME) > 

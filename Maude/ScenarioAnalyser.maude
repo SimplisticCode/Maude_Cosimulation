@@ -1,56 +1,71 @@
 load cosim 
 
-(omod ScenarioEnvironment is
-    protecting COSIMULATION .
-    sorts Environment IndexMap IndexMapEntry DFSR PStackTuple .
-    subsort IndexMapEntry < IndexMap .
+(fmod INDEXMAPENTRY is
+    protecting EPORTID .
+    sort IndexMapEntry .
+    op map : EPortId Nat -> IndexMapEntry [ctor] .
+endfm)
 
-    op findSuccesors : EPortId Configuration -> EPortIdSet .
-    op succesors : EPortId Configuration EPortIdSet -> EPortIdSet .
-    op split : EPortId PStack -> PStackTuple .
+(view IndexMapAsTRIV from TRIV to INDEXMAPENTRY is
+  protecting INDEXMAPENTRY .
+  sort Elt to IndexMapEntry .
+endv)
+
+(fmod INDEXMAPSET is
+    pr BASICSET{IndexMapAsTRIV} .
+endfm)
+***(
+(fmod PSTACKPAIR is
+    pr PAIR{List{EPortIdAsTRIV}, List{EPortIdAsTRIV}} .
+endfm)
+)
+
+(omod ScenarioEnvironment is
+    protecting COSIMULATION + INDEXMAPSET .
+    sorts Environment DFSR PStackTuple .
+
+    op findSuccesors : EPortId Configuration -> Set{EPortIdAsTRIV} .
+    op succesors : EPortId Configuration Set{EPortIdAsTRIV} -> Set{EPortIdAsTRIV} .
+    op split : EPortId List{EPortIdAsTRIV} -> PStackTuple .
     op addStackIncr : EPortId Environment -> Environment .
 
-    op createIndexMap : EPortIdSet IndexMap -> IndexMap .
-
-    op emptyMap : -> IndexMap [ctor] .
-    op _^^_ : IndexMap IndexMap -> IndexMap [ctor assoc comm id: emptyMap] .
+    op createIndexMap : Set{EPortIdAsTRIV} Set{IndexMapAsTRIV} -> Set{IndexMapAsTRIV} .
 
     *** Data constructors - can potentially be better (we have a lot of pairs)!
-    op env : PStack PScc Nat IndexMap -> Environment [ctor] .
-    op map : EPortId Nat -> IndexMapEntry [ctor] .
+    op env : List{EPortIdAsTRIV} SetList{EPortIdAsTRIV} Nat Set{IndexMapAsTRIV} -> Environment [ctor] .
     op natEnv : Nat Environment -> DFSR [ctor] .
-    op pTuple : PStack PStack -> PStackTuple [ctor] .
+    op pTuple : List{EPortIdAsTRIV} List{EPortIdAsTRIV} -> PStackTuple [ctor] .
 
     *** Projection functions
     op num : DFSR -> Nat .
     op dfsrEnv : DFSR -> Environment .
-    op fstStack : PStackTuple -> PStack .
-    op sndStack : PStackTuple -> PStack .
-    op getLoops : Environment Configuration -> AlgebraicLoops .
-    op isReactiveLoop : EPortIdSet Configuration -> Bool .
+    op fstStack : PStackTuple -> List{EPortIdAsTRIV} .
+    op sndStack : PStackTuple -> List{EPortIdAsTRIV} .
+    op getLoops : Environment Configuration -> Set{ALGEBRAICLOOPAsTRIV} .
+    op isReactiveLoop : Set{EPortIdAsTRIV} Configuration -> Bool .
 
     *** Get fields in Environment
     op getSN : Environment -> Nat .
-    op getStack : DFSR -> PStack .
-    op getSCC : DFSR -> PScc .
-    op getIM : DFSR -> IndexMap .
+    op getStack : DFSR -> List{EPortIdAsTRIV} .
+    op getSCC : DFSR -> SetList{EPortIdAsTRIV} .
+    op getIM : DFSR -> Set{IndexMapAsTRIV} .
 
     op nodeHasBeenVisited : EPortId Environment -> Bool .
-    op createAlgebraic : PScc Configuration AlgebraicLoops -> AlgebraicLoops .
-    op setInfty : EPortIdSet IndexMap -> IndexMap .
+    op createAlgebraic : SetList{EPortIdAsTRIV} Configuration Set{ALGEBRAICLOOPAsTRIV} -> Set{ALGEBRAICLOOPAsTRIV} .
+    op setInfty : List{EPortIdAsTRIV} Set{IndexMapAsTRIV} -> Set{IndexMapAsTRIV} .
 
     vars ID1 ID2 : SUID .
     vars I O : PortId .
     var P : EPortId .
-    var PSet : EPortIdSet .
-    var FT : PortIdSet .
-    var IM : IndexMap .
+    var PSet : Set{EPortIdAsTRIV} .
+    var FT : Set{OIdAsTRIV} .
+    var IM : Set{IndexMapAsTRIV} .
     vars C INPUTS OUTPUTS : Configuration .
-    vars STACK STACK1 STACK2 : PStack .
-    vars SCCs L : PScc .
-    var LOOPS : AlgebraicLoops .
+    vars STACK STACK1 STACK2 : List{EPortIdAsTRIV} .
+    vars SCCs L : SetList{EPortIdAsTRIV} .
+    var LOOPS : Set{ALGEBRAICLOOPAsTRIV} .
     var N : NzNat .
-    vars M M1 : Nat .
+    vars M M1 index : Nat .
     var E : Environment .
 
     *** Projection function
@@ -60,29 +75,27 @@ load cosim
     eq getIM(natEnv(M, env(STACK, SCCs, M1, IM))) = IM .
 
     *** Add the element to the stack, update the index of the node and increments the counter
-    eq addStackIncr(P, env(STACK, SCCs, M1, map(P, M) ^^ IM)) = env(P ## STACK, SCCs, (M1 + 1), map(P, M1) ^^ IM) .
-
+    eq addStackIncr(P, env(STACK, SCCs, M1, map(P, M) ;; IM)) = env(P :: STACK, SCCs, (M1 + 1), map(P, M1) ;; IM) .
 
     *** The node has been visited if its index is non-zero
-    eq nodeHasBeenVisited(P, env(STACK, SCCs, M, map(P, N) ^^ IM)) = true .
+    eq nodeHasBeenVisited(P, env(STACK, SCCs, M, map(P, N) ;; IM)) = true .
     eq nodeHasBeenVisited(P, E) = false [owise] .
-
-    
+  
     *** Transform environment to Algebraic Loops
-    eq getLoops(env(STACK, SCCs , M, IM), C) = createAlgebraic(SCCs, C, noLoops) .
+    eq getLoops(env(STACK, SCCs , M, IM), C) = createAlgebraic(SCCs, C, empty) .
 
     ***Encode everything as algebraic loops:
     *** No more SCC to look at
-    eq createAlgebraic(sccNoNodes, C, LOOPS) = LOOPS .
+    eq createAlgebraic(nil, C, LOOPS) = LOOPS .
 
-    ceq createAlgebraic(PSet ** SCCs, C, LOOPS) = createAlgebraic(SCCs, C, (AlgebraicLoop: PSet Type: R) # LOOPS)  
+    ceq createAlgebraic(PSet ; SCCs, C, LOOPS) = createAlgebraic(SCCs, C, (AlgebraicLoop: PSet Type: R) ;; LOOPS)  
         if size(PSet) > 1 and isReactiveLoop(PSet, C) .
 
-    ceq createAlgebraic(PSet ** SCCs, C, LOOPS) = createAlgebraic(SCCs, C, (AlgebraicLoop: PSet Type: F) # LOOPS)  
+    ceq createAlgebraic(PSet ; SCCs, C, LOOPS) = createAlgebraic(SCCs, C, (AlgebraicLoop: PSet Type: F) ;; LOOPS)  
         if size(PSet) > 1 and not(isReactiveLoop(PSet, C)) .
     
     *** Trivial SCC should be forgotten
-    eq createAlgebraic(PSet ** SCCs, C, LOOPS) = createAlgebraic(SCCs, C, LOOPS) [owise] .
+    eq createAlgebraic(PSet ; SCCs, C, LOOPS) = createAlgebraic(SCCs, C, LOOPS) [owise] .
 
     *** Check type of SCC - one reactive input makes it Reactive
     eq isReactiveLoop((ID1 ! I) ;; PSet, < ID1 : SU | inputs : (< I : Input | type : r > INPUTS) > C) = true .
@@ -93,25 +106,27 @@ load cosim
     eq dfsrEnv(natEnv(M, E)) = E .
 
     *** Sets all nodes in the stack to infinity - to ensure they do not interfere with the future calculations
-    eq setInfty(emptyST, IM) = IM .
-    eq setInfty(P ## STACK, map(P, N) ^^ IM) = setInfty(STACK, map(P, 100000) ^^ IM) .
+    eq setInfty(emptyList, IM) = IM .
+    eq setInfty(P :: STACK, map(P, N) ;; IM) = setInfty(STACK, map(P, 100000) ;; IM) .
 
     *** Create the initial INDEX map - all index are 0
-    eq createIndexMap(emptyLoop, IM) = IM .
-    eq createIndexMap(P ;; PSet, map(P, N) ^^ IM) = createIndexMap(PSet, map(P, N) ^^ IM) .
-    eq createIndexMap(P ;; PSet, IM) = createIndexMap(PSet, map(P, 0) ^^ IM) [owise] .
+    eq createIndexMap(empty, IM) = IM .
+    eq createIndexMap(P ;; PSet, map(P, N) ;; IM) = createIndexMap(PSet, map(P, N) ;; IM) .
+    eq createIndexMap(P ;; PSet, IM) = createIndexMap(PSet, map(P, 0) ;; IM) [owise] .
 
     *** Split the PStackTuple
     eq fstStack(pTuple(STACK1, STACK2)) = STACK1 .
     eq sndStack(pTuple(STACK1, STACK2)) = STACK2 .
 
     *** Splits the stack at P
-    eq split(P, emptyST) = pTuple(emptyST, emptyST) . *** Nothing is on the stack
-    eq split(P, STACK1 ## P ## STACK2 ) = pTuple(STACK1 ## P, STACK2) . *** P is on the stack
-    eq split(P, STACK1) = pTuple(STACK1, emptyST) [owise] . *** P is not on the stack
+    eq split(P, emptyList) = pTuple(emptyList, emptyList) . *** Nothing is on the stack
+    ceq split(P, STACK) = pTuple(STACK1, STACK2) 
+        if index := indexOf(P, STACK) /\ 
+            STACK1 := take index from STACK /\
+            STACK2 := throw index from STACK . *** P is on the stack
 
     *** Wrapper method
-    eq findSuccesors(P, C) = succesors(P, C, emptyLoop) .
+    eq findSuccesors(P, C) = succesors(P, C, empty) .
 
     *** Output
     ceq succesors((ID2 ! O), 
@@ -126,7 +141,7 @@ load cosim
 
     *** Input - feed through
     ceq succesors((ID1 ! I),
-                    < ID1 : SU | inputs : (< I : Input | > INPUTS), outputs : (< O : Output | dependsOn : I :: FT > OUTPUTS) > C, PSet) 
+                    < ID1 : SU | inputs : (< I : Input | > INPUTS), outputs : (< O : Output | dependsOn : I ;; FT > OUTPUTS) > C, PSet) 
                     = 
                     succesors((ID1 ! I), < ID1 : SU | > C, (ID1 ! O) ;; PSet) 
                     if not (ID1 ! O) in PSet .
@@ -145,35 +160,38 @@ endom)
 (omod ScenarioAnalyser is
     protecting ScenarioEnvironment .
 
-    op tarjan : Configuration -> AlgebraicLoops .
-    op dfs : EPortIdSet Environment Configuration -> DFSR .
+    op tarjan : Configuration -> Set{ALGEBRAICLOOPAsTRIV} .
+    op dfs : Set{EPortIdAsTRIV} Environment Configuration -> DFSR .
     op dfs1 : EPortId Environment Configuration -> DFSR .
     op setup : -> GlobalState .
 
     var P : EPortId .
-    vars PSet SUCCESORS : EPortIdSet .
-    var IM : IndexMap .
+    vars PSet SUCCESORS : Set{EPortIdAsTRIV} .
+    var IM : Set{IndexMapAsTRIV} .
     var C : Configuration .
-    var SCCs : PScc .
+    var SCCs : SetList{EPortIdAsTRIV} .
     var N N1 N2 : NzNat .
     var M : Nat .
     vars E E1 E2 : Environment .
     vars DFSRESULT DFSRESULT1 : DFSR .
     var STACKTUPLE : PStackTuple .
-    vars OLDSTACK STACK SCCSTACK : PStack .
+    vars OLDSTACK STACK SCCSTACK : List{EPortIdAsTRIV} .
 
     ceq tarjan(C) = getLoops(dfsrEnv(dfs(PSet, E, C)), C) 
-        if PSet := getAllPorts(C, emptyLoop) /\ IM := createIndexMap(PSet, emptyMap) /\ E := env(emptyST, sccNoNodes, 1, IM) .
+        if PSet := getAllPorts(C, empty) /\ IM := createIndexMap(PSet, empty) /\ 
+        E := env(emptyList, nil, 1, IM) .
 
     *** P has been visisted before - N is non-zero!
-    ceq dfs(P ;; PSet, env(STACK, SCCs, M, map(P, N) ^^ IM), C) = natEnv(min(N, N1), E) 
-       if DFSRESULT := dfs(PSet, env(STACK, SCCs, M, map(P, N) ^^ IM), C) /\ N1 := num(DFSRESULT) /\ E := dfsrEnv(DFSRESULT) .
+    ceq dfs(P ;; PSet, env(STACK, SCCs, M, map(P, N) ;; IM), C) = natEnv(min(N, N1), E) 
+       if DFSRESULT := dfs(PSet, env(STACK, SCCs, M, map(P, N) ;; IM), C) 
+       /\ N1 := num(DFSRESULT) 
+       /\ E := dfsrEnv(DFSRESULT) .
 
     *** Dead end - no successor!
-    eq dfs(emptyLoop, E, C) = natEnv(100000, E) .
+    eq dfs(empty, E, C) = natEnv(100000, E) .
 
     *** P has not been visited before - none of the other cases match
-    ceq dfs(P ;; PSet, E, C) =  natEnv(min(N1, N2), E2) 
+    ceq dfs(P ;; PSet, E, C) = natEnv(min(N1, N2), E2) 
         if DFSRESULT := dfs1(P, E, C) /\
             E1 := dfsrEnv(DFSRESULT) /\
             N1 := num(DFSRESULT) /\
@@ -191,7 +209,7 @@ endom)
 
     *** If we cannot find a Node with a lower index
     ceq dfs1(P, E, C) = natEnv(100000, 
-            env(OLDSTACK, getSCC(DFSRESULT) ** elems(SCCSTACK), getSN(dfsrEnv(DFSRESULT)), setInfty(SCCSTACK, getIM(DFSRESULT))))
+            env(OLDSTACK, getSCC(DFSRESULT) ; elems(SCCSTACK), getSN(dfsrEnv(DFSRESULT)), setInfty(SCCSTACK, getIM(DFSRESULT))))
                 if SUCCESORS := findSuccesors(P, C) 
                 /\ E1 := addStackIncr(P, E) 
                 /\ DFSRESULT := dfs(SUCCESORS, E1, C) 
@@ -199,46 +217,67 @@ endom)
                 /\ OLDSTACK := sndStack(STACKTUPLE) 
                 /\ SCCSTACK := fstStack(STACKTUPLE) [owise] .
 
-    eq setup = { calculateSNSet(simulationUnits externalConnection stepSize: 1 endTime: 1 Algorithm: emptyList SNSet: emptySUSet guessOn: emptyLoop SCC: tarjan(simulationUnits externalConnection)) } .
+    eq setup = { calculateSNSet(simulationUnits externalConnection stepSize: 1 endTime: 1 Algorithm: emptyList SNSet: empty guessOn: empty SolvedSCC: empty UnsolvedSCC: tarjan(simulationUnits externalConnection)) } .
 
     
 endom)
 
 eof
 
-( frew [20] setup . )
+
+(red split(('SU1 ! 'S), ('SU1 ! 'R) :: (('SU1 ! 'S) :: (('SU1 ! 'T) :: emptyList)) ) .)
+
+( frew [100] setup . )
 
 ( red tarjan(simulationUnits externalConnection) . )
 
+( red portInMap('msd1 ! 'fk, map('msd1 ! 'fk,1) ;; map('msd1 ! 'v1,0)) .)
 
+( red getSCC(natEnv(100000,env('msd1 ! 'fk :: emptyList,nil,2,map('msd1 ! 'fk,1) ;; map('msd1 ! 'v1,0);; map('msd1 ! 'x1,0);; map('msd1 ! 'z,0);; map('msd2 !
+    'fk,0);; map('msd2 ! 'v1,0);; map('msd2 ! 'x1,0);; map('msd2 ! 'z,0)))) .)
 
-( red getSCC(natEnv(100000,env('msd1 ! 'fk,sccNoNodes,2,map('msd1 ! 'fk,1) ^^ map('msd1 ! 'v1,0)^^ map('msd1 ! 'x1,0)^^ map('msd1 ! 'z,0)^^ map('msd2 !
-    'fk,0)^^ map('msd2 ! 'v1,0)^^ map('msd2 ! 'x1,0)^^ map('msd2 ! 'z,0)))) .
+( red num(natEnv(100000,env('msd1 ! 'fk,nil,2,map('msd1 ! 'fk,1) ;; map('msd1 ! 'v1,0);; map('msd1 ! 'x1,0);; map('msd1 ! 'z,0);; map('msd2 !
+    'fk,0);; map('msd2 ! 'v1,0);; map('msd2 ! 'x1,0);; map('msd2 ! 'z,0)))) . )
+
+( red dfsrEnv(natEnv(100000,env('msd1 ! 'fk,nil,2,map('msd1 ! 'fk,1) ;; map('msd1 ! 'v1,0);; map('msd1 ! 'x1,0);; map('msd1 ! 'z,0);; map('msd2 !
+    'fk,0);; map('msd2 ! 'v1,0);; map('msd2 ! 'x1,0);; map('msd2 ! 'z,0)))) .
 )
-
-( red num(natEnv(100000,env('msd1 ! 'fk,sccNoNodes,2,map('msd1 ! 'fk,1) ^^ map('msd1 ! 'v1,0)^^ map('msd1 ! 'x1,0)^^ map('msd1 ! 'z,0)^^ map('msd2 !
-    'fk,0)^^ map('msd2 ! 'v1,0)^^ map('msd2 ! 'x1,0)^^ map('msd2 ! 'z,0)))) .
-)
-
-( red dfsrEnv(natEnv(100000,env('msd1 ! 'fk,sccNoNodes,2,map('msd1 ! 'fk,1) ^^ map('msd1 ! 'v1,0)^^ map('msd1 ! 'x1,0)^^ map('msd1 ! 'z,0)^^ map('msd2 !
-    'fk,0)^^ map('msd2 ! 'v1,0)^^ map('msd2 ! 'x1,0)^^ map('msd2 ! 'z,0)))) .
-)
-
-( red dfsrEnv(natEnv(100000,env(emptyST,
-    sccNoNodes ** 'msd1 ! 'fk, 2 ,map('msd1 ! 'fk,100000)^^ map('msd1 ! 'v1,0)^^ map('msd1 ! 'x1,0)^^ map('msd1 ! 'z,0)^^ map('msd2 ! 'fk,0)^^ map('msd2 ! 'v1,0)
-    ^^ map('msd2 ! 'x1,0)^^ map('msd2 ! 'z,0)))) . )
-
-
 
 ( red findSuccesors(('msd1 ! 'x1), simulationUnits externalConnection) .)
 
 ( red min(1000, 1) .)
 
-( red dfs(getAllPorts((simulationUnits externalConnection), emptyLoop), env(emptyST, sccNoNodes, 1, createIndexMap(getAllPorts((simulationUnits externalConnection), emptyLoop), emptyMap)), (simulationUnits externalConnection)) . )
+( red dfs(getAllPorts((simulationUnits externalConnection), empty), env(emptyList, nil, 1, createIndexMap(getAllPorts((simulationUnits externalConnection), empty), empty)), (simulationUnits externalConnection)) . )
 
 ( red dfsrEnv(natEnv(100000,env(emptyST,('msd1 ! 'z)**('msd2 ! 'z)**('msd1 ! 'x1);;('msd2 ! 'v1);;('msd2 ! 'fk);;('msd1 !
-    'v1);; 'msd1 ! 'fk,8,map('msd1 ! 'fk,100000)^^ map('msd1 ! 'v1,100000)^^ map('msd1 ! 'x1,100000)^^ map('msd1 ! 'z,100000)^^ map('msd2 ! 'fk,100000)^^ map('msd2 ! 'v1,100000)^^ map('msd2 ! 'x1,0)^^
+    'v1);; 'msd1 ! 'fk,8,map('msd1 ! 'fk,100000);; map('msd1 ! 'v1,100000);; map('msd1 ! 'x1,100000);; map('msd1 ! 'z,100000);; map('msd2 ! 'fk,100000);; map('msd2 ! 'v1,100000);; map('msd2 ! 'x1,0);;
     map('msd2 ! 'z,100000)))) . )
 
 
-( red dfsrEnv(dfs(getAllPorts(simulationUnits externalConnection, emptyLoop), env(emptyST, sccNoNodes, 1, createIndexMap(getAllPorts(simulationUnits externalConnection, emptyLoop), emptyMap)), simulationUnits externalConnection)) . )
+( red dfsrEnv(dfs(getAllPorts(simulationUnits externalConnection, empty), env(emptyST, nil, 1, createIndexMap(getAllPorts(simulationUnits externalConnection, empty), empty)), simulationUnits externalConnection)) . )
+
+
+(red dfs(('msd1 ! 'fk);;('msd1 ! 'v1);;('msd1 ! 'x1);;('msd1 ! 'z);;('msd2 ! 'fk);;('msd2 ! 'v1);;('msd2 ! 'x1);; 'msd2 ! 'z,env(emptyList,
+    nil,1,map('msd1 ! 'fk,0);; map('msd1 ! 'v1,0);; map('msd1 ! 'x1,0);; map('msd1 ! 'z,0);; map('msd2 ! 'fk,0);; map('msd2 ! 'v1,0);;
+    map('msd2 ! 'x1,0);; map('msd2 ! 'z,0)),(
+'msd1 ! 'v1 ==> 'msd2 ! 'v1)(
+'msd1 ! 'x1 ==> 'msd2 ! 'x1)(
+'msd1 ! 'z ==> 'msd2 ! 'z)(
+'msd2 ! 'fk ==> 'msd1 ! 'fk)< 'msd1 : SU | canReject : false,inputs : < 'fk : Input | status : Undef,time : 0,type : r >,outputs :(< 'v1 :
+    Output | dependsOn : empty,status : Undef,time : 0 > < 'x1 : Output | dependsOn : empty,status : Undef,time : 0 > < 'z : Output | dependsOn
+    : empty,status : Undef,time : 0 >),state : Instantiated,time : 0 > < 'msd2 : SU | canReject : false,inputs :(< 'v1 : Input | status : Undef,
+    time : 0,type : r > < 'x1 : Input | status : Undef,time : 0,type : r > < 'z : Input | status : Undef,time : 0,type : d >),outputs : < 'fk :
+    Output | dependsOn :('v1 ;; 'x1),status : Undef,time : 0 >,state : Instantiated,time : 0 >) . )
+
+
+(red dfs1(('msd1 ! 'fk), env(emptyList,
+    nil,1,map('msd1 ! 'fk,0);; map('msd1 ! 'v1,0);; map('msd1 ! 'x1,0);; map('msd1 ! 'z,0);; map('msd2 ! 'fk,0);; map('msd2 ! 'v1,0);;
+    map('msd2 ! 'x1,0);; map('msd2 ! 'z,0)), (
+'msd1 ! 'v1 ==> 'msd2 ! 'v1)(
+'msd1 ! 'x1 ==> 'msd2 ! 'x1)(
+'msd1 ! 'z ==> 'msd2 ! 'z)(
+'msd2 ! 'fk ==> 'msd1 ! 'fk)< 'msd1 : SU | canReject : false,inputs : < 'fk : Input | status : Undef,time : 0,type : r >,outputs :(< 'v1 :
+    Output | dependsOn : empty,status : Undef,time : 0 > < 'x1 : Output | dependsOn : empty,status : Undef,time : 0 > < 'z : Output | dependsOn
+    : empty,status : Undef,time : 0 >),state : Instantiated,time : 0 > < 'msd2 : SU | canReject : false,inputs :(< 'v1 : Input | status : Undef,
+    time : 0,type : r > < 'x1 : Input | status : Undef,time : 0,type : r > < 'z : Input | status : Undef,time : 0,type : d >),outputs : < 'fk :
+    Output | dependsOn :('v1 ;; 'x1),status : Undef,time : 0 >,state : Instantiated,time : 0 >) . )

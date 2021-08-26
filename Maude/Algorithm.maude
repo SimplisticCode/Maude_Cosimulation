@@ -1,8 +1,5 @@
 load Port
 
-*** create generic list
-
-
 (fmod ALGEBRAICLOOP is
     protecting Ports .
     sort AlgebraicLoop LoopType .
@@ -19,7 +16,7 @@ endv)
     pr BASICSET{ALGEBRAICLOOPAsTRIV} .
 endfm)
 
-
+*** TODO look at action list to make it to a proper list
 (omod Algorithm is 
  protecting Ports + ALGEBRAICLOOPSET .
  sorts ActionType FMIActionType ComplexActionType ActionList Action  .

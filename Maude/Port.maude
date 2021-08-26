@@ -7,6 +7,7 @@ load GenericDT
  subsort Connection < Configuration .
 
  *** Values are natural numbers
+ *** Add type to the ports
  class Port | value : Nat, time : Nat, status : PortStatus . 
  class Input | contract : Contract .
  class Output | dependsOn : Set{OIdAsTRIV} .

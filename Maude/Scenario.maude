@@ -1,0 +1,60 @@
+load ScenarioAnalyser
+
+(omod SCENARIO is 
+   protecting ScenarioAnalyser .
+    sort GlobalState .
+
+    *** Definition of system
+    op externalConnection : ->  Configuration .    *** External Connections - all ports have unique name
+    op simulationUnits : -> Configuration .      *** SUs - ID * input ports * and outputs
+    op scenario : Configuration Configuration -> Configuration . 
+    op validScenario : Configuration Configuration -> Bool .
+    op setup : -> GlobalState .
+    op `{_`} : Configuration -> GlobalState .
+    op calculateSNSet : Configuration -> Configuration .
+
+
+  vars ID1 ID2 : SUID .
+  vars INPUT OUTPUT : PortId .
+  vars SUs CONNECTIONS INPUTS OUTPUTS CONF : Configuration .
+  var SUIDs : Set{OIdAsTRIV} .
+
+  eq validScenario((ID1 ! OUTPUT ==> ID2 ! INPUT ) CONNECTIONS,  < ID1 : SU | outputs : < OUTPUT : Output | > OUTPUTS > < ID2 : SU | inputs : < INPUT : Input | > INPUTS > SUs) = validScenario(CONNECTIONS, < ID1 : SU | > < ID2 : SU | > SUs) .
+  eq validScenario(none, SUs) = true .
+  eq validScenario(CONNECTIONS, SUs) = false [owise] .
+
+  *** Calculation of the members of the set of SUs that should be backtracked in the step negotiation
+  ceq calculateSNSet(< ID1 : SU | inputs : (< INPUT : Input | contract : r > INPUTS) > 
+                      < ID2 : SU | outputs : (< OUTPUT : Output | > OUTPUTS) > 
+                      (ID2 ! OUTPUT ==> ID1 ! INPUT) (SNSet: (ID1 ;; SUIDs))  CONF) = 
+                      calculateSNSet(< ID1 : SU | > < ID2 : SU | > (ID2 ! OUTPUT ==> ID1 ! INPUT) 
+                      (SNSet: (ID1 ;; ID2 ;; SUIDs)) CONF) 
+                      if not ID2 in SUIDs .
+  
+  ceq calculateSNSet(< ID1 : SU | canReject : true > (SNSet: SUIDs) CONF ) = 
+        calculateSNSet(< ID1 : SU | > (SNSet: (ID1 ;; SUIDs)) CONF )
+                                         if not ID1 in SUIDs .                                    
+  eq calculateSNSet(CONF) = CONF [owise] .
+
+
+  ***Encoding of the Scenario 
+  eq externalConnection = ('msd1 ! 'x1 ==> 'msd2 ! 'x1) ('msd1 ! 'v1 ==> 'msd2 ! 'v1) ('msd1 ! 'z ==> 'msd2 ! 'z) ('msd2 ! 'fk ==> 'msd1 ! 'fk) ('msd3 ! 'B ==> 'msd4 ! 'A) ('msd4 ! 'B ==> 'msd3 ! 'A) .
+
+  eq simulationUnits = (< 'msd1 : SU | path : "A" , time : 0, inputs : (< 'fk : Input | value : 0, time : 0, contract : r, status : Undef  >), outputs : (< 'x1 : Output | value : 0, time : 0, status : Undef, dependsOn : empty >) (< 'z : Output | value : 0, time : 0, status : Undef, dependsOn : empty >) (< 'v1 : Output | value : 0, time : 0, status : Undef, dependsOn : empty >), state : Instantiated, canReject : false >)
+
+    (< 'msd2 : SU | path : "A" , time : 0, inputs : (< 'x1 : Input | value : 0, time : 0, contract : r, status : Undef  >) (< 'v1 : Input | value : 0, time : 0, contract : r, status : Undef  >) (< 'z : Input | value : 0, time : 0, contract : d, status : Undef  >), outputs : (< 'fk : Output | value : 0, time : 0, status : Undef, dependsOn : ( 'x1 ;; 'v1 ) >), state : Instantiated, canReject : false >)
+
+   (< 'msd3 : SU | path : "A" , time : 0, inputs : (< 'A : Input | value : 0, time : 0, contract : r, status : Undef  >), outputs : (< 'B : Output | value : 0, time : 0, status : Undef, dependsOn : empty >), state : Instantiated, canReject : false >)
+
+   (< 'msd4 : SU | path : "A" , time : 0, inputs : (< 'A : Input | value : 0, time : 0, contract : r, status : Undef  >), outputs : (< 'B : Output | value : 0, time : 0, status : Undef, dependsOn : empty >), state : Instantiated, canReject : false >) .
+
+  ceq scenario(CONNECTIONS, SUs) = CONNECTIONS SUs 
+    if validScenario(CONNECTIONS, SUs) .
+
+   eq setup = { calculateSNSet(simulationUnits externalConnection stepSize: 1 endTime: 1 Algorithm: emptyList SNSet: empty guessOn: empty       SolvedSCC: empty UnsolvedSCC: tarjan(simulationUnits externalConnection)) } .
+   
+endom)
+
+
+eof
+

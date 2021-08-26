@@ -8,7 +8,6 @@ load LOOPSolver
 
   *** Current State x Initial State -> Nat
   op findStep : Set{OIdAsTRIV} Configuration Configuration ActionList -> findStepPair .
-  op calculateSNSet : Configuration -> Configuration .
   op needsStepNegotiation : Set{OIdAsTRIV} -> Bool .
   op getStep : findStepPair -> NzNat .
   op getAL : findStepPair -> ActionList .
@@ -38,19 +37,6 @@ load LOOPSolver
   *** Step negotiation is needed if at least one SU can reject a Step
   eq needsStepNegotiation(empty) = false .
   eq needsStepNegotiation(SUIDs) = true [owise] .
-
-   *** Calculation of the members of the set of SUs that should be backtracked in the step negotiation
-  ceq calculateSNSet(< ID1 : SU | inputs : (< INPUT : Input | contract : r > INPUTS) > 
-                      < ID2 : SU | outputs : (< OUTPUT : Output | > OUTPUTS) > 
-                      (ID2 ! OUTPUT ==> ID1 ! INPUT) (SNSet: (ID1 ;; SUIDs))  CONF) = 
-                      calculateSNSet(< ID1 : SU | > < ID2 : SU | > (ID2 ! OUTPUT ==> ID1 ! INPUT) 
-                      (SNSet: (ID1 ;; ID2 ;; SUIDs)) CONF) 
-                      if not ID2 in SUIDs .
-  
-  ceq calculateSNSet(< ID1 : SU | canReject : true > (SNSet: SUIDs) CONF ) = 
-        calculateSNSet(< ID1 : SU | > (SNSet: (ID1 ;; SUIDs)) CONF )
-                                         if not ID1 in SUIDs .                                    
-  eq calculateSNSet(CONF) = CONF [owise] .
 
   *** Get case (only on reactive outputs)
   ceq findStep(ID1 ;; ID2 ;; SUIDs, 

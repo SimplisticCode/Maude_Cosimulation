@@ -1,14 +1,12 @@
 load StepFinder
+load Scenario
 
 (omod COSIMULATION is 
-   protecting StepFinder .
-   sort GlobalState .
+   protecting StepFinder + SCENARIO .
 
    op performStepNegotiation : Configuration -> Configuration .
    op performGlobalStep : Configuration -> Configuration .
    op allSUinSimulation : Configuration -> Bool .
-   op `{_`} : Configuration -> GlobalState .
-   op getAllPorts : Configuration Set{EPortIdAsTRIV} -> Set{EPortIdAsTRIV} .
    op simulationStepDone : Configuration -> Bool .
    op getEnableOutputs : Configuration Configuration Nat -> Set{OIdAsTRIV} .
    op ValuesToSet : Configuration SUID Nat Configuration -> Set{PortValueMapEntryAsTRIV} .
@@ -18,11 +16,10 @@ load StepFinder
    var SUIDs : Set{OIdAsTRIV} .
    vars INPUT OUTPUT : PortId .
    vars TIME TIME1 TIME2 VALUE : Nat .
-   vars INPUTS OUTPUTS CONF CONNECTIONS : Configuration . 
+   vars INPUTS OUTPUTS CONF : Configuration . 
    var STATE : fmiState .
    vars ALGO STEPNEGOALGO : ActionList .
    vars FEEDTHROUGH PORTIDSET : Set{OIdAsTRIV} .
-   var PORTS : Set{EPortIdAsTRIV} .
    vars STEPSIZE NEGOTIATEDSTEPSIZE FUTURETIME ENDTIME : NzNat .
    var LOOP : AlgebraicLoop .  
    vars LOOPS SOLVEDLOOPS : Set{ALGEBRAICLOOPAsTRIV} .  
@@ -45,15 +42,6 @@ load StepFinder
                               /\ EVENT := complexEvent: StepNegotiation SaveSUs: SUIDs RestoreSUs: SUIDs Actions: STEPNEGOALGO .
 
   ceq performStepNegotiation(CONF SNSet: SUIDs) = CONF if not needsStepNegotiation(SUIDs) .  
-
-  *** Get All ports in the scenario:
-  ceq getAllPorts(< ID1 : SU | inputs : (< INPUT : Input | > INPUTS) > CONF, PORTS) = getAllPorts(< ID1 : SU | > CONF,  (ID1 ! INPUT) ;; PORTS )
-            if not (ID1 ! INPUT) in PORTS .
-
-  ceq getAllPorts(< ID1 : SU | outputs : (< OUTPUT : Output | > OUTPUTS) > CONF, PORTS) = getAllPorts(< ID1 : SU | > CONF,  (ID1 ! OUTPUT) ;; PORTS )
-            if not (ID1 ! OUTPUT) in PORTS .
-
-  eq getAllPorts(CONF, PORTS) = PORTS [owise] . 
 
   *** All SUs are in the simulation state
   eq allSUinSimulation(< ID1 : SU | state : STATE > CONF) = STATE == Simulation and allSUinSimulation(CONF) . 
@@ -105,9 +93,10 @@ load StepFinder
                         /\ EVENT := portEvent: Get SU: ID1 PId: PORTIDSET . 
                       
   *** Algebraic Loop - solve and remove loop
-  eq performGlobalStep(CONF UnsolvedSCC: (LOOP ;; LOOPS) SolvedSCC: SOLVEDLOOPS) = performGlobalStep(solveLoop(CONF UnsolvedSCC: LOOPS SolvedSCC: (LOOP ;; SOLVEDLOOPS), LOOP)) [owise] .
+  eq performGlobalStep(CONF UnsolvedSCC: (LOOP ;; LOOPS) SolvedSCC: SOLVEDLOOPS) = 
+    performGlobalStep(solveLoop(CONF UnsolvedSCC: LOOPS SolvedSCC: (LOOP ;; SOLVEDLOOPS), LOOP)) [owise] .
 
-  *** 
+  *** Return the configuration is the simulation is done
   ceq performGlobalStep(CONF) = CONF if simulationStepDone(CONF) .
 
   *** FMI-standard state transition:
@@ -147,8 +136,6 @@ load StepFinder
 
   ***rl [init-loop] : CONF UnsolvedSCC: (L ;; LOOPS) => solveLoop(CONF UnsolvedSCC: LOOPS, L) .                 
 
- ***Complex scenarios with save and restore - this should 
-
   ***If the scenario contains SUs that require step negotiation
   ***The step negotiation
   crl [stepNego] : { CONF SNSet: SUIDs} => 
@@ -160,31 +147,12 @@ load StepFinder
           { performGlobalStep(CONF SNSet: SUIDs) }
         if (not needsStepNegotiation(SUIDs)) and allSUinSimulation(CONF) .
 
-   *** Definition of system
-  op externalConnection : ->  Configuration .    *** External Connections - all ports have unique name
-  op simulationUnits : -> Configuration .      *** SUs - ID * input ports * and outputs
-
-  op validScenario : Configuration Configuration -> Bool .
-
-  eq validScenario((ID1 ! OUTPUT ==> ID2 ! INPUT ) CONNECTIONS,  < ID1 : SU | outputs : < OUTPUT : Output | > OUTPUTS > < ID2 : SU | inputs : < INPUT : Input | > INPUTS > CONF) = validScenario(CONNECTIONS, < ID1 : SU | > < ID2 : SU | > CONF) .
-  eq validScenario(none, CONF) = true .
-  eq validScenario(CONNECTIONS, CONF) = false [owise] .
-
-***Encoding of the Scenario 
-eq externalConnection = ('msd1 ! 'x1 ==> 'msd2 ! 'x1) ('msd1 ! 'v1 ==> 'msd2 ! 'v1) ('msd1 ! 'z ==> 'msd2 ! 'z) ('msd2 ! 'fk ==> 'msd1 ! 'fk) ('msd3 ! 'B ==> 'msd4 ! 'A) ('msd4 ! 'B ==> 'msd3 ! 'A) .
-
-eq simulationUnits = (< 'msd1 : SU | path : "A" , time : 0, inputs : (< 'fk : Input | value : 0, time : 0, contract : r, status : Undef  >), outputs : (< 'x1 : Output | value : 0, time : 0, status : Undef, dependsOn : empty >) (< 'z : Output | value : 0, time : 0, status : Undef, dependsOn : empty >) (< 'v1 : Output | value : 0, time : 0, status : Undef, dependsOn : empty >), state : Instantiated, canReject : false >)
-
- 	 (< 'msd2 : SU | path : "A" , time : 0, inputs : (< 'x1 : Input | value : 0, time : 0, contract : r, status : Undef  >) (< 'v1 : Input | value : 0, time : 0, contract : r, status : Undef  >) (< 'z : Input | value : 0, time : 0, contract : d, status : Undef  >), outputs : (< 'fk : Output | value : 0, time : 0, status : Undef, dependsOn : ( 'x1 ;; 'v1 ) >), state : Instantiated, canReject : false >)
-
- 	 (< 'msd3 : SU | path : "A" , time : 0, inputs : (< 'A : Input | value : 0, time : 0, contract : r, status : Undef  >), outputs : (< 'B : Output | value : 0, time : 0, status : Undef, dependsOn : empty >), state : Instantiated, canReject : false >)
-
- 	 (< 'msd4 : SU | path : "A" , time : 0, inputs : (< 'A : Input | value : 0, time : 0, contract : r, status : Undef  >), outputs : (< 'B : Output | value : 0, time : 0, status : Undef, dependsOn : empty >), state : Instantiated, canReject : false >) .
-
-
 endom)
 
 eof
+
+( frew [100] setup . )
+
 
 *** Validering af Input
 

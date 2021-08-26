@@ -1,14 +1,13 @@
 load GenericDT
 
 (omod Ports is 
- protecting QID + NAT + PORTMAPENTRY + EPORTSET + OIDSET + PORTMAPSET + EPORTLIST + PORTSCC .
- sorts Contract PortStatus Connection Value .
+ protecting QID + NAT + PORTMAPENTRY + EPORTSET + OIDSET + PORTMAPSET + EPORTLIST + PORTSCC + PORTVALUEMAP .
+ sorts Contract PortStatus Connection .
  op _==>_ : EPortId EPortId -> Connection [ctor format(niy! d d d)] .
  subsort Connection < Configuration .
 
- subsort Value < Nat .
-
- class Port | time : Nat, status : PortStatus . 
+ *** Values are natural numbers
+ class Port | value : Nat, time : Nat, status : PortStatus . 
  class Input | contract : Contract .
  class Output | dependsOn : Set{OIdAsTRIV} .
  subclasses Input Output < Port . 
@@ -18,7 +17,7 @@ load GenericDT
  op _in_ : Connection Configuration -> Bool . 
  op elems : List{EPortIdAsTRIV} -> Set{EPortIdAsTRIV} .
  op getPortIDSet : Configuration -> Set{OIdAsTRIV} .
- op getPortFromMap : Set{PortMapAsTRIV} -> Set{OIdAsTRIV} .
+ op getPortFromMap : Set{PortValueMapEntryAsTRIV} -> Set{OIdAsTRIV} .
  op indexOf : EPortId List{EPortIdAsTRIV} -> Nat .
 
  var PID : PortId .
@@ -26,8 +25,8 @@ load GenericDT
  var CONF PORTS : Configuration .
  var CON : Connection .
  var STACK : List{EPortIdAsTRIV} .
- var TIME : Nat .
- var PORTMAP : Set{PortMapAsTRIV} .
+ vars TIME VALUE : Nat .
+ var PORTMAP : Set{PortValueMapEntryAsTRIV} .
 
  eq getPortIDSet(none) = empty .
  eq getPortIDSet(< PID : Output | > PORTS) = PID ;; getPortIDSet(PORTS) .
@@ -43,7 +42,7 @@ load GenericDT
  eq CON in CONF = false [owise] .
 
  eq getPortFromMap(empty) = empty .
- eq getPortFromMap((PID => TIME) ;; PORTMAP) = PID ;; getPortFromMap(PORTMAP) .
+ eq getPortFromMap((PID => < TIME ; VALUE >) ;; PORTMAP) = PID ;; getPortFromMap(PORTMAP) .
 
 endom)
 

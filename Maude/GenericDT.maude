@@ -148,6 +148,22 @@ endv)
 endv)
 
 (fmod PORTVALUE is
-    pr PAIR{OIdAsTRIV, NatAsTRIV} .
+    pr PAIR{NatAsTRIV, NatAsTRIV} .
 endfm)
 
+
+(fmod PORTVALUEMAPENTRY is
+    protecting PORTID + PORTVALUE .
+    sort PortValueMapEntry .
+    op _=>_ : PortId Pair{NatAsTRIV, NatAsTRIV} -> PortValueMapEntry [ctor] .
+endfm )
+
+
+(view PortValueMapEntryAsTRIV from TRIV to PORTVALUEMAPENTRY is
+  protecting PORTVALUEMAPENTRY .
+  sort Elt to PortValueMapEntry .
+endv)
+
+(fmod PORTVALUEMAP is
+    pr SETLIST{PortValueMapEntryAsTRIV} .
+endfm)

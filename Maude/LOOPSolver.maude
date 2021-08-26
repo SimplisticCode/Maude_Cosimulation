@@ -29,7 +29,7 @@ endv)
     vars ID1 ID2 : SUID .
     vars PSet GSet : Set{EPortIdAsTRIV} .
     var ALGO : ActionList .
-    var TIME T1 : Nat .
+    var TIME T1 RANDOMVALUE : Nat .
     var STEP : NzNat .
     var FEEDTHROUGH : Set{OIdAsTRIV}  .
     var CONTRACT : Contract .
@@ -66,7 +66,7 @@ endv)
                       < ID1 : SU | time : TIME, inputs : (< INPUT : Input | time : T1, contract : CONTRACT > INPUTS) > 
                     guessOn: ((ID1 ! INPUT) ;; GSet) stepSize: STEP CONF, ALGO) = 
             loopStep(PSet, 
-                    setAction(< ID1 : SU | >, INPUT, T1 + STEP)
+                    setAction(< ID1 : SU | >, INPUT, random(TIME), T1 + STEP)
                     guessOn: GSet stepSize: STEP CONF, 
                     (ALGO ; (portEvent: Set SU: ID1 PId: INPUT))) 
                     if (CONTRACT == r and T1 == TIME) or (CONTRACT == d and TIME == (T1 + STEP)) .
@@ -77,7 +77,7 @@ endv)
                       < ID2 : SU | outputs : (< OUTPUT : Output | time : T1, status : Def > OUTPUTS) > 
                         (ID2 ! OUTPUT ==> ID1 ! INPUT) CONF, ALGO) = 
               loopStep(PSet, 
-                      setAction(< ID1 : SU | >, INPUT, T1)
+                      setAction(< ID1 : SU | >, INPUT, random(TIME), T1)
                       < ID2 : SU | > (ID2 ! OUTPUT ==> ID1 ! INPUT) CONF, 
                       (ALGO ; (portEvent: Set SU: ID1 PId: INPUT))) 
                       if T1 > TIME .

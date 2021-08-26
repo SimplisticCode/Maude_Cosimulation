@@ -17,7 +17,7 @@ load LOOPSolver
    vars ID1 ID2 : SUID .
    var SUIDs : Set{OIdAsTRIV} .
    vars INPUT OUTPUT : PortId .
-   vars TIME INPUTTIME OUTPUTTIME : Nat .
+   vars TIME INPUTTIME OUTPUTTIME VALUE : Nat .
    vars STEPSIZE FUTURETIME1 FUTURETIME1 : NzNat .
    vars INPUTS OUTPUTS INPUTS1 : Configuration . 
    vars CONF SAVEDCONF : Configuration .
@@ -61,9 +61,9 @@ load LOOPSolver
   *** Set case (only on reactive Inputs)
   ceq findStep(ID1 ;; ID2 ;; SUIDs, 
                       < ID1 : SU | inputs : (< INPUT : Input | time : INPUTTIME, contract : r > INPUTS) > 
-                      < ID2 : SU | outputs : (< OUTPUT : Output | time : OUTPUTTIME, status : Def > OUTPUTS) > 
+                      < ID2 : SU | outputs : (< OUTPUT : Output | value : VALUE, time : OUTPUTTIME, status : Def > OUTPUTS) > 
                         (ID2 ! OUTPUT ==> ID1 ! INPUT) CONF, SAVEDCONF, ALGO) = 
-              findStep(ID1 ;; ID2 ;; SUIDs, setAction(< ID1 : SU | >, INPUT, OUTPUTTIME) < ID2 : SU | > (ID2 ! OUTPUT ==> ID1 ! INPUT) CONF, SAVEDCONF, ALGO ; (portEvent: Set SU: ID1 PId: INPUT)) 
+              findStep(ID1 ;; ID2 ;; SUIDs, setAction(< ID1 : SU | >, INPUT, VALUE, OUTPUTTIME) < ID2 : SU | > (ID2 ! OUTPUT ==> ID1 ! INPUT) CONF, SAVEDCONF, ALGO ; (portEvent: Set SU: ID1 PId: INPUT)) 
               if INPUTTIME < OUTPUTTIME .
 
   ***Stepping case

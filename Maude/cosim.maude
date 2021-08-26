@@ -11,14 +11,13 @@ load StepFinder
    op getAllPorts : Configuration Set{EPortIdAsTRIV} -> Set{EPortIdAsTRIV} .
    op simulationStepDone : Configuration -> Bool .
    op getActionEnabled : Configuration Configuration Nat -> Set{OIdAsTRIV} .
-   op setActionEnabled : Configuration SUID Nat Configuration -> Set{PortMapAsTRIV} .
-   op setActionEnabledInit : Configuration SUID Configuration -> Set{PortMapAsTRIV} .
-
+   op setValues : Configuration SUID Nat Configuration -> Set{PortValueMapEntryAsTRIV} .
+   op setActionEnabledInit : Configuration SUID Configuration -> Set{PortValueMapEntryAsTRIV} .
 
    vars ID1 ID2 : SUID .
    var SUIDs : Set{OIdAsTRIV} .
    vars INPUT OUTPUT : PortId .
-   vars TIME TIME1 TIME2 : Nat .
+   vars TIME TIME1 TIME2 VALUE : Nat .
    vars INPUTS OUTPUTS OUTPUTSSETABLE CONF : Configuration . 
    var STATE : fmiState .
    var ALGO : ActionList .
@@ -61,24 +60,24 @@ load StepFinder
 
   eq getActionEnabled(< OUTPUT : Output | > OUTPUTS, INPUTS, TIME) = getActionEnabled(OUTPUTS, INPUTS, TIME) [owise] .
 
-  eq setActionEnabled(none, ID1, TIME, CONF) = empty .
-  ceq setActionEnabled(< INPUT : Input | time : TIME1, contract : INPUTTYPE > INPUTS, ID1, TIME,
-                                CONF < ID2 : SU | outputs : (< OUTPUT : Output | time : TIME2, status : Def > OUTPUTS) > (ID2 ! OUTPUT ==> ID1 ! INPUT)) 
-                        = (INPUT => TIME2) ;; setActionEnabled(INPUTS, ID1, TIME, CONF < ID2 : SU | > (ID2 ! OUTPUT ==> ID1 ! INPUT)) 
+  eq setValues(none, ID1, TIME, CONF) = empty .
+  ceq setValues(< INPUT : Input | time : TIME1, contract : INPUTTYPE > INPUTS, ID1, TIME,
+                                CONF < ID2 : SU | outputs : (< OUTPUT : Output | value : VALUE, time : TIME2, status : Def > OUTPUTS) > (ID2 ! OUTPUT ==> ID1 ! INPUT)) 
+                        = (INPUT => < TIME2 ; VALUE >) ;; setValues(INPUTS, ID1, TIME, CONF < ID2 : SU | > (ID2 ! OUTPUT ==> ID1 ! INPUT)) 
                         if TIME1 < TIME2 and ((INPUTTYPE == d and TIME1 < TIME) or (INPUTTYPE == r and TIME == TIME1)) .
 
-  eq setActionEnabled(< INPUT : Input | > INPUTS, ID1, TIME, CONF) = setActionEnabled(INPUTS, ID1, TIME, CONF) [owise] .
+  eq setValues(< INPUT : Input | > INPUTS, ID1, TIME, CONF) = setValues(INPUTS, ID1, TIME, CONF) [owise] .
 
   eq setActionEnabledInit(none, ID1, CONF) = empty .
-  eq setActionEnabledInit(< INPUT : Input | status : Undef > INPUTS, ID1, CONF < ID2 : SU | outputs : (< OUTPUT : Output | status : Def > OUTPUTS) > (ID2 ! OUTPUT ==> ID1 ! INPUT)) 
-                        = (INPUT => 0) ;; setActionEnabledInit(INPUTS, ID1, CONF < ID2 : SU | outputs : (< OUTPUT : Output | status : Def > OUTPUTS) > ) .
+  eq setActionEnabledInit(< INPUT : Input | status : Undef > INPUTS, ID1, CONF < ID2 : SU | outputs : (< OUTPUT : Output | value : VALUE, status : Def > OUTPUTS) > (ID2 ! OUTPUT ==> ID1 ! INPUT)) 
+                        = (INPUT => < 0 ; VALUE >) ;; setActionEnabledInit(INPUTS, ID1, CONF < ID2 : SU | outputs : (< OUTPUT : Output | status : Def > OUTPUTS) > ) .
   eq setActionEnabledInit(< INPUT : Input | > INPUTS, ID1, CONF) = setActionEnabledInit(INPUTS, ID1, CONF) [owise] .
 
   *** Perform the global simulation step
   *** Set input                     
   ceq performGlobalStep(CONF < ID1 : SU | time : TIME, inputs : INPUTS > Algorithm: ALGO) = 
-      performGlobalStep(CONF setActionPortMap( < ID1 : SU | >, setActionEnabled(INPUTS, ID1, TIME, CONF)) Algorithm: (ALGO ; (portEvent: Set SU: ID1 PId: getPortFromMap(setActionEnabled(INPUTS, ID1, TIME, CONF)))))
-                        if setActionEnabled(INPUTS, ID1, TIME, CONF) =/= empty .
+      performGlobalStep(CONF setActionPortMap( < ID1 : SU | >, setValues(INPUTS, ID1, TIME, CONF)) Algorithm: (ALGO ; (portEvent: Set SU: ID1 PId: getPortFromMap(setValues(INPUTS, ID1, TIME, CONF)))))
+                        if setValues(INPUTS, ID1, TIME, CONF) =/= empty .
   *** Step
   ceq performGlobalStep(CONF < ID1 : SU | time : TIME, inputs : INPUTS, outputs : OUTPUTS > stepSize: STEPSIZE endTime: ENDTIME Algorithm: ALGO)  = 
       performGlobalStep(CONF 
@@ -153,11 +152,12 @@ load StepFinder
 
 
 ***Encoding of the Scenario 
-eq externalConnection = ('msd1 ! 'x1 ==> 'msd2 ! 'x1) ('msd1 ! 'v1 ==> 'msd2 ! 'v1) ('msd1 ! 'z ==> 'msd2 ! 'z) ('msd2 ! 'fk ==> 'msd1 ! 'fk) .
+eq externalConnection = ('msd1 ! 'x1 ==> 'msd2 ! 'x1) ('msd1 ! 'v1 ==> 'msd2 ! 'v1) ('msd2 ! 'fk ==> 'msd1 ! 'fk) .
 
-eq simulationUnits = (< 'msd1 : SU | time : 0, inputs : (< 'fk : Input | time : 0, contract : r, status : Undef  >), outputs : (< 'x1 : Output | time : 0, status : Undef, dependsOn : empty >) (< 'z : Output | time : 0, status : Undef, dependsOn : empty >) (< 'v1 : Output | time : 0, status : Undef, dependsOn : empty >), state : Instantiated, canReject : false >)
+eq simulationUnits = (< 'msd2 : SU | path : "A" , time : 0, inputs : (< 'x1 : Input | value : 0, time : 0, contract : r, status : Undef  >) (< 'v1 : Input | value : 0, time : 0, contract : r, status : Undef  >), outputs : (< 'fk : Output | value : 0, time : 0, status : Undef, dependsOn : empty >), state : Instantiated, canReject : false >)
 
- 	 (< 'msd2 : SU | time : 0, inputs : (< 'x1 : Input | time : 0, contract : r, status : Undef  >) (< 'v1 : Input | time : 0, contract : r, status : Undef  >) (< 'z : Input | time : 0, contract : d, status : Undef  >), outputs : (< 'fk : Output | time : 0, status : Undef, dependsOn : ( 'x1 ;; 'v1 ) >), state : Instantiated, canReject : false >) .
+ 	 (< 'msd1 : SU | path : "A" , time : 0, inputs : (< 'fk : Input | value : 0, time : 0, contract : d, status : Undef  >), outputs : (< 'x1 : Output | value : 0, time : 0, status : Undef, dependsOn : empty >) (< 'v1 : Output | value : 0, time : 0, status : Undef, dependsOn : empty >), state : Instantiated, canReject : false >) .
+
 
 
 endom)

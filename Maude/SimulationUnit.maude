@@ -1,13 +1,15 @@
 load Algorithm
+
+
 (omod SimulationUnit is
-   protecting Algorithm .
+   protecting Algorithm + RANDOM + STRING .
    sort fmiState .
    
    *** The different states of the FMI standard
    ops Instantiated ExperimentSetup Initialize Simulation Terminated InstanceFreed Unloaded : -> fmiState [ctor] . 
 
    ***Classes
-   class SU | time : Nat, inputs : Configuration, outputs : Configuration, canReject : Bool, state : fmiState .
+   class SU | path : String, time : Nat, inputs : Configuration, outputs : Configuration, canReject : Bool, state : fmiState .
    op askStepSize : Object NzNat -> NzNat .
    op feedthroughSatisfied : Set{OIdAsTRIV} Configuration Nat -> Bool .
    op allDef : Configuration Nat -> Bool .
@@ -18,19 +20,19 @@ load Algorithm
    op canStep : Nat NzNat Configuration Configuration -> Bool .
 
    op getAction : Object Set{OIdAsTRIV} -> Object .
-   op setAction : Object PortId Nat -> Object .
+   op setAction : Object Set{OIdAsTRIV} Nat Nat -> Object .
    op stepAction : Object NzNat -> Object .
 
-   op setActionPortMap : Object Set{PortMapAsTRIV} -> Object .
+   op setActionPortMap : Object Set{PortValueMapEntryAsTRIV} -> Object .
 
    var ID : SUID .
    vars PId INPUT OUTPUT : PortId .
-   vars TIME SUTIME : Nat .
+   vars TIME SUTIME VALUE : Nat .
    vars CONF INPUTS OUTPUTS : Configuration .
    var PORTSTATUS : PortStatus .
    vars FEEDTHROUGH PORTS : Set{OIdAsTRIV} .
    vars FUTURETIME STEP : NzNat .
-   var PORTMAP : Set{PortMapAsTRIV} .
+   var PORTMAP : Set{PortValueMapEntryAsTRIV} .
 
    *** Checks if all feedthrough constraints are satisfied
    eq feedthroughSatisfied(empty, CONF, TIME) = true .
@@ -45,7 +47,7 @@ load Algorithm
    eq allInputsDef(< PId : Input | time : FUTURETIME, contract : r,  status : PORTSTATUS > CONF, SUTIME, FUTURETIME ) = PORTSTATUS == Def and allInputsDef(CONF, SUTIME, FUTURETIME) .
 
    eq undefPorts(none, TIME) = none .
-   eq undefPorts(< PId : Port | > CONF, TIME) =  < PId : Port | status : Undef, time : TIME > undefPorts(CONF, TIME) .
+   eq undefPorts(< PId : Port | > CONF, TIME) =  < PId : Port | value : random(TIME), status : Undef, time : TIME > undefPorts(CONF, TIME) .
 
    eq undefInputs(none) = none .
    eq undefInputs(< PId : Port | > CONF) =  < PId : Port | status : Undef > undefInputs(CONF) .
@@ -53,7 +55,7 @@ load Algorithm
    eq allInputsSet(none) = true .
    eq allInputsSet(< ID : SU | inputs : INPUTS > CONF) = allDef(INPUTS, 0) and allInputsSet(CONF) .
 
-   eq canStep(SUTIME, FUTURETIME, INPUTS, OUTPUTS) =  allInputsDef(INPUTS, SUTIME, FUTURETIME) and allDef(OUTPUTS, SUTIME) . 
+   eq canStep(SUTIME, FUTURETIME, INPUTS, OUTPUTS) = allInputsDef(INPUTS, SUTIME, FUTURETIME) and allDef(OUTPUTS, SUTIME) . 
 
    *** For the moment we allow all steps - should updated to reflect the nondeterminism of the step negotiation!
    eq askStepSize(< ID : SU | >, STEP) = STEP .
@@ -62,11 +64,11 @@ load Algorithm
   eq getAction(< ID : SU | >, empty) = < ID : SU | > .
   eq getAction(< ID : SU | time : TIME, outputs : (< OUTPUT : Output | > OUTPUTS) >, OUTPUT ;; PORTS) = getAction(< ID : SU | outputs : (< OUTPUT : Output | time : TIME, status : Def > OUTPUTS) >, PORTS) .
 
-  eq setAction(< ID : SU | > ,  empty, TIME) =  < ID : SU | > .
-  eq setAction(< ID : SU | inputs : (< INPUT : Input | > INPUTS) > , INPUT ;; PORTS, TIME) =  setAction(< ID : SU | inputs : (< INPUT : Input | time : TIME, status : Def > INPUTS) >, PORTS, TIME) .
+  eq setAction(< ID : SU | > , empty, VALUE, TIME) =  < ID : SU | > .
+  eq setAction(< ID : SU | inputs : (< INPUT : Input | > INPUTS) > , INPUT ;; PORTS, VALUE, TIME) =  setAction(< ID : SU | inputs : (< INPUT : Input | time : TIME, status : Def > INPUTS) >, PORTS, VALUE, TIME) .
 
   eq setActionPortMap(< ID : SU | > , empty) =  < ID : SU | > .
-  eq setActionPortMap(< ID : SU | inputs : (< INPUT : Input | > INPUTS) > , (INPUT => TIME) ;; PORTMAP) =  setActionPortMap(< ID : SU | inputs : (< INPUT : Input | time : TIME, status : Def > INPUTS) >, PORTMAP).
+  eq setActionPortMap(< ID : SU | inputs : (< INPUT : Input | > INPUTS) > , (INPUT => < TIME ; VALUE >) ;; PORTMAP) =  setActionPortMap(< ID : SU | inputs : (< INPUT : Input | value : VALUE, time : TIME, status : Def > INPUTS) >, PORTMAP).
 
   *** Updates the time and the status of the outputs
   ceq stepAction(< ID : SU | time : TIME, outputs : OUTPUTS >, STEP) = < ID : SU | time : FUTURETIME, outputs : undefPorts(OUTPUTS, FUTURETIME) > 

@@ -26,7 +26,7 @@ load StepFinder
    var PORTS : Set{EPortIdAsTRIV} .
    vars STEPSIZE FUTURETIME ENDTIME : NzNat .
    var LOOP : AlgebraicLoop .  
-   var LOOPS : Set{ALGEBRAICLOOPAsTRIV} .  
+   vars LOOPS SOLVEDLOOPS : Set{ALGEBRAICLOOPAsTRIV} .  
    var INPUTTYPE : Mode .
    var STEPRes : findStepPair .
 
@@ -93,7 +93,7 @@ load StepFinder
                          if getActionEnabled(OUTPUTS, INPUTS, TIME) =/= empty .
 
   *** Algebraic Loop - solve and remove loop
-  eq performGlobalStep(CONF SCC: (LOOP ;; LOOPS)) = solveLoop(CONF SCC: LOOPS, LOOP) [owise] .
+  eq performGlobalStep(CONF UnsolvedSCC: (LOOP ;; LOOPS) SolvedSCC: SOLVEDLOOPS) = solveLoop(CONF UnsolvedSCC: LOOPS SolvedSCC: (LOOP ;; SOLVEDLOOPS), LOOP) [owise] .
 
   *** 
   ceq performGlobalStep(CONF) = CONF if simulationStepDone(CONF) .
@@ -133,7 +133,7 @@ load StepFinder
                         => setActionPortMap(< ID1 : SU | >, setActionEnabledInit(INPUTS, ID1, CONF)) Algorithm: (ALGO ; (portEvent: Set SU: ID1 PId: getPortFromMap(setActionEnabledInit(INPUTS, ID1, CONF)))) CONF
         if setActionEnabledInit(INPUTS, ID1, CONF) =/= empty .
 
-  ***rl [init-loop] : CONF SCC: (L ;; LOOPS) => solveLoop(CONF SCC: LOOPS, L) .                 
+  ***rl [init-loop] : CONF UnsolvedSCC: (L ;; LOOPS) => solveLoop(CONF UnsolvedSCC: LOOPS, L) .                 
 
  ***Complex scenarios with save and restore - this should 
 

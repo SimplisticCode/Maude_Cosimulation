@@ -217,7 +217,7 @@ endom)
                 /\ OLDSTACK := sndStack(STACKTUPLE) 
                 /\ SCCSTACK := fstStack(STACKTUPLE) [owise] .
 
-    eq setup = { calculateSNSet(simulationUnits externalConnection stepSize: 1 endTime: 1 Algorithm: emptyList SNSet: empty guessOn: empty SCC: tarjan(simulationUnits externalConnection)) } .
+    eq setup = { calculateSNSet(simulationUnits externalConnection stepSize: 1 endTime: 1 Algorithm: emptyList SNSet: empty guessOn: empty SolvedSCC: empty UnsolvedSCC: tarjan(simulationUnits externalConnection)) } .
 
     
 endom)

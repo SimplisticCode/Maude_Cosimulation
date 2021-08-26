@@ -112,16 +112,26 @@ endfm)
     pr BASICSET{PortMapAsTRIV} .
 endfm)
 
-
-
 (fmod EPORTLIST is
     pr LISTCONS{EPortIdAsTRIV} .
 endfm)
 
+(fmod SETLIST{X :: TRIV} is
+    protecting BASICSET{X} .
+    sort SetList{X} .
+    subsort Set{X} < SetList{X} .
+    op nil : -> SetList{X} [ctor] .
+    op _;_ : SetList{X} SetList{X} -> SetList{X} [ctor assoc id: nil] .
+endfm)
+
+(fmod PORTSCC is
+    pr SETLIST{EPortIdAsTRIV} .
+endfm)
+
+
 (omod Ports is 
- protecting QID + NAT + PORTMAPENTRY + EPORTSET + OIDSET + PORTMAPSET + EPORTLIST .
+ protecting QID + NAT + PORTMAPENTRY + EPORTSET + OIDSET + PORTMAPSET + EPORTLIST + PORTSCC .
  sorts Mode PortStatus Connection PScc .
- subsort EPortId < PScc .
  op _==>_ : EPortId EPortId -> Connection [ctor format(niy! d d d)] .
  subsort Connection < Configuration .
 
@@ -131,9 +141,6 @@ endfm)
  subclasses Input Output < Port . 
  ops d r : -> Mode [ctor] .   *** d = delayed, r = Reactive.
  ops Def Undef : -> PortStatus [ctor] .
-
- op sccNoNodes : -> PScc [ctor] .
- op _**_ : PScc PScc -> PScc [ctor assoc comm id: sccNoNodes] .
 
  op _in_ : Connection Configuration -> Bool . 
 

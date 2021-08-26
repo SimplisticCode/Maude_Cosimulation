@@ -18,13 +18,15 @@ load LOOPSolver
    var SUIDs : Set{OIdAsTRIV} .
    vars INPUT OUTPUT : PortId .
    vars TIME INPUTTIME OUTPUTTIME VALUE : Nat .
-   vars STEPSIZE FUTURETIME1 FUTURETIME1 : NzNat .
+   vars STEPSIZE FUTURETIME FUTURETIME1 MINSTEP : NzNat .
    vars INPUTS OUTPUTS INPUTS1 : Configuration . 
    vars CONF SAVEDCONF : Configuration .
    var ALGO : ActionList .
    var FEEDTHROUGH : Set{OIdAsTRIV} .
    var LOOP : AlgebraicLoop .  
    var LOOPS SOLVEDLOOPS : Set{ALGEBRAICLOOPAsTRIV} .  
+   var SUINSTANCE : Object .
+   var EVENT : Action .
 
    eq stepFindingDone(empty, CONF, STEPSIZE) = true .
    eq stepFindingDone(ID1 ;; SUIDs, < ID1 : SU | time : FUTURETIME1 > CONF, STEPSIZE) = FUTURETIME1 == STEPSIZE and stepFindingDone(SUIDs, CONF, STEPSIZE) .
@@ -54,31 +56,35 @@ load LOOPSolver
   ceq findStep(ID1 ;; ID2 ;; SUIDs, 
                     < ID2 : SU | time : TIME, outputs : (< OUTPUT : Output | status : Undef, dependsOn : FEEDTHROUGH > OUTPUTS), inputs : INPUTS1 >
                     < ID1 : SU | inputs : (< INPUT : Input | contract : r > INPUTS) > (ID2 ! OUTPUT ==> ID1 ! INPUT) CONF, SAVEDCONF, ALGO) = 
-                    findStep(ID1 ;; ID2 ;; SUIDs, getAction(< ID2 : SU | >, OUTPUT) < ID1 : SU | >  
-                    (ID2 ! OUTPUT ==> ID1 ! INPUT) CONF, SAVEDCONF, ALGO ; (portEvent: Get SU: ID2 PId: OUTPUT)) 
-                    if feedthroughSatisfied(FEEDTHROUGH, INPUTS1, TIME) .
+                    findStep(ID1 ;; ID2 ;; SUIDs, SUINSTANCE  < ID1 : SU | > (ID2 ! OUTPUT ==> ID1 ! INPUT) CONF, SAVEDCONF, ALGO ; EVENT) 
+                    if feedthroughSatisfied(FEEDTHROUGH, INPUTS1, TIME) 
+                    /\ SUINSTANCE := getAction(< ID2 : SU | >, OUTPUT)
+                    /\ EVENT := portEvent: Get SU: ID2 PId: OUTPUT .
 
   *** Set case (only on reactive Inputs)
   ceq findStep(ID1 ;; ID2 ;; SUIDs, 
                       < ID1 : SU | inputs : (< INPUT : Input | time : INPUTTIME, contract : r > INPUTS) > 
                       < ID2 : SU | outputs : (< OUTPUT : Output | value : VALUE, time : OUTPUTTIME, status : Def > OUTPUTS) > 
                         (ID2 ! OUTPUT ==> ID1 ! INPUT) CONF, SAVEDCONF, ALGO) = 
-              findStep(ID1 ;; ID2 ;; SUIDs, setAction(< ID1 : SU | >, INPUT, VALUE, OUTPUTTIME) < ID2 : SU | > (ID2 ! OUTPUT ==> ID1 ! INPUT) CONF, SAVEDCONF, ALGO ; (portEvent: Set SU: ID1 PId: INPUT)) 
-              if INPUTTIME < OUTPUTTIME .
+              findStep(ID1 ;; ID2 ;; SUIDs, SUINSTANCE < ID2 : SU | > (ID2 ! OUTPUT ==> ID1 ! INPUT) CONF, SAVEDCONF, ALGO ; EVENT) 
+              if INPUTTIME < OUTPUTTIME 
+              /\ SUINSTANCE := setAction(< ID1 : SU | >, INPUT, VALUE, OUTPUTTIME) 
+              /\ EVENT := portEvent: Set SU: ID1 PId: INPUT .
 
   ***Stepping case
-  ceq findStep(ID1 ;; SUIDs,  
-                    < ID1 : SU | time : TIME, outputs : OUTPUTS, inputs : INPUTS > stepSize: STEPSIZE CONF, SAVEDCONF, ALGO) = 
-                  findStep(ID1 ;; SUIDs,
-                  stepAction(< ID1 : SU | >, FUTURETIME1) stepSize: FUTURETIME1 CONF, SAVEDCONF, ALGO ; (stepEvent: ID1 StepSize: STEPSIZE))
-                    if canStep(TIME, (TIME + STEPSIZE), INPUTS, OUTPUTS) /\ FUTURETIME1 := askStepSize(< ID1 : SU | >, STEPSIZE) .
+  ceq findStep(ID1 ;; SUIDs, < ID1 : SU | time : TIME, outputs : OUTPUTS, inputs : INPUTS > stepSize: STEPSIZE CONF, SAVEDCONF, ALGO) 
+                    = findStep(ID1 ;; SUIDs, SUINSTANCE stepSize: FUTURETIME CONF, SAVEDCONF, ALGO ; EVENT)
+                    if FUTURETIME := askStepSize(< ID1 : SU | >, STEPSIZE) 
+                    /\ SUINSTANCE := stepAction(< ID1 : SU | >, FUTURETIME) 
+                    /\ EVENT := stepEvent: ID1 StepSize: STEPSIZE 
+                    /\ canStep(TIME, (TIME + STEPSIZE), INPUTS, OUTPUTS) .
 
   *** Restart search and and update step size for next iteration of search
-  ceq findStep(ID1 ;; ID2 ;; SUIDs, 
-                        < ID1 : SU | time : FUTURETIME1 > 
+  ceq findStep(ID1 ;; ID2 ;; SUIDs,  < ID1 : SU | time : FUTURETIME > 
                         < ID2 : SU | time : FUTURETIME1 > CONF, SAVEDCONF stepSize: STEPSIZE, ALGO) = 
-              findStep(ID1 ;; ID2 ;; SUIDs, SAVEDCONF stepSize: min(FUTURETIME1, FUTURETIME1), SAVEDCONF stepSize: min(FUTURETIME1, FUTURETIME1), ALGO)   
-                    if FUTURETIME1 =/= FUTURETIME1 . 
+              findStep(ID1 ;; ID2 ;; SUIDs, SAVEDCONF stepSize: MINSTEP, SAVEDCONF stepSize: MINSTEP, ALGO)   
+                    if FUTURETIME =/= FUTURETIME1 
+                    /\ MINSTEP := min(FUTURETIME, FUTURETIME1) . 
                     *** The simulations should both have stepped, but not to the same time
 
   *** Solve Algebraic Loops *** Information should be carried over!

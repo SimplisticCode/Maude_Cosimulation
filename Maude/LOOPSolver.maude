@@ -29,11 +29,13 @@ endv)
     vars ID1 ID2 : SUID .
     vars PSet GSet : Set{EPortIdAsTRIV} .
     var ALGO : ActionList .
-    var TIME T1 RANDOMVALUE : Nat .
-    var STEP : NzNat .
+    var TIME T1 VALUE : Nat .
+    var STEP FUTURETIME : NzNat .
     var FEEDTHROUGH : Set{OIdAsTRIV}  .
     var CONTRACT : Contract .
     var SUIDS : Set{OIdAsTRIV}  .
+    var SUINSTANCE : Object .
+    var EVENT : Action .
 
     eq fst(< ALGO ; CONF >) = ALGO . 
     eq snd(< ALGO ; CONF >) = CONF . 
@@ -65,38 +67,37 @@ endv)
     ceq loopStep((ID1 ! INPUT) ;; PSet, 
                       < ID1 : SU | time : TIME, inputs : (< INPUT : Input | time : T1, contract : CONTRACT > INPUTS) > 
                     guessOn: ((ID1 ! INPUT) ;; GSet) stepSize: STEP CONF, ALGO) = 
-            loopStep(PSet, 
-                    setAction(< ID1 : SU | >, INPUT, random(TIME), T1 + STEP)
-                    guessOn: GSet stepSize: STEP CONF, 
-                    (ALGO ; (portEvent: Set SU: ID1 PId: INPUT))) 
-                    if (CONTRACT == r and T1 == TIME) or (CONTRACT == d and TIME == (T1 + STEP)) .
+            loopStep(PSet, SUINSTANCE guessOn: GSet stepSize: STEP CONF, (ALGO ; EVENT)) 
+                    if VALUE := random(TIME) 
+                    /\ FUTURETIME := T1 + STEP
+                    /\ EVENT :=  portEvent: Set SU: ID1 PId: INPUT
+                    /\ SUINSTANCE := setAction(< ID1 : SU | >, INPUT, VALUE, FUTURETIME)
+                    /\ (CONTRACT == r and T1 == TIME) or (CONTRACT == d and TIME == FUTURETIME) .
 
     *** Set value on input - Fix
     ceq loopStep((ID1 ! INPUT) ;; PSet, 
                       < ID1 : SU | inputs : (< INPUT : Input | time : TIME, contract : CONTRACT > INPUTS) > 
-                      < ID2 : SU | outputs : (< OUTPUT : Output | time : T1, status : Def > OUTPUTS) > 
-                        (ID2 ! OUTPUT ==> ID1 ! INPUT) CONF, ALGO) = 
-              loopStep(PSet, 
-                      setAction(< ID1 : SU | >, INPUT, random(TIME), T1)
-                      < ID2 : SU | > (ID2 ! OUTPUT ==> ID1 ! INPUT) CONF, 
-                      (ALGO ; (portEvent: Set SU: ID1 PId: INPUT))) 
-                      if T1 > TIME .
+                      < ID2 : SU | outputs : (< OUTPUT : Output | value : VALUE, time : FUTURETIME, status : Def > OUTPUTS) > (ID2 ! OUTPUT ==> ID1 ! INPUT) CONF, ALGO) = 
+              loopStep(PSet, SUINSTANCE < ID2 : SU | > (ID2 ! OUTPUT ==> ID1 ! INPUT) CONF, (ALGO ; EVENT)) 
+                    if EVENT :=  portEvent: Set SU: ID1 PId: INPUT
+                    /\ SUINSTANCE := setAction(< ID1 : SU | >, INPUT, VALUE, FUTURETIME)
+                    /\ FUTURETIME > TIME .
 
     *** Get output value
     ceq loopStep((ID1 ! OUTPUT) ;; PSet, 
                     < ID1 : SU | time : TIME, outputs : (< OUTPUT : Output | status : Undef, dependsOn : FEEDTHROUGH > OUTPUTS), inputs : INPUTS > CONF, ALGO) = 
-                    loopStep(PSet,
-                      getAction(< ID1 : SU | >, OUTPUT) CONF, 
-                      (ALGO ; (portEvent: Get SU: ID1 PId: OUTPUT))) 
-                      if feedthroughSatisfied(FEEDTHROUGH, INPUTS, TIME) .
+                    loopStep(PSet, SUINSTANCE CONF, (ALGO ; EVENT)) 
+                  if EVENT :=  portEvent: Get SU: ID1 PId: OUTPUT
+                  /\ SUINSTANCE := getAction(< ID1 : SU | >, OUTPUT) 
+                  /\ feedthroughSatisfied(FEEDTHROUGH, INPUTS, TIME) .
 
     *** Step
-    ceq loopStep((ID1 ! OUTPUT) ;; PSet,  
-                    < ID1 : SU | time : TIME, outputs : OUTPUTS, inputs : INPUTS > stepSize: STEP CONF, ALGO) = 
-                  loopStep((ID1 ! OUTPUT) ;; PSet,
-                      stepAction(< ID1 : SU | >, STEP) 
-                      stepSize: STEP CONF, (ALGO ; (stepEvent: ID1 StepSize: STEP)))
-                    if canStep(TIME, (TIME + STEP), INPUTS, OUTPUTS) .
+    ceq loopStep((ID1 ! OUTPUT) ;; PSet, < ID1 : SU | time : TIME, outputs : OUTPUTS, inputs : INPUTS > stepSize: STEP CONF, ALGO) = 
+                  loopStep((ID1 ! OUTPUT) ;; PSet, SUINSTANCE stepSize: STEP CONF, (ALGO ; EVENT))
+                  if EVENT := stepEvent: ID1 StepSize: STEP
+                  /\ SUINSTANCE := stepAction(< ID1 : SU | >, STEP) 
+                  /\ FUTURETIME := TIME + STEP
+                  /\ canStep(TIME, FUTURETIME, INPUTS, OUTPUTS) .
 
     eq loopStep(empty,CONF, ALGO) = < ALGO ; CONF  > .
 

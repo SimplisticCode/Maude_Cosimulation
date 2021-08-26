@@ -87,7 +87,7 @@ endv)
             loopStep(PSet, 
                     setAction(< ID1 : SU | >, INPUT, T1 + STEP)
                     guessOn: GSet stepSize: STEP CONF, 
-                    (ALGO ; (event: Set SU: ID1 PId: INPUT))) 
+                    (ALGO ; (portEvent: Set SU: ID1 PId: INPUT))) 
                     if (MODE == r and T1 == TIME) or (MODE == d and TIME == (T1 + STEP)) .
 
     *** Set value on input - Fix
@@ -98,7 +98,7 @@ endv)
               loopStep(PSet, 
                       setAction(< ID1 : SU | >, INPUT, T1)
                       < ID2 : SU | > (ID2 ! OUTPUT ==> ID1 ! INPUT) CONF, 
-                      (ALGO ; (event: Set SU: ID1 PId: INPUT))) 
+                      (ALGO ; (portEvent: Set SU: ID1 PId: INPUT))) 
                       if T1 > TIME .
 
     *** Get output value
@@ -106,7 +106,7 @@ endv)
                     < ID1 : SU | time : TIME, outputs : (< OUTPUT : Output | status : Undef, dependsOn : FEEDTHROUGH > OUTPUTS), inputs : INPUTS > CONF, ALGO) = 
                     loopStep(PSet,
                       getAction(< ID1 : SU | >, OUTPUT) CONF, 
-                      (ALGO ; (event: Get SU: ID1 PId: OUTPUT))) 
+                      (ALGO ; (portEvent: Get SU: ID1 PId: OUTPUT))) 
                       if feedthroughSatisfied(FEEDTHROUGH, INPUTS, TIME) .
 
     *** Step
@@ -114,7 +114,7 @@ endv)
                     < ID1 : SU | time : TIME, outputs : OUTPUTS, inputs : INPUTS > stepSize: STEP CONF, ALGO) = 
                   loopStep((ID1 ! OUTPUT) ;; PSet,
                       stepAction(< ID1 : SU | >, STEP) 
-                      stepSize: STEP CONF, (ALGO ; (event: Step SU: ID1 PId: empty)))
+                      stepSize: STEP CONF, (ALGO ; (stepEvent: ID1 StepSize: STEP)))
                     if canStep(TIME, (TIME + STEP), INPUTS, OUTPUTS) .
 
     eq loopStep(empty,CONF, ALGO) = < ALGO ; CONF  > .

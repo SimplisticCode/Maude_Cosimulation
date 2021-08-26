@@ -31,11 +31,12 @@ endfm)
  ops StepNegotiation Loop : -> ComplexActionType [ctor] . 
  *** Rename loop type
  op fmiEvent:_SU:_ : FMIActionType PortId -> Action [ctor format(nib! d d d d)] .
- op event:_SU:_PId:_ : ActionType SUID Set{OIdAsTRIV} -> Action [ctor format(ni! d d d d d d)] .
- op complexEvent:_SaveSUs:_RestoreSUs:_Actions:_ : ComplexActionType Set{OIdAsTRIV} Set{OIdAsTRIV} ActionList -> Action [ctor format(niy! d d d d d d d d)] .
+ op portEvent:_SU:_PId:_ : ActionType SUID Set{OIdAsTRIV} -> Action [ctor format(nib! d d d d d d)] .
+ op stepEvent:_StepSize:_ : SUID NzNat -> Action [ctor format(nig! d d d d)] .
+ op complexEvent:_SaveSUs:_RestoreSUs:_Actions:_ : ComplexActionType Set{OIdAsTRIV} Set{OIdAsTRIV} ActionList -> Action [ctor format(niy! d d d d d d nig! niy!)] .
  
  *** Configuration fields
- op Algorithm:_ : ActionList -> Configuration [ctor format(nir! d d)] . 
+ op Algorithm:_ : ActionList -> Configuration [ctor format(d d d)] . 
  op SNSet:_ : Set{OIdAsTRIV} -> Configuration [ctor format(ni d d)] .
  op stepSize:_ : NzNat -> Configuration [ctor format(nig! d d)] . 
  op endTime:_ : NzNat -> Configuration [ctor format(nim! d d)] . 

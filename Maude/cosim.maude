@@ -77,19 +77,19 @@ load StepFinder
   *** Perform the global simulation step
   *** Set input                     
   ceq performGlobalStep(CONF < ID1 : SU | time : TIME, inputs : INPUTS > Algorithm: ALGO) = 
-      performGlobalStep(CONF setActionPortMap( < ID1 : SU | >, setActionEnabled(INPUTS, ID1, TIME, CONF)) Algorithm: (ALGO ; (event: Set SU: ID1 PId: getPortFromMap(setActionEnabled(INPUTS, ID1, TIME, CONF)))))
+      performGlobalStep(CONF setActionPortMap( < ID1 : SU | >, setActionEnabled(INPUTS, ID1, TIME, CONF)) Algorithm: (ALGO ; (portEvent: Set SU: ID1 PId: getPortFromMap(setActionEnabled(INPUTS, ID1, TIME, CONF)))))
                         if setActionEnabled(INPUTS, ID1, TIME, CONF) =/= empty .
   *** Step
   ceq performGlobalStep(CONF < ID1 : SU | time : TIME, inputs : INPUTS, outputs : OUTPUTS > stepSize: STEPSIZE endTime: ENDTIME Algorithm: ALGO)  = 
       performGlobalStep(CONF 
                         stepAction(< ID1 : SU | >, STEPSIZE)
-                        stepSize: STEPSIZE endTime: ENDTIME Algorithm: (ALGO ; (event: Step SU: ID1 PId: empty)))
+                        stepSize: STEPSIZE endTime: ENDTIME Algorithm: (ALGO ; (stepEvent: ID1 StepSize: STEPSIZE)))
                         if FUTURETIME := TIME + STEPSIZE /\ canStep(TIME, FUTURETIME, INPUTS, OUTPUTS) and FUTURETIME <= ENDTIME . 
 
   *** Get
     ceq performGlobalStep(CONF < ID1 : SU | time : TIME, inputs : INPUTS, outputs : OUTPUTS >  Algorithm: ALGO) =
         performGlobalStep(CONF getAction(< ID1 : SU | >, getActionEnabled(OUTPUTS, INPUTS, TIME))
-                         Algorithm: (ALGO ; (event: Get SU: ID1 PId: getActionEnabled(OUTPUTS, INPUTS, TIME)))) 
+                         Algorithm: (ALGO ; (portEvent: Get SU: ID1 PId: getActionEnabled(OUTPUTS, INPUTS, TIME)))) 
                          if getActionEnabled(OUTPUTS, INPUTS, TIME) =/= empty .
 
   *** Algebraic Loop - solve and remove loop
@@ -125,12 +125,12 @@ load StepFinder
    crl [get-init] : < ID1 : SU | outputs : OUTPUTS, inputs : INPUTS, state : Initialize > Algorithm: ALGO 
                   => 
                   getAction(< ID1 : SU | >, getActionEnabled(OUTPUTS, INPUTS, 0))                  
-                  Algorithm: (ALGO ; (event: Get SU: ID1 PId: getActionEnabled(OUTPUTS, INPUTS, 0))) 
+                  Algorithm: (ALGO ; (portEvent: Get SU: ID1 PId: getActionEnabled(OUTPUTS, INPUTS, 0))) 
                 if getActionEnabled(OUTPUTS, INPUTS, 0) =/= empty .
 
    *** Inputs can only rely on one connection 
    crl [set-init] : < ID1 : SU | inputs : INPUTS, state : Initialize > Algorithm: ALGO CONF
-                        => setActionPortMap(< ID1 : SU | >, setActionEnabledInit(INPUTS, ID1, CONF)) Algorithm: (ALGO ; (event: Set SU: ID1 PId: getPortFromMap(setActionEnabledInit(INPUTS, ID1, CONF)))) CONF
+                        => setActionPortMap(< ID1 : SU | >, setActionEnabledInit(INPUTS, ID1, CONF)) Algorithm: (ALGO ; (portEvent: Set SU: ID1 PId: getPortFromMap(setActionEnabledInit(INPUTS, ID1, CONF)))) CONF
         if setActionEnabledInit(INPUTS, ID1, CONF) =/= empty .
 
   ***rl [init-loop] : CONF SCC: (L ;; LOOPS) => solveLoop(CONF SCC: LOOPS, L) .                 

@@ -1,6 +1,5 @@
 load Algorithm
 
-
 (omod SimulationUnit is
    protecting Algorithm + RANDOM + STRING .
    sort fmiState .
@@ -18,13 +17,10 @@ load Algorithm
    op allInputsDef : Configuration Nat Nat -> Bool .
    op allInputsSet : Configuration -> Bool .
    op canStep : Nat NzNat Configuration Configuration -> Bool .
-
    op getAction : Object Set{OIdAsTRIV} -> Object .
    op setAction : Object Set{OIdAsTRIV} Nat Nat -> Object .
    op stepAction : Object NzNat -> Object .
    op getAllPorts : Configuration Set{EPortIdAsTRIV} -> Set{EPortIdAsTRIV} .
-
-
    op setActionPortMap : Object Set{PortValueMapEntryAsTRIV} -> Object .
 
    vars ID ID1 ID2 : SUID .

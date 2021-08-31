@@ -64,7 +64,7 @@ load Scenario
   eq ValuesToSetInit(none, ID1, CONF) = empty .
   eq ValuesToSetInit(< INPUT : Input | status : Undef > INPUTS, ID1, 
                     CONF < ID2 : SU | outputs : (< OUTPUT : Output | value : VALUE, status : Def > OUTPUTS) > (ID2 ! OUTPUT ==> ID1 ! INPUT)) 
-                        = (INPUT => < 0 ; VALUE >) ;; ValuesToSetInit(INPUTS, ID1, CONF < ID2 : SU | outputs : (< OUTPUT : Output | status : Def > OUTPUTS) > ) .
+                        = (INPUT => < 0 ; VALUE >) ;; x(INPUTS, ID1, CONF < ID2 : SU | outputs : (< OUTPUT : Output | status : Def > OUTPUTS) > ) .
   eq ValuesToSetInit(< INPUT : Input | > INPUTS, ID1, CONF) = ValuesToSetInit(INPUTS, ID1, CONF) [owise] .
 
   *** Perform the global simulation step
@@ -85,12 +85,12 @@ load Scenario
                         /\ EVENT := stepEvent: ID1 StepSize: STEPSIZE . 
 
   *** Get
-    ceq performGlobalStep(CONF < ID1 : SU | time : TIME, inputs : INPUTS, outputs : OUTPUTS >  Algorithm: ALGO) =
-        performGlobalStep(CONF SUINSTANCE Algorithm: (ALGO ; EVENT)) 
-                        if PORTIDSET := getEnableOutputs(OUTPUTS, INPUTS, TIME)
-                        /\ PORTIDSET =/= empty 
-                        /\ SUINSTANCE := getAction(< ID1 : SU | >, PORTIDSET)
-                        /\ EVENT := portEvent: Get SU: ID1 PId: PORTIDSET . 
+  ceq performGlobalStep(CONF < ID1 : SU | time : TIME, inputs : INPUTS, outputs : OUTPUTS >  Algorithm: ALGO) =
+      performGlobalStep(CONF SUINSTANCE Algorithm: (ALGO ; EVENT)) 
+                      if PORTIDSET := getEnableOutputs(OUTPUTS, INPUTS, TIME)
+                      /\ PORTIDSET =/= empty 
+                      /\ SUINSTANCE := getAction(< ID1 : SU | >, PORTIDSET)
+                      /\ EVENT := portEvent: Get SU: ID1 PId: PORTIDSET . 
                       
   *** Algebraic Loop - solve and remove loop
   eq performGlobalStep(CONF UnsolvedSCC: (LOOP ;; LOOPS) SolvedSCC: SOLVEDLOOPS) = 
@@ -122,17 +122,25 @@ load Scenario
   rl [unload] : < ID1 : SU | state : InstanceFreed > Algorithm: ALGO
               => < ID1 : SU | state : Unloaded > Algorithm: (ALGO ; (fmiEvent: Unload SU: ID1)) .
 
-   *** Initalization Procedure 
-   crl [get-init] : < ID1 : SU | outputs : OUTPUTS, inputs : INPUTS, state : Initialize > Algorithm: ALGO 
-                  => 
-                  getAction(< ID1 : SU | >, getEnableOutputs(OUTPUTS, INPUTS, 0))                  
-                  Algorithm: (ALGO ; (portEvent: Get SU: ID1 PId: getEnableOutputs(OUTPUTS, INPUTS, 0))) 
-                if getEnableOutputs(OUTPUTS, INPUTS, 0) =/= empty .
+  *** Error handling in Maude
+
+
+  *** Initalization Procedure 
+  crl [get-init] : < ID1 : SU | outputs : OUTPUTS, inputs : INPUTS, state : Initialize > Algorithm: ALGO 
+                  => SUINSTANCE Algorithm: (ALGO ; EVENT) 
+                if PORTIDSET := getEnableOutputs(OUTPUTS, INPUTS, 0)
+                  /\ PORTIDSET =/= empty 
+                  /\ SUINSTANCE := getAction(< ID1 : SU | >, PORTIDSET)
+                  /\ EVENT := portEvent: Get SU: ID1 PId: PORTIDSET . 
 
    *** Inputs can only rely on one connection 
    crl [set-init] : < ID1 : SU | inputs : INPUTS, state : Initialize > Algorithm: ALGO CONF
-                        => setActionPortMap(< ID1 : SU | >, ValuesToSetInit(INPUTS, ID1, CONF)) Algorithm: (ALGO ; (portEvent: Set SU: ID1 PId: getPortFromMap(ValuesToSetInit(INPUTS, ID1, CONF)))) CONF
-        if ValuesToSetInit(INPUTS, ID1, CONF) =/= empty .
+                        => SUINSTANCE Algorithm: (ALGO ; EVENT) CONF
+                    if PORTVALUES := ValuesToSetInit(INPUTS, ID1, CONF) 
+                      /\ PORTIDSET := getPortFromMap(PORTVALUES) 
+                      /\ PORTVALUES =/= empty 
+                      /\ SUINSTANCE := setActionPortMap( < ID1 : SU | >, PORTVALUES) 
+                      /\ EVENT := portEvent: Set SU: ID1 PId: PORTIDSET .
 
   ***rl [init-loop] : CONF UnsolvedSCC: (L ;; LOOPS) => solveLoop(CONF UnsolvedSCC: LOOPS, L) .                 
 
@@ -154,17 +162,10 @@ eof
 ( frew [100] setup . )
 
 
-*** Validering af Input
-
-*** Check for termination - not useful 
-(search setup =>! X:Configuration . )
 show search graph .
 
 (red validScenario(externalConnection, simulationUnits) . )
 
-( frew [20] setup . )
-
-( frew [20] setup using fmi_rules_setExpt . )
 ( red needsStepNegotiation(setup) . )
 ( red allSUinSimulation(setup) . )
 

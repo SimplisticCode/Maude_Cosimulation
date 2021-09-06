@@ -12,7 +12,7 @@ load GenericDT
  class Output | dependsOn : Set{OIdAsTRIV} .
  subclasses Input Output < Port . 
  ops d r : -> Contract [ctor] .   *** d = delayed, r = Reactive.
- ops natural floating boolean : -> PortType [ctor] . 
+ ops integer string real boolean : -> PortType [ctor] . 
  ops Def Undef : -> PortStatus [ctor] .
 
  op _in_ : Connection Configuration -> Bool . 

@@ -64,7 +64,7 @@ load Scenario
   eq ValuesToSetInit(none, ID1, CONF) = empty .
   eq ValuesToSetInit(< INPUT : Input | status : Undef > INPUTS, ID1, 
                     CONF < ID2 : SU | outputs : (< OUTPUT : Output | value : VALUE, status : Def > OUTPUTS) > (ID2 ! OUTPUT ==> ID1 ! INPUT)) 
-                        = (INPUT => < 0 ; VALUE >) ;; x(INPUTS, ID1, CONF < ID2 : SU | outputs : (< OUTPUT : Output | status : Def > OUTPUTS) > ) .
+                        = (INPUT => < 0 ; VALUE >) ;; ValuesToSetInit(INPUTS, ID1, CONF < ID2 : SU | outputs : (< OUTPUT : Output | status : Def > OUTPUTS) > ) .
   eq ValuesToSetInit(< INPUT : Input | > INPUTS, ID1, CONF) = ValuesToSetInit(INPUTS, ID1, CONF) [owise] .
 
   *** Perform the global simulation step

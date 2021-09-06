@@ -21,6 +21,8 @@ load Algorithm
    op setAction : Object Set{OIdAsTRIV} Nat Nat -> Object .
    op stepAction : Object NzNat -> Object .
    op getAllPorts : Configuration Set{EPortIdAsTRIV} -> Set{EPortIdAsTRIV} .
+   op getAllReactivePorts : Configuration Set{EPortIdAsTRIV} -> Set{EPortIdAsTRIV} .
+
    op setActionPortMap : Object Set{PortValueMapEntryAsTRIV} -> Object .
 
    vars ID ID1 ID2 : SUID .
@@ -41,6 +43,11 @@ load Algorithm
       if not (ID1 ! OUTPUT) in PORTSET .
 
   eq getAllPorts(CONF, PORTSET) = PORTSET [owise] . 
+
+  ceq getAllReactivePorts(< ID1 : SU | inputs : (< INPUT : Input | contract : r > INPUTS) > CONF, PORTSET) = getAllReactivePorts(< ID1 : SU | > CONF,  (ID1 ! INPUT) ;; PORTSET)
+    if not (ID1 ! INPUT) in PORTSET .
+
+  eq getAllReactivePorts(CONF, PORTSET) = PORTSET [owise] . 
 
    *** Checks if all feedthrough constraints are satisfied
    eq feedthroughSatisfied(empty, CONF, TIME) = true .

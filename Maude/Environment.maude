@@ -56,7 +56,7 @@ endfm)
     var PSet : Set{EPortIdAsTRIV} .
     var FT : Set{OIdAsTRIV} .
     var IM : Set{IndexMapAsTRIV} .
-    vars C INPUTS OUTPUTS : Configuration .
+    vars CONF INPUTS OUTPUTS : Configuration .
     vars STACK STACK1 STACK2 : List{EPortIdAsTRIV} .
     vars SCCs L : SetList{EPortIdAsTRIV} .
     var LOOPS : Set{ALGEBRAICLOOPAsTRIV} .
@@ -78,24 +78,24 @@ endfm)
     eq nodeHasBeenVisited(P, E) = false [owise] .
   
     *** Transform environment to Algebraic Loops
-    eq getLoops(env(STACK, SCCs , M, IM), C) = createAlgebraic(SCCs, C, empty) .
+    eq getLoops(env(STACK, SCCs , M, IM), CONF) = createAlgebraic(SCCs, CONF, empty) .
 
     ***Encode everything as algebraic loops:
     *** No more SCC to look at
-    eq createAlgebraic(nil, C, LOOPS) = LOOPS .
+    eq createAlgebraic(nil, CONF, LOOPS) = LOOPS .
 
-    ceq createAlgebraic(PSet ; SCCs, C, LOOPS) = createAlgebraic(SCCs, C, (AlgebraicLoop: PSet Type: R) ;; LOOPS)  
-        if size(PSet) > 1 and isReactiveLoop(PSet, C) .
+    ceq createAlgebraic(PSet ; SCCs, CONF, LOOPS) = createAlgebraic(SCCs, CONF, (AlgebraicLoop: PSet Type: R) ;; LOOPS)  
+        if size(PSet) > 1 and isReactiveLoop(PSet, CONF) .
 
-    ceq createAlgebraic(PSet ; SCCs, C, LOOPS) = createAlgebraic(SCCs, C, (AlgebraicLoop: PSet Type: F) ;; LOOPS)  
-        if size(PSet) > 1 and not(isReactiveLoop(PSet, C)) .
+    ceq createAlgebraic(PSet ; SCCs, CONF, LOOPS) = createAlgebraic(SCCs, CONF, (AlgebraicLoop: PSet Type: F) ;; LOOPS)  
+        if size(PSet) > 1 and not(isReactiveLoop(PSet, CONF)) .
     
     *** Trivial SCC should be forgotten
-    eq createAlgebraic(PSet ; SCCs, C, LOOPS) = createAlgebraic(SCCs, C, LOOPS) [owise] .
+    eq createAlgebraic(PSet ; SCCs, CONF, LOOPS) = createAlgebraic(SCCs, CONF, LOOPS) [owise] .
 
     *** Check type of SCC - one reactive input makes it Reactive
-    eq isReactiveLoop((ID1 ! I) ;; PSet, < ID1 : SU | inputs : (< I : Input | contract : r > INPUTS) > C) = true .
-    eq isReactiveLoop(PSet, C) = false [owise] .
+    eq isReactiveLoop((ID1 ! I) ;; PSet, < ID1 : SU | inputs : (< I : Input | contract : r > INPUTS) > CONF) = true .
+    eq isReactiveLoop(PSet, CONF) = false [owise] .
 
     *** Split the DFS-result to its components 
     eq num(natEnv(M, E)) = M .
@@ -122,32 +122,32 @@ endfm)
             STACK2 := throw index from STACK . *** P is on the stack
 
     *** Wrapper method
-    eq findSuccesors(P, C) = succesors(P, C, empty) .
+    eq findSuccesors(P, CONF) = succesors(P, CONF, empty) .
 
     *** Output
     ceq succesors((ID2 ! O), 
                 < ID1 : SU | inputs : (< I : Input | > INPUTS) > 
                 < ID2 : SU | outputs : (< O : Output | > OUTPUTS) > 
-                         (ID2 ! O ==> ID1 ! I) C, PSet) = 
+                         (ID2 ! O ==> ID1 ! I) CONF, PSet) = 
                     succesors((ID1 ! O), < ID1 : SU | > 
                                          < ID2 : SU | > 
-                                            (ID2 ! O ==> ID1 ! I) C, 
+                                            (ID2 ! O ==> ID1 ! I) CONF, 
                                          (ID1 ! I) ;; PSet) 
                     if not (ID1 ! I) in PSet .
 
     *** Input - feed through
     ceq succesors((ID1 ! I),
-                    < ID1 : SU | inputs : (< I : Input | > INPUTS), outputs : (< O : Output | dependsOn : I ;; FT > OUTPUTS) > C, PSet) 
+                    < ID1 : SU | inputs : (< I : Input | > INPUTS), outputs : (< O : Output | dependsOn : I ;; FT > OUTPUTS) > CONF, PSet) 
                     = 
-                    succesors((ID1 ! I), < ID1 : SU | > C, (ID1 ! O) ;; PSet) 
+                    succesors((ID1 ! I), < ID1 : SU | > CONF, (ID1 ! O) ;; PSet) 
                     if not (ID1 ! O) in PSet .
 
     *** Input - reactive
     ceq succesors((ID1 ! I),
-                < ID1 : SU | inputs : (< I : Input | contract : r > INPUTS), outputs : (< O : Output | > OUTPUTS) > C, PSet) 
+                < ID1 : SU | inputs : (< I : Input | contract : r > INPUTS), outputs : (< O : Output | > OUTPUTS) > CONF, PSet) 
                 = 
-                succesors((ID1 ! I),  < ID1 : SU | > C, (ID1 ! O) ;; PSet) if not (ID1 ! O) in PSet .
+                succesors((ID1 ! I),  < ID1 : SU | > CONF, (ID1 ! O) ;; PSet) if not (ID1 ! O) in PSet .
 
-    eq succesors(P, C, PSet) = PSet [owise] .
+    eq succesors(P, CONF, PSet) = PSet [owise] .
 
 endom)

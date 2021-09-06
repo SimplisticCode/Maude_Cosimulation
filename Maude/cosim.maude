@@ -13,16 +13,15 @@ load Scenario
    op ValuesToSetInit : Configuration SUID Configuration -> Set{PortValueMapEntryAsTRIV} .
 
    vars ID1 ID2 : SUID .
-   var SUIDs : Set{OIdAsTRIV} .
    vars INPUT OUTPUT : PortId .
    vars TIME TIME1 TIME2 VALUE : Nat .
-   vars INPUTS OUTPUTS CONF : Configuration . 
+   vars INPUTS OUTPUTS CONF STARTCONF : Configuration . 
    var STATE : fmiState .
    vars ALGO STEPNEGOALGO : ActionList .
-   vars FEEDTHROUGH PORTIDSET : Set{OIdAsTRIV} .
+   vars SUIDs FEEDTHROUGH PORTIDSET : Set{OIdAsTRIV} .
    vars STEPSIZE NEGOTIATEDSTEPSIZE FUTURETIME ENDTIME : NzNat .
    var LOOP : AlgebraicLoop .  
-   vars LOOPS SOLVEDLOOPS : Set{ALGEBRAICLOOPAsTRIV} .  
+   vars LOOPS SOLVEDLOOPS LOOPTOSOLVE : Set{ALGEBRAICLOOPAsTRIV} .  
    var INPUTTYPE : Contract .
    var STEPRes : findStepPair .
    var PORTVALUES : Set{PortValueMapEntryAsTRIV} .
@@ -33,10 +32,16 @@ load Scenario
   eq simulationStepDone(CONF) = true [owise] .
 
   *** Step Negotiation
-  ceq performStepNegotiation(CONF SNSet: SUIDs stepSize: STEPSIZE Algorithm: ALGO) = 
+  ceq performStepNegotiation(CONF stepSize: STEPSIZE UnsolvedSCC: LOOPS SolvedSCC: SOLVEDLOOPS
+                                 SNSet: SUIDs Algorithm: ALGO) = 
                               CONF SNSet: empty Algorithm: (ALGO ; EVENT) stepSize: NEGOTIATEDSTEPSIZE
+                                UnsolvedSCC: LOOPS SolvedSCC: SOLVEDLOOPS
+                                ***UnsolvedSCC: (LOOPS - LOOPTOSOLVE)  SolvedSCC: (SOLVEDLOOPS ;; LOOPTOSOLVE)
                               if needsStepNegotiation(SUIDs) 
-                              /\ STEPRes := findStep(SUIDs, CONF stepSize: STEPSIZE, CONF stepSize: STEPSIZE, emptyList) 
+                              /\ STARTCONF := CONF stepSize: STEPSIZE UnsolvedSCC: LOOPS SolvedSCC: SOLVEDLOOPS
+                              /\ STEPRes := findStep(SUIDs, STARTCONF, STARTCONF, emptyList)
+                              ***/\ LOOPTOSOLVE := loopsInStepNegotiation(LOOPS, SUIDs, CONF) 
+                              *** I need to break the loop (by removing the reactive connections) here to avoid it
                               /\ NEGOTIATEDSTEPSIZE := getStep(STEPRes) 
                               /\ STEPNEGOALGO := getAL(STEPRes)
                               /\ EVENT := complexEvent: StepNegotiation SaveSUs: SUIDs RestoreSUs: SUIDs Actions: STEPNEGOALGO .
@@ -161,6 +166,9 @@ eof
 
 ( frew [100] setup . )
 
+(search setup. )
+
+(search in COSIMULATION : setup =>1 C:Configuration . )
 
 show search graph .
 
@@ -171,10 +179,8 @@ show search graph .
 
 ( red breakLoop(('msd1 ! 'x1) ;; ('msd2 ! 'x1) ;; ('msd2 ! 'v1) ;; ('msd1 ! 'v1), (simulationUnits externalConnection stepSize: 1 endTime: 1 Algorithm: emptyList SNSet: empty guessOn: emptyLoop) , R) . )
 
-( red getSUs(('msd1 ! 'x1) ;; ('msd2 ! 'x1) ;; ('msd2 ! 'v1) ;; ('msd1 ! 'v1), empty) .)
-
 ( red findStep(setup,setup) . )
-( red getAllPorts(simulationUnits, emptyLoop) . )
+( red getAllPorts(simulationUnits, empty) . )
 
 set trace on .
 trace exclude FULL-MAUDE . set trace substitution off . set trace eq off . 

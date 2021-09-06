@@ -3,14 +3,15 @@ load Environment
 (omod ScenarioAnalyser is
     protecting ScenarioEnvironment .
 
+    op loopsInStepNegotiation : Set{ALGEBRAICLOOPAsTRIV} Set{OIdAsTRIV} Configuration -> Set{ALGEBRAICLOOPAsTRIV} .
     op tarjan : Configuration -> Set{ALGEBRAICLOOPAsTRIV} .
     op dfs : Set{EPortIdAsTRIV} Environment Configuration -> DFSR .
     op dfs1 : EPortId Environment Configuration -> DFSR .
 
     var P : EPortId .
-    vars PORTSET SUCCESORS : Set{EPortIdAsTRIV} .
+    vars REACTIVEPORTS PORTSET SUCCESORS : Set{EPortIdAsTRIV} .
     var IM : Set{IndexMapAsTRIV} .
-    var C : Configuration .
+    var CONF : Configuration .
     var SCCs : SetList{EPortIdAsTRIV} .
     var N N1 N2 : NzNat .
     var M : Nat .
@@ -18,43 +19,59 @@ load Environment
     vars DFSRESULT DFSRESULT1 : DFSR .
     var STACKTUPLE : PStackTuple .
     vars OLDSTACK STACK SCCSTACK : List{EPortIdAsTRIV} .
+    var LOOPS : Set{ALGEBRAICLOOPAsTRIV} .
+    vars SUIDs REACTIVESUs : Set{OIdAsTRIV} .
+    var SU : SUID .
+    var LOOP : AlgebraicLoop .
 
-    ceq tarjan(C) = getLoops(dfsrEnv(dfs(PORTSET, E, C)), C) 
-        if PORTSET := getAllPorts(C, empty) /\ IM := createIndexMap(PORTSET, empty) /\ 
+    ceq tarjan(CONF) = getLoops(dfsrEnv(dfs(PORTSET, E, CONF)), CONF) 
+        if PORTSET := getAllPorts(CONF, empty) /\ IM := createIndexMap(PORTSET, empty) /\ 
         E := env(emptyList, nil, 1, IM) .
 
+
+    eq loopsInStepNegotiation(empty, SUIDs, CONF) = empty .
+    eq loopsInStepNegotiation(LOOPS, empty, CONF) = empty .
+    ceq loopsInStepNegotiation((AlgebraicLoop: PORTSET Type: R) ;; LOOPS, SU ;; SUIDs, CONF) = 
+            (AlgebraicLoop: PORTSET Type: R) ;; loopsInStepNegotiation(LOOPS, SU ;; SUIDs, CONF)
+        if REACTIVEPORTS := getAllReactivePorts(CONF, empty)
+        /\ REACTIVESUs := getSUs(REACTIVEPORTS, empty)
+        /\ SU in REACTIVESUs .
+
+    eq loopsInStepNegotiation(LOOP ;; LOOPS, SUIDs, CONF) = 
+        loopsInStepNegotiation(LOOPS, SUIDs, CONF) [owise] .
+
     *** P has been visisted before - N is non-zero!
-    ceq dfs(P ;; PORTSET, env(STACK, SCCs, M, map(P, N) ;; IM), C) = natEnv(min(N, N1), E) 
-       if DFSRESULT := dfs(PORTSET, env(STACK, SCCs, M, map(P, N) ;; IM), C) 
+    ceq dfs(P ;; PORTSET, env(STACK, SCCs, M, map(P, N) ;; IM), CONF) = natEnv(min(N, N1), E) 
+       if DFSRESULT := dfs(PORTSET, env(STACK, SCCs, M, map(P, N) ;; IM), CONF) 
        /\ N1 := num(DFSRESULT) 
        /\ E := dfsrEnv(DFSRESULT) .
 
     *** Dead end - no successor!
-    eq dfs(empty, E, C) = natEnv(100000, E) .
+    eq dfs(empty, E, CONF) = natEnv(100000, E) .
 
     *** P has not been visited before - none of the other cases match
-    ceq dfs(P ;; PORTSET, E, C) = natEnv(min(N1, N2), E2) 
-        if DFSRESULT := dfs1(P, E, C) /\
+    ceq dfs(P ;; PORTSET, E, CONF) = natEnv(min(N1, N2), E2) 
+        if DFSRESULT := dfs1(P, E, CONF) /\
             E1 := dfsrEnv(DFSRESULT) /\
             N1 := num(DFSRESULT) /\
-            DFSRESULT1 := dfs(PORTSET, E1, C) /\
+            DFSRESULT1 := dfs(PORTSET, E1, CONF) /\
             N2 := num(DFSRESULT1) /\
             E2 := dfsrEnv(DFSRESULT1) 
          [owise] .
 
     *** If we can find a Node with a lower index we use the lower index
-    ceq dfs1(P, E, C) = dfs(SUCCESORS, E1, C)
-        if SUCCESORS := findSuccesors(P, C) /\ 
+    ceq dfs1(P, E, CONF) = dfs(SUCCESORS, E1, CONF)
+        if SUCCESORS := findSuccesors(P, CONF) /\ 
            E1 := addStackIncr(P, E) /\ 
-           (num (dfs(SUCCESORS, E1, C)) < getSN(E)) .
+           (num (dfs(SUCCESORS, E1, CONF)) < getSN(E)) .
             
 
     *** If we cannot find a Node with a lower index
-    ceq dfs1(P, E, C) = natEnv(100000, 
+    ceq dfs1(P, E, CONF) = natEnv(100000, 
             env(OLDSTACK, getSCC(DFSRESULT) ; elems(SCCSTACK), getSN(dfsrEnv(DFSRESULT)), setInfty(SCCSTACK, getIM(DFSRESULT))))
-                if SUCCESORS := findSuccesors(P, C) 
+                if SUCCESORS := findSuccesors(P, CONF) 
                 /\ E1 := addStackIncr(P, E) 
-                /\ DFSRESULT := dfs(SUCCESORS, E1, C) 
+                /\ DFSRESULT := dfs(SUCCESORS, E1, CONF) 
                 /\ STACKTUPLE := split(P, getStack(DFSRESULT))
                 /\ OLDSTACK := sndStack(STACKTUPLE) 
                 /\ SCCSTACK := fstStack(STACKTUPLE) [owise] .    

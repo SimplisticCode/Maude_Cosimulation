@@ -11,7 +11,7 @@ load LOOPSolver
   op needsStepNegotiation : Set{OIdAsTRIV} -> Bool .
   op getStep : findStepPair -> NzNat .
   op getAL : findStepPair -> ActionList .
-  op stepFindingDone : Set{OIdAsTRIV}  Configuration NzNat -> Bool .
+  op stepFindingDone : Set{OIdAsTRIV} Configuration NzNat -> Bool .
 
    vars ID1 ID2 : SUID .
    var SUIDs : Set{OIdAsTRIV} .

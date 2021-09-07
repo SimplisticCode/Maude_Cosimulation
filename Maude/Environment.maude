@@ -117,7 +117,7 @@ endfm)
     *** Splits the stack at P
     eq split(P, emptyList) = pTuple(emptyList, emptyList) . *** Nothing is on the stack
     ceq split(P, STACK) = pTuple(STACK1, STACK2) 
-        if index := indexOf(P, STACK) /\ 
+        if index := indexOf(P, STACK, 0) /\ 
             STACK1 := take index from STACK /\
             STACK2 := throw index from STACK . *** P is on the stack
 

@@ -68,7 +68,7 @@ load Environment
 
     *** If we cannot find a Node with a lower index
     ceq dfs1(P, E, CONF) = natEnv(100000, 
-            env(OLDSTACK, getSCC(DFSRESULT) ; elems(SCCSTACK), getSN(dfsrEnv(DFSRESULT)), setInfty(SCCSTACK, getIM(DFSRESULT))))
+            env(OLDSTACK, getSCC(DFSRESULT) ; elems(SCCSTACK, empty), getSN(dfsrEnv(DFSRESULT)), setInfty(SCCSTACK, getIM(DFSRESULT))))
                 if SUCCESORS := findSuccesors(P, CONF) 
                 /\ E1 := addStackIncr(P, E) 
                 /\ DFSRESULT := dfs(SUCCESORS, E1, CONF) 

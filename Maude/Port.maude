@@ -16,34 +16,33 @@ load GenericDT
  ops Def Undef : -> PortStatus [ctor] .
 
  op _in_ : Connection Configuration -> Bool . 
- op elems : List{EPortIdAsTRIV} -> Set{EPortIdAsTRIV} .
- op getPortIDSet : Configuration -> Set{OIdAsTRIV} .
- op getPortFromMap : Set{PortValueMapEntryAsTRIV} -> Set{OIdAsTRIV} .
- op indexOf : EPortId List{EPortIdAsTRIV} -> Nat .
+ op elems : List{EPortIdAsTRIV} Set{EPortIdAsTRIV} -> Set{EPortIdAsTRIV} .
+ op getPortFromMap : Set{PortValueMapEntryAsTRIV} Set{OIdAsTRIV} -> Set{OIdAsTRIV} .
+ op indexOf : EPortId List{EPortIdAsTRIV} Nat -> Nat .
 
  var PID : PortId .
  vars PORT PORTX : EPortId .
- var CONF PORTS : Configuration .
+ var CONF : Configuration .
  var CON : Connection .
  var STACK : List{EPortIdAsTRIV} .
  vars TIME VALUE : Nat .
  var PORTMAP : Set{PortValueMapEntryAsTRIV} .
+ var PORTIDSET : Set{OIdAsTRIV} .
+ var PORTSET : Set{EPortIdAsTRIV} .
 
- eq getPortIDSet(none) = empty .
- eq getPortIDSet(< PID : Output | > PORTS) = PID ;; getPortIDSet(PORTS) .
+*** Make stuff tail recursive
+ eq elems(emptyList, PORTSET) = PORTSET .
+ eq elems(PORT :: STACK, PORTSET) = elems(STACK, PORT ;; PORTSET) .
 
- eq elems(emptyList) = empty .
- eq elems(PORT :: STACK) = PORT ;; elems(STACK) .
-
- eq indexOf(PORT, PORT :: STACK) = 1 .
- eq indexOf(PORT, PORTX :: STACK) = 1 + indexOf(PORT, STACK) .
- eq indexOf(PORT, emptyList) = 1 .
+ eq indexOf(PORT, PORT :: STACK, VALUE) = 1 + VALUE .
+ eq indexOf(PORT, PORTX :: STACK, VALUE) = indexOf(PORT, STACK, VALUE + 1) .
+ eq indexOf(PORT, emptyList, VALUE) = 1 + VALUE .
 
  eq CON in CON CONF = true .
  eq CON in CONF = false [owise] .
 
- eq getPortFromMap(empty) = empty .
- eq getPortFromMap((PID => < TIME ; VALUE >) ;; PORTMAP) = PID ;; getPortFromMap(PORTMAP) .
+ eq getPortFromMap(empty, PORTIDSET) = PORTIDSET .
+ eq getPortFromMap((PID => < TIME ; VALUE >) ;; PORTMAP, PORTIDSET) = getPortFromMap(PORTMAP, PID ;; PORTIDSET) .
 
 endom)
 

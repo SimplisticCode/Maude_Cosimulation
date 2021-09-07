@@ -77,7 +77,7 @@ load Scenario
   ceq performGlobalStep(CONF < ID1 : SU | time : TIME, inputs : INPUTS > Algorithm: ALGO) = 
       performGlobalStep(CONF SUINSTANCE Algorithm: (ALGO ; EVENT))
                         if PORTVALUES := ValuesToSet(INPUTS, ID1, TIME, CONF) 
-                        /\ PORTIDSET := getPortFromMap(PORTVALUES) 
+                        /\ PORTIDSET := getPortFromMap(PORTVALUES,empty) 
                         /\ PORTVALUES =/= empty 
                         /\ SUINSTANCE := setActionPortMap( < ID1 : SU | >, PORTVALUES) 
                         /\ EVENT := portEvent: Set SU: ID1 PId: PORTIDSET .
@@ -129,7 +129,6 @@ load Scenario
 
   *** Error handling in Maude
 
-
   *** Initalization Procedure 
   crl [get-init] : < ID1 : SU | outputs : OUTPUTS, inputs : INPUTS, state : Initialize > Algorithm: ALGO 
                   => SUINSTANCE Algorithm: (ALGO ; EVENT) 
@@ -142,7 +141,7 @@ load Scenario
    crl [set-init] : < ID1 : SU | inputs : INPUTS, state : Initialize > Algorithm: ALGO CONF
                         => SUINSTANCE Algorithm: (ALGO ; EVENT) CONF
                     if PORTVALUES := ValuesToSetInit(INPUTS, ID1, CONF) 
-                      /\ PORTIDSET := getPortFromMap(PORTVALUES) 
+                      /\ PORTIDSET := getPortFromMap(PORTVALUES, empty) 
                       /\ PORTVALUES =/= empty 
                       /\ SUINSTANCE := setActionPortMap( < ID1 : SU | >, PORTVALUES) 
                       /\ EVENT := portEvent: Set SU: ID1 PId: PORTIDSET .

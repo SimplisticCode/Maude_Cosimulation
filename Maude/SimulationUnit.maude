@@ -9,6 +9,7 @@ load Algorithm
 
    ***Classes
    class SU | path : String, time : Nat, inputs : Configuration, outputs : Configuration, canReject : Bool, state : fmiState .
+   
    op askStepSize : Object NzNat -> NzNat .
    op feedthroughSatisfied : Set{OIdAsTRIV} Configuration Nat -> Bool .
    op allDef : Configuration Nat -> Bool .

@@ -105,41 +105,41 @@ load Scenario
   ceq performGlobalStep(CONF) = CONF if simulationStepDone(CONF) .
 
   *** FMI-standard state transition:
-  rl [setExp] : < ID1 : SU | state : Instantiated > Algorithm: ALGO 
-                 => < ID1 : SU | state : ExperimentSetup > Algorithm: (ALGO ; (fmiEvent: CreateExp SU: ID1)) .
+  rl [setExp] : < ID1 : SU | state : Instantiated > Initialization: ALGO 
+                 => < ID1 : SU | state : ExperimentSetup > Initialization: (ALGO ; (fmiEvent: CreateExp SU: ID1)) .
 
-  rl [init] : < ID1 : SU | inputs : INPUTS , outputs : OUTPUTS, state : ExperimentSetup >  Algorithm: ALGO 
+  rl [init] : < ID1 : SU | inputs : INPUTS , outputs : OUTPUTS, state : ExperimentSetup >  Initialization: ALGO 
            => < ID1 : SU | inputs : undefPorts(INPUTS, 0), outputs : undefPorts(OUTPUTS, 0), state : Initialize > 
-              Algorithm: (ALGO ; (fmiEvent: EnterInitialization SU: ID1)).
+              Initialization: (ALGO ; (fmiEvent: EnterInitialization SU: ID1)).
 
-  crl [simulate] : < ID1 : SU | inputs : INPUTS , outputs : OUTPUTS, state : Initialize > CONF Algorithm: ALGO 
-                => < ID1 : SU | state : Simulation > CONF Algorithm: (ALGO ; EVENT)
+  crl [simulate] : < ID1 : SU | inputs : INPUTS , outputs : OUTPUTS, state : Initialize > CONF Initialization: ALGO 
+                => < ID1 : SU | state : Simulation > CONF Initialization: (ALGO ; EVENT)
                 if allDef(INPUTS, 0) and allDef(OUTPUTS, 0) and allInputsSet(CONF) 
                 /\ EVENT := fmiEvent: ExitInitialization SU: ID1 .
 
-  crl [terminate] : < ID1 : SU | time : TIME, inputs : INPUTS , outputs : OUTPUTS , state : Simulation > endTime: TIME Algorithm: ALGO 
-                 => < ID1 : SU | state : Terminated > endTime: TIME Algorithm: (ALGO ; (fmiEvent: Terminate SU: ID1))
+  crl [terminate] : < ID1 : SU | time : TIME, inputs : INPUTS , outputs : OUTPUTS , state : Simulation > endTime: TIME Termination: ALGO 
+                 => < ID1 : SU | state : Terminated > endTime: TIME Termination: (ALGO ; (fmiEvent: Terminate SU: ID1))
                  if allDef(OUTPUTS, TIME) and allDef(INPUTS, TIME) .
 
-  rl [free] : < ID1 : SU | state : Terminated > Algorithm: ALGO 
-           => < ID1 : SU | state : InstanceFreed > Algorithm: (ALGO ; (fmiEvent: FreeInstance SU: ID1)) .
+  rl [free] : < ID1 : SU | state : Terminated > Termination: ALGO 
+           => < ID1 : SU | state : InstanceFreed > Termination: (ALGO ; (fmiEvent: FreeInstance SU: ID1)) .
 
-  rl [unload] : < ID1 : SU | state : InstanceFreed > Algorithm: ALGO
-              => < ID1 : SU | state : Unloaded > Algorithm: (ALGO ; (fmiEvent: Unload SU: ID1)) .
+  rl [unload] : < ID1 : SU | state : InstanceFreed > Termination: ALGO
+              => < ID1 : SU | state : Unloaded > Termination: (ALGO ; (fmiEvent: Unload SU: ID1)) .
 
   *** Error handling in Maude
 
-  *** Initalization Procedure 
-  crl [get-init] : < ID1 : SU | outputs : OUTPUTS, inputs : INPUTS, state : Initialize > Algorithm: ALGO 
-                  => SUINSTANCE Algorithm: (ALGO ; EVENT) 
+  *** Initialization Procedure 
+  crl [get-init] : < ID1 : SU | outputs : OUTPUTS, inputs : INPUTS, state : Initialize > Initialization: ALGO 
+                  => SUINSTANCE Initialization: (ALGO ; EVENT) 
                 if PORTIDSET := getEnableOutputs(OUTPUTS, INPUTS, 0)
                   /\ PORTIDSET =/= empty 
                   /\ SUINSTANCE := getAction(< ID1 : SU | >, PORTIDSET)
                   /\ EVENT := portEvent: Get SU: ID1 PId: PORTIDSET . 
 
    *** Inputs can only rely on one connection 
-   crl [set-init] : < ID1 : SU | inputs : INPUTS, state : Initialize > Algorithm: ALGO CONF
-                        => SUINSTANCE Algorithm: (ALGO ; EVENT) CONF
+   crl [set-init] : < ID1 : SU | inputs : INPUTS, state : Initialize > Initialization: ALGO CONF
+                        => SUINSTANCE Initialization: (ALGO ; EVENT) CONF
                     if PORTVALUES := ValuesToSetInit(INPUTS, ID1, CONF, empty) 
                       /\ PORTIDSET := getPortFromMap(PORTVALUES, empty) 
                       /\ PORTVALUES =/= empty 

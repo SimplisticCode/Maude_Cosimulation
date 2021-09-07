@@ -60,6 +60,6 @@ eq simulationUnits = (< 'env : SU | path : "A" , time : 0, inputs : none, output
   ceq setup = { CONF }
     if SCENARIOMODEL := scenario(externalConnection, simulationUnits)
     /\ SCCs := tarjan(SCENARIOMODEL)
-    /\ CONF := calculateSNSet(SCENARIOMODEL stepSize: 1 endTime: 1 Algorithm: emptyList SNSet: empty guessOn: empty SolvedSCC: empty UnsolvedSCC: SCCs) .
+    /\ CONF := calculateSNSet(SCENARIOMODEL stepSize: 1 endTime: 1 Algorithm: emptyList Termination: emptyList Initialization: emptyList SNSet: empty guessOn: empty SolvedSCC: empty UnsolvedSCC: SCCs) .
    
 endom)

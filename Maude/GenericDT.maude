@@ -156,7 +156,7 @@ endfm)
     protecting PORTID + PORTVALUE .
     sort PortValueMapEntry .
     op _=>_ : PortId Pair{NatAsTRIV, NatAsTRIV} -> PortValueMapEntry [ctor] .
-endfm )
+endfm)
 
 
 (view PortValueMapEntryAsTRIV from TRIV to PORTVALUEMAPENTRY is
@@ -166,4 +166,19 @@ endv)
 
 (fmod PORTVALUEMAP is
     pr SETLIST{PortValueMapEntryAsTRIV} .
+endfm)
+
+(fmod DOSTEPMAPENTRY is
+    protecting PORTVALUEMAPENTRY .
+    sort DoStepMapEntry .
+    op _=>_ : Pair{OIdAsTRIV, NatAsTRIV} NatAsTRIV -> DoStepMapEntry [ctor] .
+endfm)
+
+(view DoStepMapEntryAsTRIV from TRIV to DOSTEPMAPENTRY is
+  protecting DOSTEPMAPENTRY .
+  sort Elt to DoStepMapEntry .
+endv)
+
+(fmod DOSTEPEMAP is
+    pr BASICSET{DoStepMapEntryAsTRIV} .
 endfm)

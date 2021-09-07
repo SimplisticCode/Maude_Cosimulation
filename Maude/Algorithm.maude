@@ -43,6 +43,7 @@ endfm)
  op UnsolvedSCC:_ : Set{ALGEBRAICLOOPAsTRIV} -> Configuration [ctor format(nim! d d)] . 
  op SolvedSCC:_ : Set{ALGEBRAICLOOPAsTRIV} -> Configuration [ctor format(nim! d d)] . 
  op guessOn:_ : Set{EPortIdAsTRIV} -> Configuration [ctor format(nip! d d)] .
+ op valuesToSet:_ : Set{PortValueMapEntryAsTRIV} -> Configuration .
 
  *** Operations
  op _memberOf_ : EPortId Set{ALGEBRAICLOOPAsTRIV} -> Bool . 

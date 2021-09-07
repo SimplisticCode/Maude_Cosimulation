@@ -1,12 +1,6 @@
 load SimulationUnit
 
 
-
-(view ConfigurationAsTRIV from TRIV to CONFIGURATION is
-  sort Elt to Configuration .
-endv)
-
-
 (omod LOOPSolver is 
   protecting SimulationUnit .
     sorts Pair .
@@ -74,7 +68,7 @@ endv)
                     /\ SUINSTANCE := setAction(< ID1 : SU | >, INPUT, VALUE, FUTURETIME)
                     /\ (CONTRACT == r and T1 == TIME) or (CONTRACT == d and TIME == FUTURETIME) .
 
-    *** Set value on input - Fix
+    *** Set value on input
     ceq loopStep((ID1 ! INPUT) ;; PSet, 
                       < ID1 : SU | inputs : (< INPUT : Input | time : TIME, contract : CONTRACT > INPUTS) > 
                       < ID2 : SU | outputs : (< OUTPUT : Output | value : VALUE, time : FUTURETIME, status : Def > OUTPUTS) > (ID2 ! OUTPUT ==> ID1 ! INPUT) CONF, ALGO) = 

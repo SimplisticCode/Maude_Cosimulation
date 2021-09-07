@@ -2,9 +2,11 @@ load GenericDT
 
 (omod Ports is 
  protecting QID + NAT + PORTMAPENTRY + EPORTSET + OIDSET + PORTMAPSET + EPORTLIST + PORTSCC + PORTVALUEMAP .
- sorts Contract PortStatus Connection PortType .
+ sorts Contract PortStatus Connection PortType Value .
  op _==>_ : EPortId EPortId -> Connection [ctor format(niy! d d d)] .
  subsort Connection < Configuration .
+ ***subsort Nat < Value .
+ ***subsort Bool < Value .
 
  *** Values are currently natural numbers - maybe different types should be different syb-types
  class Port | value : Nat, type : PortType, time : Nat, status : PortStatus . 

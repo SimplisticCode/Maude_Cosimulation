@@ -9,8 +9,8 @@ load Scenario
    op allSUinSimulation : Configuration -> Bool .
    op simulationStepDone : Configuration -> Bool .
    op getEnableOutputs : Configuration Configuration Nat -> Set{OIdAsTRIV} .
-   op ValuesToSet : Configuration SUID Nat Configuration -> Set{PortValueMapEntryAsTRIV} .
-   op ValuesToSetInit : Configuration SUID Configuration -> Set{PortValueMapEntryAsTRIV} .
+   op ValuesToSet : Configuration SUID Nat Configuration Set{PortValueMapEntryAsTRIV} -> Set{PortValueMapEntryAsTRIV} .
+   op ValuesToSetInit : Configuration SUID Configuration Set{PortValueMapEntryAsTRIV} -> Set{PortValueMapEntryAsTRIV} .
 
    vars ID1 ID2 : SUID .
    vars INPUT OUTPUT : PortId .
@@ -58,25 +58,25 @@ load Scenario
 
   eq getEnableOutputs(< OUTPUT : Output | > OUTPUTS, INPUTS, TIME) = getEnableOutputs(OUTPUTS, INPUTS, TIME) [owise] .
 
-  eq ValuesToSet(none, ID1, TIME, CONF) = empty .
+  eq ValuesToSet(none, ID1, TIME, CONF, PORTVALUES) = PORTVALUES .
   ceq ValuesToSet(< INPUT : Input | time : TIME1, contract : INPUTTYPE > INPUTS, ID1, TIME,
-                                CONF < ID2 : SU | outputs : (< OUTPUT : Output | value : VALUE, time : TIME2, status : Def > OUTPUTS) > (ID2 ! OUTPUT ==> ID1 ! INPUT)) 
-                        = (INPUT => < TIME2 ; VALUE >) ;; ValuesToSet(INPUTS, ID1, TIME, CONF < ID2 : SU | > (ID2 ! OUTPUT ==> ID1 ! INPUT)) 
+                                CONF < ID2 : SU | outputs : (< OUTPUT : Output | value : VALUE, time : TIME2, status : Def > OUTPUTS) > (ID2 ! OUTPUT ==> ID1 ! INPUT), PORTVALUES) 
+                        = ValuesToSet(INPUTS, ID1, TIME, CONF < ID2 : SU | > (ID2 ! OUTPUT ==> ID1 ! INPUT), (INPUT => < TIME2 ; VALUE >) ;; PORTVALUES) 
                         if TIME1 < TIME2 and ((INPUTTYPE == d and TIME1 < TIME) or (INPUTTYPE == r and TIME == TIME1)) .
 
-  eq ValuesToSet(< INPUT : Input | > INPUTS, ID1, TIME, CONF) = ValuesToSet(INPUTS, ID1, TIME, CONF) [owise] .
+  eq ValuesToSet(< INPUT : Input | > INPUTS, ID1, TIME, CONF, PORTVALUES) = ValuesToSet(INPUTS, ID1, TIME, CONF, PORTVALUES) [owise] .
 
-  eq ValuesToSetInit(none, ID1, CONF) = empty .
+  eq ValuesToSetInit(none, ID1, CONF, PORTVALUES) = PORTVALUES .
   eq ValuesToSetInit(< INPUT : Input | status : Undef > INPUTS, ID1, 
-                    CONF < ID2 : SU | outputs : (< OUTPUT : Output | value : VALUE, status : Def > OUTPUTS) > (ID2 ! OUTPUT ==> ID1 ! INPUT)) 
-                        = (INPUT => < 0 ; VALUE >) ;; ValuesToSetInit(INPUTS, ID1, CONF < ID2 : SU | outputs : (< OUTPUT : Output | status : Def > OUTPUTS) > ) .
-  eq ValuesToSetInit(< INPUT : Input | > INPUTS, ID1, CONF) = ValuesToSetInit(INPUTS, ID1, CONF) [owise] .
+                    CONF < ID2 : SU | outputs : (< OUTPUT : Output | value : VALUE, status : Def > OUTPUTS) > (ID2 ! OUTPUT ==> ID1 ! INPUT), PORTVALUES) 
+                        = ValuesToSetInit(INPUTS, ID1, CONF < ID2 : SU | outputs : (< OUTPUT : Output | status : Def > OUTPUTS) >, (INPUT => < 0 ; VALUE >) ;; PORTVALUES) .
+  eq ValuesToSetInit(< INPUT : Input | > INPUTS, ID1, CONF, PORTVALUES) = ValuesToSetInit(INPUTS, ID1, CONF, PORTVALUES) [owise] .
 
   *** Perform the global simulation step
   *** Set input                     
   ceq performGlobalStep(CONF < ID1 : SU | time : TIME, inputs : INPUTS > Algorithm: ALGO) = 
       performGlobalStep(CONF SUINSTANCE Algorithm: (ALGO ; EVENT))
-                        if PORTVALUES := ValuesToSet(INPUTS, ID1, TIME, CONF) 
+                        if PORTVALUES := ValuesToSet(INPUTS, ID1, TIME, CONF, empty) 
                         /\ PORTIDSET := getPortFromMap(PORTVALUES,empty) 
                         /\ PORTVALUES =/= empty 
                         /\ SUINSTANCE := setActionPortMap( < ID1 : SU | >, PORTVALUES) 
@@ -140,7 +140,7 @@ load Scenario
    *** Inputs can only rely on one connection 
    crl [set-init] : < ID1 : SU | inputs : INPUTS, state : Initialize > Algorithm: ALGO CONF
                         => SUINSTANCE Algorithm: (ALGO ; EVENT) CONF
-                    if PORTVALUES := ValuesToSetInit(INPUTS, ID1, CONF) 
+                    if PORTVALUES := ValuesToSetInit(INPUTS, ID1, CONF, empty) 
                       /\ PORTIDSET := getPortFromMap(PORTVALUES, empty) 
                       /\ PORTVALUES =/= empty 
                       /\ SUINSTANCE := setActionPortMap( < ID1 : SU | >, PORTVALUES) 

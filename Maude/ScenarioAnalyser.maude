@@ -3,7 +3,7 @@ load Environment
 (omod ScenarioAnalyser is
     protecting ScenarioEnvironment .
 
-    op loopsInStepNegotiation : Set{ALGEBRAICLOOPAsTRIV} Set{OIdAsTRIV} Configuration -> Set{ALGEBRAICLOOPAsTRIV} .
+    op loopsInStepNegotiation : Set{ALGEBRAICLOOPAsTRIV} Set{OIdAsTRIV} Configuration Set{ALGEBRAICLOOPAsTRIV} -> Set{ALGEBRAICLOOPAsTRIV} .
     op tarjan : Configuration -> Set{ALGEBRAICLOOPAsTRIV} .
     op dfs : Set{EPortIdAsTRIV} Environment Configuration -> DFSR .
     op dfs1 : EPortId Environment Configuration -> DFSR .
@@ -19,7 +19,7 @@ load Environment
     vars DFSRESULT DFSRESULT1 : DFSR .
     var STACKTUPLE : PStackTuple .
     vars OLDSTACK STACK SCCSTACK : List{EPortIdAsTRIV} .
-    var LOOPS : Set{ALGEBRAICLOOPAsTRIV} .
+    var LOOPS LOOPSRES : Set{ALGEBRAICLOOPAsTRIV} .
     vars SUIDs REACTIVESUs : Set{OIdAsTRIV} .
     var SU : SUID .
     var LOOP : AlgebraicLoop .
@@ -29,16 +29,16 @@ load Environment
         E := env(emptyList, nil, 1, IM) .
 
 
-    eq loopsInStepNegotiation(empty, SUIDs, CONF) = empty .
-    eq loopsInStepNegotiation(LOOPS, empty, CONF) = empty .
-    ceq loopsInStepNegotiation((AlgebraicLoop: PORTSET Type: R) ;; LOOPS, SU ;; SUIDs, CONF) = 
-            (AlgebraicLoop: PORTSET Type: R) ;; loopsInStepNegotiation(LOOPS, SU ;; SUIDs, CONF)
+    eq loopsInStepNegotiation(empty, SUIDs, CONF, LOOPSRES) = LOOPSRES .
+    eq loopsInStepNegotiation(LOOPS, empty, CONF, LOOPSRES) = LOOPSRES .
+    ceq loopsInStepNegotiation((AlgebraicLoop: PORTSET Type: R) ;; LOOPS, SU ;; SUIDs, CONF, LOOPSRES) = 
+            loopsInStepNegotiation(LOOPS, SU ;; SUIDs, CONF, (AlgebraicLoop: PORTSET Type: R) ;; LOOPSRES)
         if REACTIVEPORTS := getAllReactivePorts(CONF, empty)
         /\ REACTIVESUs := getSUs(REACTIVEPORTS, empty)
         /\ SU in REACTIVESUs .
 
-    eq loopsInStepNegotiation(LOOP ;; LOOPS, SUIDs, CONF) = 
-        loopsInStepNegotiation(LOOPS, SUIDs, CONF) [owise] .
+    eq loopsInStepNegotiation(LOOP ;; LOOPS, SUIDs, CONF, LOOPSRES) = 
+        loopsInStepNegotiation(LOOPS, SUIDs, CONF, LOOPSRES) [owise] .
 
     *** P has been visisted before - N is non-zero!
     ceq dfs(P ;; PORTSET, env(STACK, SCCs, M, map(P, N) ;; IM), CONF) = natEnv(min(N, N1), E) 

@@ -30,7 +30,6 @@ load GenericDT
  var PORTIDSET : Set{OIdAsTRIV} .
  var PORTSET : Set{EPortIdAsTRIV} .
 
-*** Make stuff tail recursive
  eq elems(emptyList, PORTSET) = PORTSET .
  eq elems(PORT :: STACK, PORTSET) = elems(STACK, PORT ;; PORTSET) .
 
@@ -49,6 +48,7 @@ endom)
 
 eof
 
+*** Test of methods
 (red ('P ;; 'Q ;; 'S) .)
 (red 'P in ('P ;; 'Q ;; 'S) .)
 (red ('SU1 ! 'R) :: ('SU1 ! 'Q) :: ('SU1 ! 'S) . )

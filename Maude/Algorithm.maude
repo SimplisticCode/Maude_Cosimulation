@@ -70,6 +70,6 @@ endom)
 
 
 eof
-(red getSUs(('SU2 ! 'R) ;; ('SU1 ! 'S) ;; ('SU1 ! 'T), empty) . )
+(red getSUs((('SU2 ! 'R) , ('SU1 ! 'S), ('SU1 ! 'T)), empty) . )
 
 (red getSUs(empty, empty) . )

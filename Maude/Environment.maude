@@ -3,9 +3,10 @@ load SimulationUnit
 (fmod ENVIRONMENT is
   protecting SCC-MAP + INDEX-MAP + SimulationUnit .
   sort Environment .
-  op env : PortList SCCMap Nat IndexMap -> Environment [ctor] .
+  op env : PortList SCCMap Nat Nat IndexMap -> Environment [ctor] .
     *** Get fields in Environment
     op getSN : Environment -> Nat .
+    op getSCCN : Environment -> Nat .
     op getStack : Environment -> PortList .
     op getSCC : Environment -> SCCMap .
     op getIM : Environment -> IndexMap .
@@ -13,14 +14,15 @@ load SimulationUnit
     var IM : IndexMap .
     var STACK : PortList .
     var SCCs : SCCMap .
-    var INDEX : Nat .
+    vars INDEX SCCNUMBER : Nat .
 
     *** Projection function
-    eq getStack(env(STACK, SCCs, INDEX, IM)) = STACK .
-    eq getSN(env(STACK, SCCs, INDEX, IM)) = INDEX .
-    eq getSCC(env(STACK, SCCs, INDEX, IM)) = SCCs .
-    eq getIM(env(STACK, SCCs, INDEX, IM)) = IM .
-    
+    eq getStack(env(STACK, SCCs, INDEX, SCCNUMBER, IM)) = STACK .
+    eq getSN(env(STACK, SCCs, INDEX, SCCNUMBER, IM)) = INDEX .
+    eq getSCC(env(STACK, SCCs, INDEX, SCCNUMBER, IM)) = SCCs .
+    eq getIM(env(STACK, SCCs, INDEX, SCCNUMBER, IM)) = IM .
+    eq getSCCN(env(STACK, SCCs, INDEX, SCCNUMBER, IM)) = SCCNUMBER .
+
 endfm) 
 
 (view ENVAsTRIV from TRIV to ENVIRONMENT is
@@ -59,27 +61,30 @@ endfm)
     vars SCCs : SCCMap .
     var LOOPS : AlgebraicLoopSet .
     var NONZERO : NzNat .
-    vars M INDEX : Nat .
+    vars M INDEX SCCNUMBER : Nat .
     var ENV : Environment .
     var PORTPAIR : PortListPair .
 
     *** Add the element to the stack, update the INDEX of the node and increments the counter
-    eq addStackIncr(PORT, env(STACK, SCCs, INDEX, ((PORT |-> M) , IM))) = env(PORT  STACK, SCCs, (INDEX + 1), insert(PORT, INDEX, IM)) .
+    eq addStackIncr(PORT, env(STACK, SCCs, INDEX, SCCNUMBER, ((PORT |-> M) , IM))) = env(PORT STACK, SCCs, (INDEX + 1), SCCNUMBER, insert(PORT, INDEX, IM)) .
 
     *** The node has been visited if its INDEX is non-zero
-    eq nodeHasBeenVisited(PORT, env(STACK, SCCs, INDEX, ((PORT |-> NONZERO) , IM))) = true .
+    eq nodeHasBeenVisited(PORT, env(STACK, SCCs, INDEX, SCCNUMBER, ((PORT |-> NONZERO) , IM))) = true .
     eq nodeHasBeenVisited(PORT, ENV) = false [owise] .
   
     *** Transform environment to Algebraic Loops
-    eq getLoops(env(STACK, SCCs , INDEX, IM), CONF) = createAlgebraic(SCCs, CONF, empty) .
+    eq getLoops(env(STACK, SCCs , INDEX, SCCNUMBER, IM), CONF) = createAlgebraic(SCCs, CONF, empty) .
 
     ***Encode everything as algebraic loops:
     *** No more SCC to look at
     eq createAlgebraic(empty, CONF, LOOPS) = LOOPS .
-    ceq createAlgebraic(((INDEX |-> PORTSET), SCCs), CONF, LOOPS) = createAlgebraic(SCCs, CONF, ((AlgebraicLoop: PORTSET Type: R), LOOPS))  
-        if size(PORTSET) > 1 and isReactiveLoop(PORTSET, CONF) .
-    ceq createAlgebraic(((INDEX |-> PORTSET), SCCs), CONF, LOOPS) = createAlgebraic(SCCs, CONF, ((AlgebraicLoop: PORTSET Type: F), LOOPS))  
-        if size(PORTSET) > 1 and not(isReactiveLoop(PORTSET, CONF)) .
+    ceq createAlgebraic(((INDEX |-> STACK), SCCs), CONF, LOOPS) = createAlgebraic(SCCs, CONF, ((AlgebraicLoop: PORTSET Type: R), LOOPS))  
+        if PORTSET := elems(STACK, empty)
+        /\ size(STACK) > 1 and isReactiveLoop(PORTSET, CONF) .
+
+    ceq createAlgebraic(((INDEX |-> STACK), SCCs), CONF, LOOPS) = createAlgebraic(SCCs, CONF, ((AlgebraicLoop: PORTSET Type: F), LOOPS))  
+        if PORTSET := elems(STACK, empty)
+        /\ size(STACK) > 1 and not(isReactiveLoop(PORTSET, CONF)) .
     
     *** Trivial SCC should be forgotten
     eq createAlgebraic(((INDEX |-> PORTSET) , SCCs), CONF, LOOPS) = createAlgebraic(SCCs, CONF, LOOPS) [owise] .

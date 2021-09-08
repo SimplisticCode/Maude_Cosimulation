@@ -39,11 +39,13 @@ load ScenarioAnalyser
 
 
   ***Encoding of the Scenario 
-eq externalConnection = ('msd1 ! 'x1 ==> 'msd2 ! 'x1) ('msd1 ! 'v1 ==> 'msd2 ! 'v1) ('msd2 ! 'fk ==> 'msd1 ! 'fk) .
+eq externalConnection = ('msd1 ! 'x1 ==> 'msd2 ! 'x1) ('msd1 ! 'v1 ==> 'msd2 ! 'v1) ('msd2 ! 'fk ==> 'msd1 ! 'fk) ('msd2 ! 'z ==> 'msd3 ! 'z) ('msd3 ! 'G ==> 'msd2 ! 'G) .
 
-eq simulationUnits = (< 'msd2 : SU | path : "A" , time : 0, inputs : (< 'x1 : Input | value : 0, type : integer, time : 0, contract : r, status : Undef  >) (< 'v1 : Input | value : 0, type : integer, time : 0, contract : r, status : Undef  >), outputs : (< 'fk : Output | value : 0, type : integer, time : 0, status : Undef, dependsOn : empty >), state : Instantiated, canReject : false >)
+eq simulationUnits = (< 'msd3 : SU | path : "A" , time : 0, inputs : (< 'z : Input | value : 0, type : integer, time : 0, contract : d, status : Undef  >), outputs : (< 'G : Output | value : 0, type : integer, time : 0, status : Undef, dependsOn : ( 'z ) >), state : Instantiated, canReject : true >)
 
- 	 (< 'msd1 : SU | path : "A" , time : 0, inputs : (< 'fk : Input | value : 0, type : integer, time : 0, contract : d, status : Undef  >), outputs : (< 'x1 : Output | value : 0, type : integer, time : 0, status : Undef, dependsOn : empty >) (< 'v1 : Output | value : 0, type : integer, time : 0, status : Undef, dependsOn : empty >), state : Instantiated, canReject : false >) .
+ 	 (< 'msd2 : SU | path : "A" , time : 0, inputs : (< 'v1 : Input | value : 0, type : integer, time : 0, contract : r, status : Undef  >) (< 'x1 : Input | value : 0, type : integer, time : 0, contract : d, status : Undef  >) (< 'G : Input | value : 0, type : integer, time : 0, contract : r, status : Undef  >), outputs : (< 'fk : Output | value : 0, type : integer, time : 0, status : Undef, dependsOn : ( 'x1 , 'v1 ) >) (< 'z : Output | value : 0, type : integer, time : 0, status : Undef, dependsOn : empty >), state : Instantiated, canReject : true >)
+
+ 	 (< 'msd1 : SU | path : "A" , time : 0, inputs : (< 'fk : Input | value : 0, type : integer, time : 0, contract : r, status : Undef  >), outputs : (< 'x1 : Output | value : 0, type : integer, time : 0, status : Undef, dependsOn : empty >) (< 'v1 : Output | value : 0, type : integer, time : 0, status : Undef, dependsOn : empty >), state : Instantiated, canReject : true >) .
 
 
 
@@ -63,3 +65,4 @@ eof
 ( red getAllPorts(scenario(externalConnection, simulationUnits), empty) .)
 
 ( red tarjan(scenario(externalConnection, simulationUnits)) . )
+

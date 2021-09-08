@@ -110,7 +110,7 @@ endfm)
                 < ID1 : SU | inputs : (< INPUT : Input | > INPUTS) > 
                 < ID2 : SU | outputs : (< OUTPUT : Output | > OUTPUTS) > 
                          (ID2 ! OUTPUT ==> ID1 ! INPUT) CONF, PORTSET) = 
-                    succesors(ID1 ! OUTPUT, < ID1 : SU | > < ID2 : SU | > 
+                    succesors(ID2 ! OUTPUT, < ID1 : SU | > < ID2 : SU | > 
                             (ID2 ! OUTPUT ==> ID1 ! INPUT) CONF, ((ID1 ! INPUT) , PORTSET)) 
                     if not (ID1 ! INPUT) in PORTSET .
 

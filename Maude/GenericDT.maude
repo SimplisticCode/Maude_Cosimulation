@@ -10,75 +10,10 @@ endfm)
  subsorts Qid < SUID < Oid .
 endfm)
 
-
 (fmod EPORTID is
     protecting SUID .
     sort EPortId .
     op _!_ : SUID PortId -> EPortId [ctor] .
-endfm)
-
-(fmod PORTMAPENTRY is
-    protecting PORTID .
-    sort PortMapEntry .
-    op _=>_ : PortId Nat -> PortMapEntry [ctor] .
-endfm )
-
-(fmod BASICSET{X :: TRIV} is
-    protecting BOOL + NAT .
-    sorts Set{X} NeSet{X} .
-    subsorts X$Elt < NeSet{X} < Set{X} .
-    op empty : -> Set{X} .
-    op _;;_ : Set{X} Set{X} -> Set{X} [assoc comm id: empty] .
-    op _;;_ : NeSet{X} NeSet{X} -> NeSet{X} [assoc comm id: empty] .
-    op _in_ : X$Elt Set{X} -> Bool .
-    op _-_ : Set{X} Set{X} -> Set{X} .
-    op size : Set{X} -> Nat .
-
-    var E : X$Elt .
-    vars S S1 : Set{X} .
-    eq E ;; E = E .
-    eq E in E ;; S = true .
-    eq E in S = false [owise] .
-    eq (E ;; S) - (E ;; S1) = S - (E ;; S1) .
-    eq S - S1 = S [owise] .
-    eq size(E ;; S) = 1 + size(S) .
-    eq size(S) = 0 [owise] .
-endfm)
-
-
-(fmod LISTCONS{X :: TRIV} is
-    protecting NAT .
-    sorts NeList{X} List{X} .
-    subsort NeList{X} < List{X} .
-    op emptyList : -> List{X} [ctor] .
-    op _::_ : X$Elt List{X} -> NeList{X} [ctor] .
-    op tail : NeList{X} -> List{X} .
-    op head : NeList{X} -> X$Elt .
-    vars E E1 : X$Elt .
-    var N : Nat .
-    vars L L1 : List{X} .
-    eq tail(E :: L) = L .
-    eq head(E :: L) = E .
-    op _++_ : List{X} List{X} -> List{X} .
-    op length : List{X} -> Nat .
-    op reverse : List{X} -> List{X} .
-
-    eq emptyList ++ L = L .
-    eq (E :: L) ++ L1 = E :: (L ++ L1) .
-    eq length(emptyList) = 0 .
-    eq length(E :: L) = 1 + length(L) .
-    eq reverse(emptyList) = emptyList .
-    eq reverse(E :: L) = reverse(L) ++ (E :: emptyList) .
-
-    op take_from_ : Nat List{X} -> List{X} .
-    op throw_from_ : Nat List{X} -> List{X} .
-    eq take 0 from L = emptyList .
-    eq take N from emptyList = emptyList .
-    eq take s(N) from (E :: L) = E :: take N from L .
-    eq throw 0 from L = L .
-    eq throw N from emptyList = emptyList .
-    eq throw s(N) from (E :: L) = throw N from L .
-
 endfm)
 
 (view OIdAsTRIV from TRIV to PORTID is
@@ -86,99 +21,66 @@ endfm)
   sort Elt to PortId .
 endv)
 
-
 (view EPortIdAsTRIV from TRIV to EPORTID is
   protecting EPORTID .
   sort Elt to EPortId .
 endv)
 
-
-(view PortMapAsTRIV from TRIV to PORTMAPENTRY is
-  protecting PORTMAPENTRY .
-  sort Elt to PortMapEntry .
-endv)
-
-(fmod OIDSET is
-    pr BASICSET{OIdAsTRIV} .
+(fmod PORT-LIST is
+  protecting LIST{EPortIdAsTRIV} * (sort NeList{EPortIdAsTRIV} to NePortList, sort List{EPortIdAsTRIV} to PortList) .
 endfm)
 
-(fmod EPORTSET is
-    pr BASICSET{EPortIdAsTRIV} .
+(fmod OID-SET is
+  protecting SET{OIdAsTRIV} * (sort NeSet{OIdAsTRIV} to NeOidSet, sort Set{OIdAsTRIV} to OidSet) .
 endfm)
 
-(fmod PORTMAPSET is
-    pr BASICSET{PortMapAsTRIV} .
+(fmod PORT-SET is
+  protecting SET{EPortIdAsTRIV} * (sort NeSet{EPortIdAsTRIV} to NePortSet, sort Set{EPortIdAsTRIV} to PortSet) .
 endfm)
-
-(fmod EPORTLIST is
-    pr LISTCONS{EPortIdAsTRIV} .
-endfm)
-
-(fmod SETLIST{X :: TRIV} is
-    protecting BASICSET{X} .
-    sort SetList{X} .
-    subsort Set{X} < SetList{X} .
-    op nil : -> SetList{X} [ctor] .
-    op _;_ : SetList{X} SetList{X} -> SetList{X} [ctor assoc id: nil] .
-endfm)
-
-(fmod PORTSCC is
-    pr SETLIST{EPortIdAsTRIV} .
-endfm)
-
 
 (fmod PAIR{X :: TRIV, Y :: TRIV} is 
- sort Pair{X, Y} . 
- op <_;_> : X$Elt Y$Elt -> Pair{X, Y} . 
- op 1st : Pair{X, Y} -> X$Elt . 
- op 2nd : Pair{X, Y} -> Y$Elt . 
- 
- var A : X$Elt . 
- var B : Y$Elt . 
- eq 1st(< A ; B >) = A . 
- eq 2nd(< A ; B >) = B . 
+    sort Pair{X, Y} . 
+    op <_;_> : X$Elt Y$Elt -> Pair{X, Y} . 
+    op 1st : Pair{X, Y} -> X$Elt . 
+    op 2nd : Pair{X, Y} -> Y$Elt . 
+    
+    var A : X$Elt . 
+    var B : Y$Elt . 
+    eq 1st(< A ; B >) = A . 
+    eq 2nd(< A ; B >) = B . 
 endfm)
-
-(view NzNatAsTRIV from TRIV to NAT is
-  sort Elt to NzNat .
-endv)
-
-(view NatAsTRIV from TRIV to NAT is
-  sort Elt to Nat .
-endv)
 
 (fmod PORTVALUE is
-    pr PAIR{NatAsTRIV, NatAsTRIV} .
-endfm)
+    protecting PAIR{Nat, Nat} * (sort Pair{Nat, Nat} to PortValueAndTime) .
+endfm) 
 
-
-(fmod PORTVALUEMAPENTRY is
-    protecting PORTID + PORTVALUE .
-    sort PortValueMapEntry .
-    op _=>_ : PortId Pair{NatAsTRIV, NatAsTRIV} -> PortValueMapEntry [ctor] .
-endfm)
-
-
-(view PortValueMapEntryAsTRIV from TRIV to PORTVALUEMAPENTRY is
-  protecting PORTVALUEMAPENTRY .
-  sort Elt to PortValueMapEntry .
+(view PortValueAndTimeAsTRIV from TRIV to PORTVALUE is
+  protecting PORTVALUE .
+  sort Elt to PortValueAndTime .
 endv)
 
 (fmod PORTVALUEMAP is
-    pr SETLIST{PortValueMapEntryAsTRIV} .
-endfm)
+    protecting MAP{OIdAsTRIV, PortValueAndTimeAsTRIV} * (sort Map{OIdAsTRIV, PortValueAndTimeAsTRIV} to PortValueMap) .
+endfm) 
 
-(fmod DOSTEPMAPENTRY is
-    protecting PORTVALUEMAPENTRY .
-    sort DoStepMapEntry .
-    op _=>_ : Pair{OIdAsTRIV, NatAsTRIV} NatAsTRIV -> DoStepMapEntry [ctor] .
-endfm)
+(fmod INDEX-MAP is
+    protecting MAP{EPortIdAsTRIV, Nat} * (sort Map{EPortIdAsTRIV, Nat} to IndexMap) .
+endfm) 
 
-(view DoStepMapEntryAsTRIV from TRIV to DOSTEPMAPENTRY is
-  protecting DOSTEPMAPENTRY .
-  sort Elt to DoStepMapEntry .
+(view PortListAsTRIV from TRIV to PORT-LIST is
+  protecting PORT-LIST .
+  sort Elt to PortList .
 endv)
 
-(fmod DOSTEPEMAP is
-    pr BASICSET{DoStepMapEntryAsTRIV} .
-endfm)
+(view IndexMapAsTRIV from TRIV to PORT-LIST is
+  protecting INDEX-MAP .
+  sort Elt to IndexMap .
+endv)
+
+(fmod PORTLIST-PAIR is
+    protecting PAIR{PortListAsTRIV, PortListAsTRIV} * (sort Pair{PortListAsTRIV, PortListAsTRIV} to PortListPair) .
+endfm) 
+
+(fmod SCC-MAP is
+    protecting MAP{Nat ,PortListAsTRIV} * (sort Map{Nat, PortListAsTRIV} to SCCMap) .
+endfm) 

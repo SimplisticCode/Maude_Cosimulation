@@ -1,8 +1,7 @@
 load Environment 
 
 (omod ScenarioAnalyser is
-    protecting ScenarioEnvironment .
-
+    protecting ScenarioEnvironment + COUNTER + RANDOM .
     op loopsInStepNegotiation : AlgebraicLoopSet OidSet Configuration AlgebraicLoopSet -> AlgebraicLoopSet .
     op tarjan : Configuration -> AlgebraicLoopSet .
     op dfs : PortSet Environment Configuration -> DFSPair .
@@ -13,11 +12,11 @@ load Environment
     var IM : IndexMap .
     var CONF : Configuration .
     var SCCs : SCCMap .
-    var N N1 N2 : NzNat .
-    var M : Nat .
+    vars N N1 N2 : NzNat .
+    var INDEX : Nat .
     vars E E1 E2 : Environment .
     vars OLDSTACK STACK SCCSTACK : PortList .
-    var LOOPS LOOPSet : AlgebraicLoopSet .
+    vars LOOPS LOOPSet : AlgebraicLoopSet .
     vars SUIDs REACTIVESUs : OidSet .
     var SU : SUID .
     var LOOP : AlgebraicLoop .
@@ -33,35 +32,38 @@ load Environment
     eq loopsInStepNegotiation((LOOP , LOOPS), SUIDs, CONF, LOOPSet) = 
         loopsInStepNegotiation(LOOPS, SUIDs, CONF, LOOPSet) [owise] .
 
-    ceq tarjan(CONF) = getLoops(1st(dfs(PORTSET, E, CONF)), CONF) 
-        if PORTSET := getAllPorts(CONF, empty) 
-            /\ IM := createIndexMap(PORTSET, empty) /\ 
-                E := env(nil, empty, 1, IM) .
-
+***(
+    ceq tarjan(CONF) = getLoops(E1, CONF)
+       if PORTSET := getAllPorts(CONF, empty)
+            /\ IM := createIndexMap(PORTSET, empty)
+            /\ E := env(nil, empty, 1, IM)
+            /\ < E1 ; INDEX > := dfs(PORTSET, E, CONF) .
+)
     *** PORT has been visisted before - N is non-zero!
-    ceq dfs((PORT , PORTSET), env(STACK, SCCs, M, ((PORT |-> N) , IM)), CONF) = < E ; min(N, N1) > 
-       if < E ; N1 > := dfs(PORTSET, env(STACK, SCCs, M, ((PORT |-> N) , IM)), CONF) .
+    ceq dfs((PORT , PORTSET), env(STACK, SCCs, INDEX, ((PORT |-> N), IM)), CONF) = < E ; min(N, N1) > 
+       if < E ; N1 > := dfs(PORTSET, env(STACK, SCCs, INDEX, ((PORT |-> N) , IM)), CONF) .
 
     *** Dead end - no successor!
     eq dfs(empty, E, CONF) = < E ; 100000 > .
 
     *** PORT has not been visited before - none of the other cases match
-    ceq dfs((PORT , PORTSET), E, CONF) = < E2 ; min(N1, N2) >
-        if < E1 ; N1 > := dfs1(PORT, E, CONF) /\ < E2 ; N2 > := dfs(PORTSET, E1, CONF) [owise] .
+    ceq dfs((PORT, PORTSET), E, CONF) = < E2 ; min(N1, N2) >
+        if < E1 ; N1 > := dfs1(PORT, E, CONF) 
+        /\ < E2 ; N2 > := dfs(PORTSET, E1, CONF) [owise] .
 
     *** If we can find a Node with a lower index we use the lower index
     ceq dfs1(PORT, E, CONF) = dfs(SUCCESORS, E1, CONF)
         if SUCCESORS := findSuccesors(PORT, CONF) 
            /\ E1 := addStackIncr(PORT, E) 
-           /\ < E2 ; M > := dfs(SUCCESORS, E1, CONF) 
-           /\ M < getSN(E) .
+           /\ < E2 ; INDEX > := dfs(SUCCESORS, E1, CONF) 
+           /\ INDEX < getSN(E) .
             
 
     *** If we cannot find a Node with a lower index
-    ceq dfs1(PORT, E, CONF) = < env(OLDSTACK, insert(N, elems(SCCSTACK, empty), SCCs), getSN(E), setInfty(SCCSTACK, IM)) ; 100000 >
+    ceq dfs1(PORT, E, CONF) = < env(OLDSTACK, insert(INDEX, elems(SCCSTACK, empty), SCCs), getSN(E), setInfty(SCCSTACK, IM)) ; 100000 >
                 if SUCCESORS := findSuccesors(PORT, CONF) 
                 /\ E1 := addStackIncr(PORT, E) 
-                /\ < env(STACK, SCCs, M, IM) ; N > := dfs(SUCCESORS, E1, CONF) 
+                /\ < env(STACK, SCCs, INDEX, IM) ; N > := dfs(SUCCESORS, E1, CONF) 
                 /\ < SCCSTACK ; OLDSTACK >  := split(PORT, STACK, < nil ; nil > ) [owise] .    
 endom)
 
@@ -76,35 +78,17 @@ eof
 
 ( red tarjan(simulationUnits externalConnection) . )
 
-( red portInMap('msd1 ! 'fk, map('msd1 ! 'fk,1) ;; map('msd1 ! 'v1,0)) .)
-
-( red getSCC(natEnv(100000,env('msd1 ! 'fk :: emptyList,nil,2,map('msd1 ! 'fk,1) ;; map('msd1 ! 'v1,0);; map('msd1 ! 'x1,0);; map('msd1 ! 'z,0);; map('msd2 !
-    'fk,0);; map('msd2 ! 'v1,0);; map('msd2 ! 'x1,0);; map('msd2 ! 'z,0)))) .)
-
-( red num(natEnv(100000,env('msd1 ! 'fk,nil,2,map('msd1 ! 'fk,1) ;; map('msd1 ! 'v1,0);; map('msd1 ! 'x1,0);; map('msd1 ! 'z,0);; map('msd2 !
-    'fk,0);; map('msd2 ! 'v1,0);; map('msd2 ! 'x1,0);; map('msd2 ! 'z,0)))) . )
-
-( red dfsrEnv(natEnv(100000,env('msd1 ! 'fk,nil,2,map('msd1 ! 'fk,1) ;; map('msd1 ! 'v1,0);; map('msd1 ! 'x1,0);; map('msd1 ! 'z,0);; map('msd2 !
-    'fk,0);; map('msd2 ! 'v1,0);; map('msd2 ! 'x1,0);; map('msd2 ! 'z,0)))) .
-)
 
 ( red findSuccesors(('msd1 ! 'x1), simulationUnits externalConnection) .)
 
 ( red min(1000, 1) .)
 
-( red dfs(getAllPorts((simulationUnits externalConnection), empty), env(emptyList, nil, 1, createIndexMap(getAllPorts((simulationUnits externalConnection), empty), empty)), (simulationUnits externalConnection)) . )
+( red getAllPorts((simulationUnits externalConnection), empty) . )
 
-( red dfsrEnv(natEnv(100000,env(emptyST,('msd1 ! 'z)**('msd2 ! 'z)**('msd1 ! 'x1);;('msd2 ! 'v1);;('msd2 ! 'fk);;('msd1 !
-    'v1);; 'msd1 ! 'fk,8,map('msd1 ! 'fk,100000);; map('msd1 ! 'v1,100000);; map('msd1 ! 'x1,100000);; map('msd1 ! 'z,100000);; map('msd2 ! 'fk,100000);; map('msd2 ! 'v1,100000);; map('msd2 ! 'x1,0);;
-    map('msd2 ! 'z,100000)))) . )
+( red dfs(getAllPorts((simulationUnits externalConnection), empty), env(nil, empty, 1, createIndexMap(getAllPorts((simulationUnits externalConnection), empty), empty)), (simulationUnits externalConnection)) . )
 
-
-( red dfsrEnv(dfs(getAllPorts(simulationUnits externalConnection, empty), env(emptyST, nil, 1, createIndexMap(getAllPorts(simulationUnits externalConnection, empty), empty)), simulationUnits externalConnection)) . )
-
-
-(red dfs(('msd1 ! 'fk);;('msd1 ! 'v1);;('msd1 ! 'x1);;('msd1 ! 'z);;('msd2 ! 'fk);;('msd2 ! 'v1);;('msd2 ! 'x1);; 'msd2 ! 'z,env(emptyList,
-    nil,1,map('msd1 ! 'fk,0);; map('msd1 ! 'v1,0);; map('msd1 ! 'x1,0);; map('msd1 ! 'z,0);; map('msd2 ! 'fk,0);; map('msd2 ! 'v1,0);;
-    map('msd2 ! 'x1,0);; map('msd2 ! 'z,0)),(
+(red dfs1(('msd1 ! 'fk), env(nil, empty, 1, ('msd1 ! 'fk |-> 0, 'msd1 ! 'v1 |-> 0, 'msd1 ! 'x1 |-> 0, 'msd1 ! 'z |-> 0, 'msd2 ! 'fk |->
+    0, 'msd2 ! 'v1 |-> 0, 'msd2 ! 'x1 |-> 0, 'msd2 ! 'z |-> 0)), (
 'msd1 ! 'v1 ==> 'msd2 ! 'v1)(
 'msd1 ! 'x1 ==> 'msd2 ! 'x1)(
 'msd1 ! 'z ==> 'msd2 ! 'z)(
@@ -112,12 +96,10 @@ eof
     Output | dependsOn : empty,status : Undef,time : 0 > < 'x1 : Output | dependsOn : empty,status : Undef,time : 0 > < 'z : Output | dependsOn
     : empty,status : Undef,time : 0 >),state : Instantiated,time : 0 > < 'msd2 : SU | canReject : false,inputs :(< 'v1 : Input | status : Undef,
     time : 0,contract : r > < 'x1 : Input | status : Undef,time : 0,contract : r > < 'z : Input | status : Undef,time : 0,contract : d >),outputs : < 'fk :
-    Output | dependsOn :('v1 ;; 'x1),status : Undef,time : 0 >,state : Instantiated,time : 0 >) . )
+    Output | dependsOn :('v1 , 'x1),status : Undef,time : 0 >,state : Instantiated,time : 0 >) . )
 
 
-(red dfs1(('msd1 ! 'fk), env(emptyList,
-    nil,1,map('msd1 ! 'fk,0);; map('msd1 ! 'v1,0);; map('msd1 ! 'x1,0);; map('msd1 ! 'z,0);; map('msd2 ! 'fk,0);; map('msd2 ! 'v1,0);;
-    map('msd2 ! 'x1,0);; map('msd2 ! 'z,0)), (
+(red dfs(('msd1 ! 'fk, 'msd1 ! 'v1, 'msd1 ! 'x1, 'msd1 ! 'z, 'msd2 ! 'fk, 'msd2 ! 'v1, 'msd2 ! 'x1, 'msd2 ! 'z),env(nil,empty,1,('msd1 ! 'fk |-> 0, 'msd1 ! 'v1 |-> 0, 'msd1 ! 'x1 |-> 0, 'msd1 ! 'z |-> 0, 'msd2 ! 'fk |-> 0, 'msd2 ! 'v1 |-> 0, 'msd2 ! 'x1 |-> 0, 'msd2 ! 'z |-> 0)), (
 'msd1 ! 'v1 ==> 'msd2 ! 'v1)(
 'msd1 ! 'x1 ==> 'msd2 ! 'x1)(
 'msd1 ! 'z ==> 'msd2 ! 'z)(
@@ -125,4 +107,21 @@ eof
     Output | dependsOn : empty,status : Undef,time : 0 > < 'x1 : Output | dependsOn : empty,status : Undef,time : 0 > < 'z : Output | dependsOn
     : empty,status : Undef,time : 0 >),state : Instantiated,time : 0 > < 'msd2 : SU | canReject : false,inputs :(< 'v1 : Input | status : Undef,
     time : 0,contract : r > < 'x1 : Input | status : Undef,time : 0,contract : r > < 'z : Input | status : Undef,time : 0,contract : d >),outputs : < 'fk :
-    Output | dependsOn :('v1 ;; 'x1),status : Undef,time : 0 >,state : Instantiated,time : 0 >) . )
+    Output | dependsOn :('v1 , 'x1),status : Undef,time : 0 >,state : Instantiated,time : 0 >) . )
+
+(red dfs(('msd1 ! 'fk, 'msd1 ! 'v1, 'msd1 ! 'x1, 'msd1 ! 'z, 'msd2 ! 'fk, 'msd2 ! 'v1, 'msd2 ! 'x1, 'msd2 ! 'z),env(nil,empty,1,('msd1 ! 'fk |-> 0, 'msd1 ! 'v1 |-> 0, 'msd1 ! 'x1 |-> 0, 'msd1 ! 'z |-> 0, 'msd2 ! 'fk |-> 0, 'msd2 ! 'v1 |-> 0, 'msd2 ! 'x1 |-> 0, 'msd2 ! 'z |-> 0)),(
+'msd1 ! 'v1 ==> 'msd2 ! 'v1)(
+'msd1 ! 'x1 ==> 'msd2 ! 'x1)(
+'msd1 ! 'z ==> 'msd2 ! 'z)(
+'msd2 ! 'fk ==> 'msd1 ! 'fk)< 'msd1 : SU | canReject : false,inputs : < 'fk : Input | contract : r,status : Undef,time : 0,type : boolean,value : 0 >,outputs :(< 'v1 : Output | dependsOn : empty,status : Undef,time : 0,type : boolean,value : 0 > < 'x1 : Output | dependsOn : empty,status : Undef,time : 0,type : boolean,value : 0 > < 'z : Output | dependsOn : empty,status : Undef,time : 0,type : boolean,value : 0 >),path : "A", state : Instantiated,time : 0 > < 'msd2 : SU | canReject : false,inputs :(< 'v1 : Input | contract : r,status : Undef,time : 0,type : boolean,value : 0 > < 'x1 : Input | contract : r, status : Undef,time : 0,type : boolean,value : 0 > < 'z : Input | contract : d,status : Undef,time : 0,type : boolean,value : 0 >),outputs : < 'fk : Output | dependsOn :('v1, 'x1),status : Undef,time : 0,type : boolean,value : 0 >,path : "A",  state : Instantiated,time : 0 >) .)
+
+
+(red dfs(('msd1 ! 'fk, 'msd1 ! 'v1, 'msd1 ! 'x1, 'msd1 ! 'z, 'msd2 ! 'fk, 'msd2 ! 'v1, 'msd2 ! 'x1, 'msd2 ! 'z),env(nil,empty,1,('msd1 ! 'fk |-> 0, 'msd1 ! 'v1 |-> 0, 'msd1 ! 'x1 |-> 0, 'msd1 ! 'z |-> 0, 'msd2 ! 'fk |-> 0, 'msd2 ! 'v1 |-> 0, 'msd2 ! 'x1 |-> 0, 'msd2 ! 'z |-> 0)),(
+'msd1 ! 'v1 ==> 'msd2 ! 'v1)(
+'msd1 ! 'x1 ==> 'msd2 ! 'x1)(
+'msd1 ! 'z ==> 'msd2 ! 'z)(
+'msd2 ! 'fk ==> 'msd1 ! 'fk)< 'msd1 : SU | canReject : false,inputs : < 'fk : Input | contract : r,status : Undef,time : 0, value : 0 >,outputs :(< 'v1 : Output | dependsOn : empty,status : Undef,time :
+    0,value : 0 > < 'x1 : Output | dependsOn : empty,status : Undef,time : 0,value : 0 > < 'z : Output | dependsOn : empty,status : Undef,time : 0,value : 0 >),path : "A",
+    state : Instantiated,time : 0 > < 'msd2 : SU | canReject : false,inputs :(< 'v1 : Input | contract : r,status : Undef,time : 0,value : 0 > < 'x1 : Input | contract : r,status : Undef,time : 0,type :
+    integer,value : 0 > < 'z : Input | contract : d,status : Undef,time : 0,value : 0 >),outputs : < 'fk : Output | dependsOn :('v1, 'x1),status : Undef,time : 0,value : 0 >,path : "A",
+    state : Instantiated,time : 0 >) .)

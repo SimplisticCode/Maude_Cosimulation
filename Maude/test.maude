@@ -1,27 +1,35 @@
 load SimulationUnit 
 
+(fmod INDEX-MAP is
+    protecting MAP{EPortIdAsTRIV, Nat} * (sort Map{EPortIdAsTRIV, Nat} to IndexMap) .
+endfm) 
+
+(view PortListAsTRIV from TRIV to PORT-LIST is
+  protecting PORT-LIST .
+  sort Elt to PortList .
+endv)
+
+(view IndexMapAsTRIV from TRIV to PORT-LIST is
+  protecting INDEX-MAP .
+  sort Elt to IndexMap .
+endv)
+
+(fmod PORTLIST-PAIR is
+    protecting PAIR{PortListAsTRIV, PortListAsTRIV} * (sort Pair{PortListAsTRIV, PortListAsTRIV} to PortListPair) .
+endfm) 
+
+
+(fmod SCC-MAP is
+    protecting MAP{Nat ,PortListAsTRIV} * (sort Map{Nat, PortListAsTRIV} to SCCMap) .
+endfm) 
+
+
 (fmod ENVIRONMENT is
-  protecting SCC-MAP + INDEX-MAP + SimulationUnit .
+  protecting SCC-MAP .
   sort Environment .
   op env : PortList SCCMap Nat IndexMap -> Environment [ctor] .
-    *** Get fields in Environment
-    op getSN : Environment -> Nat .
-    op getStack : Environment -> PortList .
-    op getSCC : Environment -> SCCMap .
-    op getIM : Environment -> IndexMap .
-
-    var IM : IndexMap .
-    var STACK : PortList .
-    var SCCs : SCCMap .
-    var INDEX : Nat .
-
-    *** Projection function
-    eq getStack(env(STACK, SCCs, INDEX, IM)) = STACK .
-    eq getSN(env(STACK, SCCs, INDEX, IM)) = INDEX .
-    eq getSCC(env(STACK, SCCs, INDEX, IM)) = SCCs .
-    eq getIM(env(STACK, SCCs, INDEX, IM)) = IM .
-    
 endfm) 
+
 
 (view ENVAsTRIV from TRIV to ENVIRONMENT is
   sort Elt to Environment .
@@ -33,16 +41,26 @@ endfm)
 
 
 (omod ScenarioEnvironment is
-    protecting SimulationUnit +  PORTLIST-PAIR + DFSResult-PAIR .
+    protecting SimulationUnit + INDEX-MAP + PORTLIST-PAIR + DFSResult-PAIR .
+
     op findSuccesors : EPortId Configuration -> PortSet .
     op succesors : EPortId Configuration PortSet -> PortSet .
     op split : EPortId PortList PortListPair -> PortListPair .
     op addStackIncr : EPortId Environment -> Environment .
+
     op createIndexMap : PortSet IndexMap -> IndexMap .
+
+    *** Data constructors - can potentially be better (we have a lot of pairs)!
 
     *** Projection functions
     op getLoops : Environment Configuration -> AlgebraicLoopSet .
     op isReactiveLoop : PortSet Configuration -> Bool .
+
+    *** Get fields in Environment
+    op getSN : Environment -> Nat .
+    op getStack : DFSPair -> PortList .
+    op getSCC : DFSPair -> SCCMap .
+    op getIM : DFSPair -> IndexMap .
 
     op nodeHasBeenVisited : EPortId Environment -> Bool .
     op createAlgebraic : SCCMap Configuration AlgebraicLoopSet -> AlgebraicLoopSet .
@@ -50,39 +68,47 @@ endfm)
 
     vars ID1 ID2 : SUID .
     vars INPUT OUTPUT : PortId .
-    vars PORT : EPortId .
+    vars PORT PORT1 : EPortId .
     var PORTSET : PortSet .
     var FT : OidSet .
     var IM : IndexMap .
     vars CONF INPUTS OUTPUTS : Configuration .
     vars STACK STACK1 STACK2 : PortList .
-    vars SCCs : SCCMap .
+    vars SCCs L : SCCMap .
     var LOOPS : AlgebraicLoopSet .
     var NONZERO : NzNat .
-    vars M INDEX : Nat .
-    var ENV : Environment .
+    vars M M1 index : Nat .
+    var E : Environment .
     var PORTPAIR : PortListPair .
 
-    *** Add the element to the stack, update the INDEX of the node and increments the counter
-    eq addStackIncr(PORT, env(STACK, SCCs, INDEX, ((PORT |-> M) , IM))) = env(PORT  STACK, SCCs, (INDEX + 1), insert(PORT, INDEX, IM)) .
+    *** Projection function
+    eq getStack(< env(STACK, SCCs, M1, IM) ; M >) = STACK .
+    eq getSN(env(STACK, SCCs, M, IM)) = M .
+    eq getSCC(< env(STACK, SCCs, M1, IM) ; M > ) = SCCs .
+    eq getIM(< env(STACK, SCCs, M1, IM) ; M > ) = IM .
 
-    *** The node has been visited if its INDEX is non-zero
-    eq nodeHasBeenVisited(PORT, env(STACK, SCCs, INDEX, ((PORT |-> NONZERO) , IM))) = true .
-    eq nodeHasBeenVisited(PORT, ENV) = false [owise] .
+    *** Add the element to the stack, update the index of the node and increments the counter
+    eq addStackIncr(PORT, env(STACK, SCCs, M1, ((PORT |-> M) , IM))) = env(PORT  STACK, SCCs, (M1 + 1), insert(PORT, M1, IM)) .
+
+    *** The node has been visited if its index is non-zero
+    eq nodeHasBeenVisited(PORT, env(STACK, SCCs, M, ((PORT |-> NONZERO) , IM))) = true .
+    eq nodeHasBeenVisited(PORT, E) = false [owise] .
   
     *** Transform environment to Algebraic Loops
-    eq getLoops(env(STACK, SCCs , INDEX, IM), CONF) = createAlgebraic(SCCs, CONF, empty) .
+    eq getLoops(env(STACK, SCCs , M, IM), CONF) = createAlgebraic(SCCs, CONF, empty) .
 
     ***Encode everything as algebraic loops:
     *** No more SCC to look at
     eq createAlgebraic(empty, CONF, LOOPS) = LOOPS .
-    ceq createAlgebraic(((INDEX |-> PORTSET), SCCs), CONF, LOOPS) = createAlgebraic(SCCs, CONF, ((AlgebraicLoop: PORTSET Type: R), LOOPS))  
+
+    ceq createAlgebraic(((M |-> PORTSET), SCCs), CONF, LOOPS) = createAlgebraic(SCCs, CONF, ((AlgebraicLoop: PORTSET Type: R) , LOOPS))  
         if size(PORTSET) > 1 and isReactiveLoop(PORTSET, CONF) .
-    ceq createAlgebraic(((INDEX |-> PORTSET), SCCs), CONF, LOOPS) = createAlgebraic(SCCs, CONF, ((AlgebraicLoop: PORTSET Type: F), LOOPS))  
+
+    ceq createAlgebraic(((M |-> PORTSET), SCCs), CONF, LOOPS) = createAlgebraic(SCCs, CONF, ((AlgebraicLoop: PORTSET Type: F) , LOOPS))  
         if size(PORTSET) > 1 and not(isReactiveLoop(PORTSET, CONF)) .
     
     *** Trivial SCC should be forgotten
-    eq createAlgebraic(((INDEX |-> PORTSET) , SCCs), CONF, LOOPS) = createAlgebraic(SCCs, CONF, LOOPS) [owise] .
+    eq createAlgebraic(((M |-> PORTSET) , SCCs), CONF, LOOPS) = createAlgebraic(SCCs, CONF, LOOPS) [owise] .
 
     *** Check type of SCC - one reactive input makes it Reactive
     eq isReactiveLoop(((ID1 ! INPUT) , PORTSET), < ID1 : SU | inputs : (< INPUT : Input | contract : r > INPUTS) > CONF) = true .
@@ -90,28 +116,30 @@ endfm)
 
     *** Sets all nodes in the stack to infinity - to ensure they do not interfere with the future calculations
     eq setInfty(nil, IM) = IM .
-    eq setInfty(PORT STACK, ((PORT |-> NONZERO), IM)) = setInfty(STACK, insert(PORT, 100000, IM)) .
+    eq setInfty(PORT STACK, ((PORT |-> NONZERO) , IM)) = setInfty(STACK, insert(PORT, 100000, IM)) .
 
-    *** Create the initial INDEX map - all INDEX are 0
+    *** Create the initial INDEX map - all index are 0
     eq createIndexMap(empty, IM) = IM .
     eq createIndexMap((PORT , PORTSET), ((PORT |-> NONZERO) , IM)) = createIndexMap(PORTSET, insert(PORT, NONZERO, IM)) .
     eq createIndexMap((PORT , PORTSET), IM) = createIndexMap(PORTSET, insert(PORT, 0, IM)) [owise] .
 
     *** Splits the stack at PORT
     eq split(PORT, nil, PORTPAIR) = PORTPAIR . *** Nothing is on the stack
-    ceq split(PORT, STACK, < STACK1 ; STACK2 > ) = < (STACK1 PORT) ; (tail(STACK) STACK2) > if PORT := head(STACK) .
-    eq split(PORT, STACK, < STACK1 ; STACK2 > ) = split(PORT, tail(STACK), < STACK1 head(STACK) ; STACK2 > ) [owise] .
+    eq split(PORT, PORT1 STACK, < STACK1 ; STACK2 > ) = split(PORT, STACK, < STACK1 PORT1  ; STACK2 > ) .
+    eq split(PORT, PORT STACK, < STACK1 ; STACK2 > ) = < STACK1 PORT ; STACK2 > .
 
     *** Wrapper method
     eq findSuccesors(PORT, CONF) = succesors(PORT, CONF, empty) .
 
     *** Output
-    ceq succesors(ID2 ! OUTPUT, 
+    ceq succesors((ID2 ! OUTPUT), 
                 < ID1 : SU | inputs : (< INPUT : Input | > INPUTS) > 
                 < ID2 : SU | outputs : (< OUTPUT : Output | > OUTPUTS) > 
                          (ID2 ! OUTPUT ==> ID1 ! INPUT) CONF, PORTSET) = 
-                    succesors(ID1 ! OUTPUT, < ID1 : SU | > < ID2 : SU | > 
-                            (ID2 ! OUTPUT ==> ID1 ! INPUT) CONF, ((ID1 ! INPUT) , PORTSET)) 
+                    succesors((ID1 ! OUTPUT), < ID1 : SU | > 
+                                         < ID2 : SU | > 
+                                            (ID2 ! OUTPUT ==> ID1 ! INPUT) CONF, 
+                                         ((ID1 ! INPUT) , PORTSET)) 
                     if not (ID1 ! INPUT) in PORTSET .
 
     *** Input - feed through
@@ -124,7 +152,11 @@ endfm)
     *** Input - reactive
     ceq succesors((ID1 ! INPUT),
                 < ID1 : SU | inputs : (< INPUT : Input | contract : r > INPUTS), outputs : (< OUTPUT : Output | > OUTPUTS) > CONF, PORTSET) 
-                = succesors((ID1 ! INPUT), < ID1 : SU | > CONF, ((ID1 ! OUTPUT) , PORTSET)) if not (ID1 ! OUTPUT) in PORTSET .
+                = 
+                succesors((ID1 ! INPUT),  < ID1 : SU | > CONF, ((ID1 ! OUTPUT) , PORTSET)) if not (ID1 ! OUTPUT) in PORTSET .
 
     eq succesors(PORT, CONF, PORTSET) = PORTSET [owise] .
+
+
+
 endom)

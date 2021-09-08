@@ -1,54 +1,149 @@
-load GenericDT
+(fmod PORTID is
+ protecting QID .
+ sort PortId .
+ subsorts Qid < PortId < Oid .
+endfm)
+
+(fmod SUID is
+ protecting QID + PORTID .
+ sort SUID .
+ subsorts Qid < SUID < Oid .
+endfm)
+
+(fmod EPORTID is
+    protecting SUID .
+    sort EPortId .
+    op _!_ : SUID PortId -> EPortId [ctor] .
+endfm)
+
+(view OIdAsTRIV from TRIV to PORTID is
+  protecting PORTID .
+  sort Elt to PortId .
+endv)
+
+(view EPortIdAsTRIV from TRIV to EPORTID is
+  protecting EPORTID .
+  sort Elt to EPortId .
+endv)
+
+(fmod PORT-LIST is
+  protecting LIST{EPortIdAsTRIV} * (sort NeList{EPortIdAsTRIV} to NePortList, sort List{EPortIdAsTRIV} to PortList) .
+endfm)
+
+(fmod OID-SET is
+  protecting SET{OIdAsTRIV} * (sort NeSet{OIdAsTRIV} to NeOidSet, sort Set{OIdAsTRIV} to OidSet) .
+endfm)
+
+(fmod PORT-SET is
+  protecting SET{EPortIdAsTRIV} * (sort NeSet{EPortIdAsTRIV} to NePortSet, sort Set{EPortIdAsTRIV} to PortSet) .
+endfm)
+
+(fmod PAIR{X :: TRIV, Y :: TRIV} is 
+    sort Pair{X, Y} . 
+    op <_;_> : X$Elt Y$Elt -> Pair{X, Y} . 
+    op 1st : Pair{X, Y} -> X$Elt . 
+    op 2nd : Pair{X, Y} -> Y$Elt . 
+    
+    var A : X$Elt . 
+    var B : Y$Elt . 
+    eq 1st(< A ; B >) = A . 
+    eq 2nd(< A ; B >) = B . 
+endfm)
+
+(fmod PORTVALUE is
+    protecting PAIR{Nat, Nat} * (sort Pair{Nat, Nat} to PortValueAndTime) .
+endfm) 
+
+(view PortValueAndTimeAsTRIV from TRIV to PORTVALUE is
+  protecting PORTVALUE .
+  sort Elt to PortValueAndTime .
+endv)
+
+(fmod PORTVALUEMAP is
+    protecting MAP{OIdAsTRIV, PortValueAndTimeAsTRIV} * (sort Map{OIdAsTRIV, PortValueAndTimeAsTRIV} to PortValueMap) .
+endfm) 
+
+(fmod INDEX-MAP is
+    protecting MAP{EPortIdAsTRIV, Nat} * (sort Map{EPortIdAsTRIV, Nat} to IndexMap) .
+endfm) 
+
+(view PortListAsTRIV from TRIV to PORT-LIST is
+  protecting PORT-LIST .
+  sort Elt to PortList .
+endv)
+
+(view IndexMapAsTRIV from TRIV to PORT-LIST is
+  protecting INDEX-MAP .
+  sort Elt to IndexMap .
+endv)
+
+(fmod PORTLIST-PAIR is
+    protecting PAIR{PortListAsTRIV, PortListAsTRIV} * (sort Pair{PortListAsTRIV, PortListAsTRIV} to PortListPair) .
+endfm) 
+
+(fmod SCC-MAP is
+    protecting MAP{Nat ,PortListAsTRIV} * (sort Map{Nat, PortListAsTRIV} to SCCMap) .
+endfm) 
+
 
 (omod Ports is 
- protecting QID + NAT + PORTMAPENTRY + EPORTSET + OIDSET + PORTMAPSET + EPORTLIST + PORTSCC + PORTVALUEMAP .
- sorts Contract PortStatus Connection PortType Value .
+ protecting QID + NAT + PORT-LIST + OID-SET + PORT-SET + PORTVALUEMAP .
+ sorts Contract PortStatus Connection PortType .
  op _==>_ : EPortId EPortId -> Connection [ctor format(niy! d d d)] .
  subsort Connection < Configuration .
+
+ sort Value .
+ *** How to do the value type
  ***subsort Nat < Value .
  ***subsort Bool < Value .
 
  *** Values are currently natural numbers - maybe different types should be different syb-types
  class Port | value : Nat, type : PortType, time : Nat, status : PortStatus . 
  class Input | contract : Contract .
- class Output | dependsOn : Set{OIdAsTRIV} .
+ class Output | dependsOn : OidSet .
+ class Parameter | value : Value .
  subclasses Input Output < Port . 
  ops d r : -> Contract [ctor] .   *** d = delayed, r = Reactive.
  ops integer string real boolean : -> PortType [ctor] . 
  ops Def Undef : -> PortStatus [ctor] .
 
  op _in_ : Connection Configuration -> Bool . 
- op elems : List{EPortIdAsTRIV} Set{EPortIdAsTRIV} -> Set{EPortIdAsTRIV} .
- op getPortFromMap : Set{PortValueMapEntryAsTRIV} Set{OIdAsTRIV} -> Set{OIdAsTRIV} .
- op indexOf : EPortId List{EPortIdAsTRIV} Nat -> Nat .
+ op elems : PortList PortSet -> PortSet .
+ op getPortFromMap : PortValueMap OidSet -> OidSet .
 
  var PID : PortId .
- vars PORT PORTX : EPortId .
+ var PORT  : EPortId .
  var CONF : Configuration .
  var CON : Connection .
- var STACK : List{EPortIdAsTRIV} .
- vars TIME VALUE : Nat .
- var PORTMAP : Set{PortValueMapEntryAsTRIV} .
- var PORTIDSET : Set{OIdAsTRIV} .
- var PORTSET : Set{EPortIdAsTRIV} .
+ var STACK : PortList .
+ var VALUE : PortValueAndTime .
+ vars PORTMAP, PORTMAP1, PORTMAP2 : PortValueMap .
+ var PORTIDSET : OidSet .
+ var PORTSET : PortSet .
 
- eq elems(emptyList, PORTSET) = PORTSET .
- eq elems(PORT :: STACK, PORTSET) = elems(STACK, PORT ;; PORTSET) .
-
- eq indexOf(PORT, PORT :: STACK, VALUE) = 1 + VALUE .
- eq indexOf(PORT, PORTX :: STACK, VALUE) = indexOf(PORT, STACK, VALUE + 1) .
- eq indexOf(PORT, emptyList, VALUE) = 1 + VALUE .
+ eq elems(nil, PORTSET) = PORTSET .
+ eq elems(PORT STACK, PORTSET) = elems(STACK, (PORT , PORTSET)) .
 
  eq CON in CON CONF = true .
  eq CON in CONF = false [owise] .
 
  eq getPortFromMap(empty, PORTIDSET) = PORTIDSET .
- eq getPortFromMap((PID => < TIME ; VALUE >) ;; PORTMAP, PORTIDSET) = getPortFromMap(PORTMAP, PID ;; PORTIDSET) .
+ eq getPortFromMap(((PID |-> VALUE) , PORTMAP), PORTIDSET) = getPortFromMap(PORTMAP, (PID , PORTIDSET)) .
 
+    op _\_ : PortValueMap PortValueMap -> PortValueMap .
+    eq PORTMAP \ empty = PORTMAP .
+    eq PORTMAP1 \ PORTMAP2 = diffMap(PORTMAP1, PORTMAP2, empty) .
+
+    op diffMap : PortValueMap PortValueMap PortValueMap -> PortValueMap .
+    eq diffMap(empty, PORTMAP1, PORTMAP) = PORTMAP .
+    eq diffMap(((PID |-> VALUE), PORTMAP1), PORTMAP2, PORTMAP) = 
+        diffMap(PORTMAP1, PORTMAP2, if $hasMapping(PORTMAP2, PID) then PORTMAP else insert(PID, VALUE, PORTMAP) fi) .
 endom)
 
 
 eof
+
+
 
 *** Test of methods
 (red ('P ;; 'Q ;; 'S) .)
@@ -71,5 +166,5 @@ eof
 (red take 3 from ('SU1 ! 'R) :: (('SU1 ! 'S) :: (('SU1 ! 'T) :: emptyList)) . )
 (red indexOf(('SU1 ! 'R), ('SU1 ! 'R) :: (('SU1 ! 'S) :: (('SU1 ! 'T) :: emptyList))) . )
 
-(red ('SU1 ! 'T) in elems(('SU1 ! 'R) :: (('SU1 ! 'S) :: (('SU1 ! 'T) :: emptyList))) . )
+(red ('SU1 ! 'T) in elems(('SU1 ! 'R) (('SU1 ! 'S) :: (('SU1 ! 'T) :: emptyList))) . )
 (red length(('SU1 ! 'R) :: (('SU1 ! 'S) :: (('SU1 ! 'T) :: emptyList))) . )

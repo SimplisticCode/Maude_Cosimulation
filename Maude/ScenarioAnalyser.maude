@@ -3,84 +3,74 @@ load Environment
 (omod ScenarioAnalyser is
     protecting ScenarioEnvironment .
 
-    op loopsInStepNegotiation : Set{ALGEBRAICLOOPAsTRIV} Set{OIdAsTRIV} Configuration Set{ALGEBRAICLOOPAsTRIV} -> Set{ALGEBRAICLOOPAsTRIV} .
-    op tarjan : Configuration -> Set{ALGEBRAICLOOPAsTRIV} .
-    op dfs : Set{EPortIdAsTRIV} Environment Configuration -> DFSR .
-    op dfs1 : EPortId Environment Configuration -> DFSR .
+    op loopsInStepNegotiation : AlgebraicLoopSet OidSet Configuration AlgebraicLoopSet -> AlgebraicLoopSet .
+    op tarjan : Configuration -> AlgebraicLoopSet .
+    op dfs : PortSet Environment Configuration -> DFSPair .
+    op dfs1 : EPortId Environment Configuration -> DFSPair .
 
-    var P : EPortId .
-    vars REACTIVEPORTS PORTSET SUCCESORS : Set{EPortIdAsTRIV} .
-    var IM : Set{IndexMapAsTRIV} .
+    var PORT : EPortId .
+    vars REACTIVEPORTS PORTSET SUCCESORS : PortSet .
+    var IM : IndexMap .
     var CONF : Configuration .
-    var SCCs : SetList{EPortIdAsTRIV} .
+    var SCCs : SCCMap .
     var N N1 N2 : NzNat .
     var M : Nat .
     vars E E1 E2 : Environment .
-    vars DFSRESULT DFSRESULT1 : DFSR .
-    var STACKTUPLE : PStackTuple .
-    vars OLDSTACK STACK SCCSTACK : List{EPortIdAsTRIV} .
-    var LOOPS LOOPSRES : Set{ALGEBRAICLOOPAsTRIV} .
-    vars SUIDs REACTIVESUs : Set{OIdAsTRIV} .
+    vars OLDSTACK STACK SCCSTACK : PortList .
+    var LOOPS LOOPSet : AlgebraicLoopSet .
+    vars SUIDs REACTIVESUs : OidSet .
     var SU : SUID .
     var LOOP : AlgebraicLoop .
 
-    ceq tarjan(CONF) = getLoops(dfsrEnv(dfs(PORTSET, E, CONF)), CONF) 
-        if PORTSET := getAllPorts(CONF, empty) /\ IM := createIndexMap(PORTSET, empty) /\ 
-        E := env(emptyList, nil, 1, IM) .
-
-
-    eq loopsInStepNegotiation(empty, SUIDs, CONF, LOOPSRES) = LOOPSRES .
-    eq loopsInStepNegotiation(LOOPS, empty, CONF, LOOPSRES) = LOOPSRES .
-    ceq loopsInStepNegotiation((AlgebraicLoop: PORTSET Type: R) ;; LOOPS, SU ;; SUIDs, CONF, LOOPSRES) = 
-            loopsInStepNegotiation(LOOPS, SU ;; SUIDs, CONF, (AlgebraicLoop: PORTSET Type: R) ;; LOOPSRES)
+    eq loopsInStepNegotiation(empty, SUIDs, CONF, LOOPSet) = LOOPSet .
+    eq loopsInStepNegotiation(LOOPS, empty, CONF, LOOPSet) = LOOPSet .
+    ceq loopsInStepNegotiation(((AlgebraicLoop: PORTSET Type: R) , LOOPS), (SU , SUIDs), CONF, LOOPSet) = 
+            loopsInStepNegotiation(LOOPS, (SU , SUIDs), CONF, ((AlgebraicLoop: PORTSET Type: R) , LOOPSet))
         if REACTIVEPORTS := getAllReactivePorts(CONF, empty)
         /\ REACTIVESUs := getSUs(REACTIVEPORTS, empty)
         /\ SU in REACTIVESUs .
 
-    eq loopsInStepNegotiation(LOOP ;; LOOPS, SUIDs, CONF, LOOPSRES) = 
-        loopsInStepNegotiation(LOOPS, SUIDs, CONF, LOOPSRES) [owise] .
+    eq loopsInStepNegotiation((LOOP , LOOPS), SUIDs, CONF, LOOPSet) = 
+        loopsInStepNegotiation(LOOPS, SUIDs, CONF, LOOPSet) [owise] .
 
-    *** P has been visisted before - N is non-zero!
-    ceq dfs(P ;; PORTSET, env(STACK, SCCs, M, map(P, N) ;; IM), CONF) = natEnv(min(N, N1), E) 
-       if DFSRESULT := dfs(PORTSET, env(STACK, SCCs, M, map(P, N) ;; IM), CONF) 
-       /\ N1 := num(DFSRESULT) 
-       /\ E := dfsrEnv(DFSRESULT) .
+    ceq tarjan(CONF) = getLoops(1st(dfs(PORTSET, E, CONF)), CONF) 
+        if PORTSET := getAllPorts(CONF, empty) 
+            /\ IM := createIndexMap(PORTSET, empty) /\ 
+                E := env(nil, empty, 1, IM) .
+
+    *** PORT has been visisted before - N is non-zero!
+    ceq dfs((PORT , PORTSET), env(STACK, SCCs, M, ((PORT |-> N) , IM)), CONF) = < E ; min(N, N1) > 
+       if < E ; N1 > := dfs(PORTSET, env(STACK, SCCs, M, ((PORT |-> N) , IM)), CONF) .
 
     *** Dead end - no successor!
-    eq dfs(empty, E, CONF) = natEnv(100000, E) .
+    eq dfs(empty, E, CONF) = < E ; 100000 > .
 
-    *** P has not been visited before - none of the other cases match
-    ceq dfs(P ;; PORTSET, E, CONF) = natEnv(min(N1, N2), E2) 
-        if DFSRESULT := dfs1(P, E, CONF) /\
-            E1 := dfsrEnv(DFSRESULT) /\
-            N1 := num(DFSRESULT) /\
-            DFSRESULT1 := dfs(PORTSET, E1, CONF) /\
-            N2 := num(DFSRESULT1) /\
-            E2 := dfsrEnv(DFSRESULT1) 
-         [owise] .
+    *** PORT has not been visited before - none of the other cases match
+    ceq dfs((PORT , PORTSET), E, CONF) = < E2 ; min(N1, N2) >
+        if < E1 ; N1 > := dfs1(PORT, E, CONF) /\ < E2 ; N2 > := dfs(PORTSET, E1, CONF) [owise] .
 
     *** If we can find a Node with a lower index we use the lower index
-    ceq dfs1(P, E, CONF) = dfs(SUCCESORS, E1, CONF)
-        if SUCCESORS := findSuccesors(P, CONF) /\ 
-           E1 := addStackIncr(P, E) /\ 
-           (num (dfs(SUCCESORS, E1, CONF)) < getSN(E)) .
+    ceq dfs1(PORT, E, CONF) = dfs(SUCCESORS, E1, CONF)
+        if SUCCESORS := findSuccesors(PORT, CONF) 
+           /\ E1 := addStackIncr(PORT, E) 
+           /\ < E2 ; M > := dfs(SUCCESORS, E1, CONF) 
+           /\ M < getSN(E) .
             
 
     *** If we cannot find a Node with a lower index
-    ceq dfs1(P, E, CONF) = natEnv(100000, 
-            env(OLDSTACK, getSCC(DFSRESULT) ; elems(SCCSTACK, empty), getSN(dfsrEnv(DFSRESULT)), setInfty(SCCSTACK, getIM(DFSRESULT))))
-                if SUCCESORS := findSuccesors(P, CONF) 
-                /\ E1 := addStackIncr(P, E) 
-                /\ DFSRESULT := dfs(SUCCESORS, E1, CONF) 
-                /\ STACKTUPLE := split(P, getStack(DFSRESULT))
-                /\ OLDSTACK := sndStack(STACKTUPLE) 
-                /\ SCCSTACK := fstStack(STACKTUPLE) [owise] .    
+    ceq dfs1(PORT, E, CONF) = < env(OLDSTACK, insert(N, elems(SCCSTACK, empty), SCCs), getSN(E), setInfty(SCCSTACK, IM)) ; 100000 >
+                if SUCCESORS := findSuccesors(PORT, CONF) 
+                /\ E1 := addStackIncr(PORT, E) 
+                /\ < env(STACK, SCCs, M, IM) ; N > := dfs(SUCCESORS, E1, CONF) 
+                /\ < SCCSTACK ; OLDSTACK >  := split(PORT, STACK, < nil ; nil > ) [owise] .    
 endom)
 
 eof
 
 
-(red split(('SU1 ! 'S), ('SU1 ! 'R) :: (('SU1 ! 'S) :: (('SU1 ! 'T) :: emptyList)) ) .)
+(red split(('SU1 ! 'S), ('SU1 ! 'R) ('SU1 ! 'S) ('SU1 ! 'T), < nil ; nil > ) . )
+
+(red elems(('SU1 ! 'R) ('SU1 ! 'S) ('SU1 ! 'T), empty) . )
 
 ( frew [100] setup . )
 

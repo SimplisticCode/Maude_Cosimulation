@@ -4,7 +4,7 @@ load Port
     protecting Ports .
     sort AlgebraicLoop LoopType .
     ops F R : -> LoopType [ctor] . 
-    op AlgebraicLoop:_Type:_ : Set{EPortIdAsTRIV} LoopType -> AlgebraicLoop [ctor] . 
+    op AlgebraicLoop:_Type:_ : PortSet LoopType -> AlgebraicLoop [ctor] . 
 endfm )
 
 (view ALGEBRAICLOOPAsTRIV from TRIV to ALGEBRAICLOOP is
@@ -13,7 +13,7 @@ endfm )
 endv)
 
 (fmod ALGEBRAICLOOPSET is
-    pr BASICSET{ALGEBRAICLOOPAsTRIV} .
+  protecting SET{ALGEBRAICLOOPAsTRIV} * (sort NeSet{ALGEBRAICLOOPAsTRIV} to NeALSet, sort Set{ALGEBRAICLOOPAsTRIV} to AlgebraicLoopSet) .
 endfm)
 
 *** TODO look at action list to make it to a proper list
@@ -28,43 +28,43 @@ endfm)
  ops StepNegotiation Loop : -> ComplexActionType [ctor] . 
  *** Rename loop type
  op fmiEvent:_SU:_ : FMIActionType PortId -> Action [ctor format(nir! d d d d)] .
- op portEvent:_SU:_PId:_ : ActionType SUID Set{OIdAsTRIV} -> Action [ctor format(nib! d d d d d d)] .
+ op portEvent:_SU:_PId:_ : ActionType SUID OidSet -> Action [ctor format(nib! d d d d d d)] .
  op stepEvent:_StepSize:_ : SUID NzNat -> Action [ctor format(nig! d d d d)] .
- op complexEvent:_SaveSUs:_RestoreSUs:_Actions:_ : ComplexActionType Set{OIdAsTRIV} Set{OIdAsTRIV} ActionList -> Action [ctor format(niy! d d d d d d ni! niy!)] .
+ op complexEvent:_SaveSUs:_RestoreSUs:_Actions:_ : ComplexActionType OidSet OidSet ActionList -> Action [ctor format(niy! d d d d d d ni! niy!)] .
  
  *** Configuration fields
  op Algorithm:_ : ActionList -> Configuration [ctor format(nib! d d)] . 
  op Initialization:_ : ActionList -> Configuration [ctor format(nib! d d)] . 
  op Termination:_ : ActionList -> Configuration [ctor format(nib! d d)] . 
 
- op SNSet:_ : Set{OIdAsTRIV} -> Configuration [ctor format(ni d d)] .
+ op SNSet:_ : OidSet -> Configuration [ctor format(ni d d)] .
  op stepSize:_ : NzNat -> Configuration [ctor format(nig! d d)] . 
  op endTime:_ : NzNat -> Configuration [ctor format(nim! d d)] . 
- op UnsolvedSCC:_ : Set{ALGEBRAICLOOPAsTRIV} -> Configuration [ctor format(nim! d d)] . 
- op SolvedSCC:_ : Set{ALGEBRAICLOOPAsTRIV} -> Configuration [ctor format(nim! d d)] . 
- op guessOn:_ : Set{EPortIdAsTRIV} -> Configuration [ctor format(nip! d d)] .
- op valuesToSet:_ : Set{PortValueMapEntryAsTRIV} -> Configuration .
+ op UnsolvedSCC:_ : AlgebraicLoopSet -> Configuration [ctor format(nim! d d)] . 
+ op SolvedSCC:_ : AlgebraicLoopSet -> Configuration [ctor format(nim! d d)] . 
+ op guessOn:_ : PortSet -> Configuration [ctor format(nip! d d)] .
+ op valuesToSet:_ : PortValueMap -> Configuration .
 
  *** Operations
- op _memberOf_ : EPortId Set{ALGEBRAICLOOPAsTRIV} -> Bool . 
+ op _memberOf_ : EPortId AlgebraicLoopSet -> Bool . 
  op emptyList : -> ActionList [ctor] .
  op _;_ : ActionList ActionList -> ActionList [ctor assoc id: emptyList] .
- op getSUs : Set{EPortIdAsTRIV} Set{OIdAsTRIV} -> Set{OIdAsTRIV} .
+ op getSUs : PortSet OidSet -> OidSet .
 
  var ID : SUID .
- var SUSet : Set{OIdAsTRIV} .
- var LOOPS : Set{ALGEBRAICLOOPAsTRIV} .
+ var SUSet : OidSet .
+ var LOOPS : AlgebraicLoopSet .
  var PORT : EPortId .
  var LOOPTYPE : LoopType .
- var PORTSET : Set{EPortIdAsTRIV} .
+ var PORTSET : PortSet .
  var PORTID : PortId .
 
- eq PORT memberOf (AlgebraicLoop: (PORT ;; PORTSET)  Type: LOOPTYPE) ;; LOOPS = true .
+ eq PORT memberOf ((AlgebraicLoop: (PORT , PORTSET)  Type: LOOPTYPE) , LOOPS) = true .
  eq PORT memberOf LOOPS = false [owise] .
 
  eq getSUs(empty, SUSet) = SUSet .
- ceq getSUs((ID ! PORTID) ;; PORTSET, SUSet) = getSUs(PORTSET, SUSet) if ID in SUSet .
- eq getSUs((ID ! PORTID) ;; PORTSET, SUSet) = getSUs(PORTSET, ID ;; SUSet) [owise] .
+ ceq getSUs(((ID ! PORTID) , PORTSET), SUSet) = getSUs(PORTSET, SUSet) if ID in SUSet .
+ eq getSUs(((ID ! PORTID) , PORTSET), SUSet) = getSUs(PORTSET, (ID , SUSet)) [owise] .
 
 endom)
 

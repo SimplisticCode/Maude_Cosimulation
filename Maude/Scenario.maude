@@ -16,9 +16,9 @@ load ScenarioAnalyser
   vars ID1 ID2 : SUID .
   vars INPUT OUTPUT : PortId .
   vars SUs CONNECTIONS INPUTS OUTPUTS CONF SCENARIOMODEL : Configuration .
-  var SUIDs : Set{OIdAsTRIV} .
+  var SUIDs : OidSet .
   var TYPE : PortType .
-  var SCCs : Set{ALGEBRAICLOOPAsTRIV} .
+  var SCCs : AlgebraicLoopSet .
 
   eq validScenario((ID1 ! OUTPUT ==> ID2 ! INPUT ) CONNECTIONS,  < ID1 : SU | outputs : < OUTPUT : Output | type : TYPE > OUTPUTS > < ID2 : SU | inputs : < INPUT : Input | type : TYPE > INPUTS > SUs) = validScenario(CONNECTIONS, < ID1 : SU | > < ID2 : SU | > SUs) .
   eq validScenario(none, SUs) = true .
@@ -27,13 +27,13 @@ load ScenarioAnalyser
   *** Calculation of the members of the set of SUs that should be backtracked in the step negotiation
   ceq calculateSNSet(< ID1 : SU | inputs : (< INPUT : Input | contract : r > INPUTS) > 
                       < ID2 : SU | outputs : (< OUTPUT : Output | > OUTPUTS) > 
-                      (ID2 ! OUTPUT ==> ID1 ! INPUT) (SNSet: (ID1 ;; SUIDs))  CONF) = 
+                      (ID2 ! OUTPUT ==> ID1 ! INPUT) (SNSet: (ID1 , SUIDs))  CONF) = 
                       calculateSNSet(< ID1 : SU | > < ID2 : SU | > (ID2 ! OUTPUT ==> ID1 ! INPUT) 
-                      (SNSet: (ID1 ;; ID2 ;; SUIDs)) CONF) 
+                      (SNSet: (ID1 , ID2 , SUIDs)) CONF) 
                       if not ID2 in SUIDs .
   
   ceq calculateSNSet(< ID1 : SU | canReject : true > (SNSet: SUIDs) CONF ) = 
-        calculateSNSet(< ID1 : SU | > (SNSet: (ID1 ;; SUIDs)) CONF )
+        calculateSNSet(< ID1 : SU | > (SNSet: (ID1 , SUIDs)) CONF )
                                          if not ID1 in SUIDs .                                    
   eq calculateSNSet(CONF) = CONF [owise] .
 
@@ -47,7 +47,7 @@ eq simulationUnits = (< 'env : SU | path : "A" , time : 0, inputs : none, output
 
  	 (< 'ctrl : SU | path : "A" , time : 0, inputs : (< 'ref : Input | value : 0, type : integer, time : 0, contract : d, status : Undef  >) (< 'w : Input | value : 0, type : integer, time : 0, contract : d, status : Undef  >) (< 'xaft : Input | value : 0, type : integer, time : 0, contract : d, status : Undef  >), outputs : (< 'o : Output | value : 0, type : integer, time : 0, status : Undef, dependsOn : empty >), state : Instantiated, canReject : false >)
 
- 	 (< 'plant : SU | path : "A" , time : 0, inputs : (< 'x : Input | value : 0, type : integer, time : 0, contract : r, status : Undef  >) (< 'v : Input | value : 0, type : integer, time : 0, contract : r, status : Undef  >) (< 'o : Input | value : 0, type : integer, time : 0, contract : d, status : Undef  >) (< 'psu : Input | value : 0, type : integer, time : 0, contract : r, status : Undef  >), outputs : (< 'w : Output | value : 0, type : integer, time : 0, status : Undef, dependsOn : ( 'v ) >) (< 'f : Output | value : 0, type : integer, time : 0, status : Undef, dependsOn : ( 'v ;; 'x ) >), state : Instantiated, canReject : false >) .
+ 	 (< 'plant : SU | path : "A" , time : 0, inputs : (< 'x : Input | value : 0, type : integer, time : 0, contract : r, status : Undef  >) (< 'v : Input | value : 0, type : integer, time : 0, contract : r, status : Undef  >) (< 'o : Input | value : 0, type : integer, time : 0, contract : d, status : Undef  >) (< 'psu : Input | value : 0, type : integer, time : 0, contract : r, status : Undef  >), outputs : (< 'w : Output | value : 0, type : integer, time : 0, status : Undef, dependsOn : ( 'v ) >) (< 'f : Output | value : 0, type : integer, time : 0, status : Undef, dependsOn : ( 'v , 'x ) >), state : Instantiated, canReject : false >) .
 
   ceq scenario(CONNECTIONS, SUs) = CONNECTIONS SUs 
     if validScenario(CONNECTIONS, SUs) .

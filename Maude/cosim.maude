@@ -8,9 +8,9 @@ load Scenario
    op performGlobalStep : Configuration -> Configuration .
    op allSUinSimulation : Configuration -> Bool .
    op simulationStepDone : Configuration -> Bool .
-   op getEnableOutputs : Configuration Configuration Nat Set{OIdAsTRIV} -> Set{OIdAsTRIV} .
-   op ValuesToSet : Configuration SUID Nat Set{PortValueMapEntryAsTRIV} Set{PortValueMapEntryAsTRIV} -> Set{PortValueMapEntryAsTRIV} .
-   op ValuesToSetInit : Configuration SUID Set{PortValueMapEntryAsTRIV} Set{PortValueMapEntryAsTRIV} -> Set{PortValueMapEntryAsTRIV} .
+   op getEnableOutputs : Configuration Configuration Nat OidSet -> OidSet .
+   op ValuesToSet : Configuration SUID Nat PortValueMap PortValueMap -> PortValueMap .
+   op ValuesToSetInit : Configuration SUID PortValueMap PortValueMap -> PortValueMap .
 
    vars ID1 ID2 : SUID .
    vars INPUT OUTPUT : PortId .
@@ -18,13 +18,13 @@ load Scenario
    vars INPUTS OUTPUTS CONF STARTCONF : Configuration . 
    var STATE : fmiState .
    vars ALGO STEPNEGOALGO : ActionList .
-   vars SUIDs FEEDTHROUGH PORTIDSET : Set{OIdAsTRIV} .
+   vars SUIDs FEEDTHROUGH PORTIDSET : OidSet .
    vars STEPSIZE NEGOTIATEDSTEPSIZE FUTURETIME ENDTIME : NzNat .
    var LOOP : AlgebraicLoop .  
-   vars LOOPS SOLVEDLOOPS LOOPTOSOLVE : Set{ALGEBRAICLOOPAsTRIV} .  
+   vars LOOPS SOLVEDLOOPS LOOPTOSOLVE : AlgebraicLoopSet .  
    var INPUTTYPE : Contract .
    var STEPRes : findStepPair .
-   vars PORTVALUES PORTVALUESTOSET : Set{PortValueMapEntryAsTRIV} .
+   vars PORTVALUES PORTVALUESTOSET : PortValueMap .
    var SUINSTANCE : Object .
    var EVENT : Action .
 
@@ -53,28 +53,28 @@ load Scenario
   eq allSUinSimulation(CONF) = true [owise] .
 
   eq getEnableOutputs(none, INPUTS, TIME, PORTIDSET) = PORTIDSET . 
-  ceq getEnableOutputs(< OUTPUT : Output | status : Undef, dependsOn : FEEDTHROUGH > OUTPUTS, INPUTS, TIME, PORTIDSET) = getEnableOutputs(OUTPUTS, INPUTS, TIME, OUTPUT ;; PORTIDSET)
+  ceq getEnableOutputs(< OUTPUT : Output | status : Undef, dependsOn : FEEDTHROUGH > OUTPUTS, INPUTS, TIME, PORTIDSET) = getEnableOutputs(OUTPUTS, INPUTS, TIME, (OUTPUT , PORTIDSET))
         if feedthroughSatisfied(FEEDTHROUGH, INPUTS, TIME) .
 
   eq getEnableOutputs(< OUTPUT : Output | > OUTPUTS, INPUTS, TIME, PORTIDSET) = getEnableOutputs(OUTPUTS, INPUTS, TIME, PORTIDSET) [owise] .
 
   eq ValuesToSet(none, ID1, TIME, PORTVALUES, PORTVALUESTOSET) = PORTVALUESTOSET .
-  ceq ValuesToSet(< INPUT : Input | time : TIME1, contract : INPUTTYPE > INPUTS, ID1, TIME, (INPUT => < TIME2 ; VALUE >) ;; PORTVALUES, PORTVALUESTOSET) 
-                        = ValuesToSet(INPUTS, ID1, TIME, PORTVALUES, (INPUT => < TIME2 ; VALUE >) ;; PORTVALUESTOSET) 
+  ceq ValuesToSet(< INPUT : Input | time : TIME1, contract : INPUTTYPE > INPUTS, ID1, TIME, ((INPUT |-> < TIME2 ; VALUE >), PORTVALUES), PORTVALUESTOSET) 
+                        = ValuesToSet(INPUTS, ID1, TIME, PORTVALUES, insert(INPUT, < TIME2 ; VALUE >, PORTVALUESTOSET)) 
                         if TIME1 < TIME2 and ((INPUTTYPE == d and TIME1 < TIME) or (INPUTTYPE == r and TIME == TIME1)) .
 
   eq ValuesToSet(< INPUT : Input | > INPUTS, ID1, TIME, PORTVALUES, PORTVALUESTOSET) = ValuesToSet(INPUTS, ID1, TIME, PORTVALUES, PORTVALUESTOSET) [owise] .
 
   eq ValuesToSetInit(none, ID1, PORTVALUES, PORTVALUESTOSET) = PORTVALUESTOSET .
-  eq ValuesToSetInit(< INPUT : Input | status : Undef > INPUTS, ID1, (INPUT => < 0 ; VALUE >) ;; PORTVALUES, PORTVALUESTOSET) 
-                        = ValuesToSetInit(INPUTS, ID1, PORTVALUES, (INPUT => < 0 ; VALUE >) ;; PORTVALUESTOSET) .
+  eq ValuesToSetInit(< INPUT : Input | status : Undef > INPUTS, ID1, ((INPUT |-> < 0 ; VALUE >), PORTVALUES), PORTVALUESTOSET) 
+                        = ValuesToSetInit(INPUTS, ID1, PORTVALUES, insert(INPUT, < 0 ; VALUE >, PORTVALUESTOSET)) .
   eq ValuesToSetInit(< INPUT : Input | > INPUTS, ID1, PORTVALUES, PORTVALUESTOSET) 
             = ValuesToSetInit(INPUTS, ID1, PORTVALUES, PORTVALUESTOSET) [owise] .
 
   *** Perform the global simulation step
   *** Set input                     
   ceq performGlobalStep(CONF < ID1 : SU | time : TIME, inputs : INPUTS > Algorithm: ALGO valuesToSet: PORTVALUES) = 
-      performGlobalStep(CONF SUINSTANCE Algorithm: (ALGO ; EVENT) valuesToSet: (PORTVALUES - PORTVALUESTOSET))
+      performGlobalStep(CONF SUINSTANCE Algorithm: (ALGO ; EVENT) valuesToSet: (PORTVALUES \ PORTVALUESTOSET))
                         if PORTVALUESTOSET := ValuesToSet(INPUTS, ID1, TIME, PORTVALUES, empty) 
                         /\ PORTIDSET := getPortFromMap(PORTVALUESTOSET,empty) 
                         /\ PORTVALUESTOSET =/= empty 
@@ -90,7 +90,7 @@ load Scenario
 
   *** Get
   ceq performGlobalStep(CONF < ID1 : SU | time : TIME, inputs : INPUTS, outputs : OUTPUTS >  Algorithm: ALGO valuesToSet: PORTVALUES) =
-      performGlobalStep(CONF SUINSTANCE Algorithm: (ALGO ; EVENT) valuesToSet: (PORTVALUES ;; PORTVALUESTOSET)) 
+      performGlobalStep(CONF SUINSTANCE Algorithm: (ALGO ; EVENT) valuesToSet: (PORTVALUES , PORTVALUESTOSET)) 
                       if PORTIDSET := getEnableOutputs(OUTPUTS, INPUTS, TIME, empty)
                       /\ PORTIDSET =/= empty 
                       /\ SUINSTANCE := getAction(< ID1 : SU | >, PORTIDSET)
@@ -98,8 +98,8 @@ load Scenario
                       /\ EVENT := portEvent: Get SU: ID1 PId: PORTIDSET . 
                       
   *** Algebraic Loop - solve and remove loop
-  eq performGlobalStep(CONF UnsolvedSCC: (LOOP ;; LOOPS) SolvedSCC: SOLVEDLOOPS) = 
-    performGlobalStep(solveLoop(CONF UnsolvedSCC: LOOPS SolvedSCC: (LOOP ;; SOLVEDLOOPS), LOOP)) [owise] .
+  eq performGlobalStep(CONF UnsolvedSCC: (LOOP , LOOPS) SolvedSCC: SOLVEDLOOPS) = 
+    performGlobalStep(solveLoop(CONF UnsolvedSCC: LOOPS SolvedSCC: (LOOP , SOLVEDLOOPS), LOOP)) [owise] .
 
   *** Return the configuration is the simulation is done
   ceq performGlobalStep(CONF) = CONF if simulationStepDone(CONF) .
@@ -131,7 +131,7 @@ load Scenario
 
   *** Initialization Procedure 
   crl [get-init] : {< ID1 : SU | outputs : OUTPUTS, inputs : INPUTS, state : Initialize > Initialization: ALGO valuesToSet: PORTVALUES CONF}
-                  => {SUINSTANCE Initialization: (ALGO ; EVENT) valuesToSet: (PORTVALUES ;; PORTVALUESTOSET) CONF}
+                  => {SUINSTANCE Initialization: (ALGO ; EVENT) valuesToSet: (PORTVALUES , PORTVALUESTOSET) CONF}
                 if PORTIDSET := getEnableOutputs(OUTPUTS, INPUTS, 0, empty)
                   /\ PORTIDSET =/= empty 
                   /\ SUINSTANCE := getAction(< ID1 : SU | >, PORTIDSET)
@@ -140,7 +140,7 @@ load Scenario
 
    *** Inputs can only rely on one connection 
    crl [set-init] : < ID1 : SU | inputs : INPUTS, state : Initialize > Initialization: ALGO CONF valuesToSet: PORTVALUES
-                        => SUINSTANCE Initialization: (ALGO ; EVENT) valuesToSet: (PORTVALUES - PORTVALUESTOSET)
+                        => SUINSTANCE Initialization: (ALGO ; EVENT) valuesToSet: (PORTVALUES \ PORTVALUESTOSET)
                     if PORTVALUESTOSET := ValuesToSetInit(INPUTS, ID1, PORTVALUES, empty) 
                       /\ PORTVALUESTOSET =/= empty 
                       /\ PORTIDSET := getPortFromMap(PORTVALUESTOSET, empty) 

@@ -7,27 +7,27 @@ load SimulationUnit
 
     op <_;_> : ActionList Configuration -> Pair [ctor] .
     op solveLoop : Configuration AlgebraicLoop  -> Configuration . 
-    op breakLoop : Set{EPortIdAsTRIV} Configuration LoopType -> Configuration .
-    op containsCycle : Set{ALGEBRAICLOOPAsTRIV} -> Bool . 
-    op loopStep : Set{EPortIdAsTRIV}  Configuration ActionList -> Pair .
+    op breakLoop : PortSet Configuration LoopType -> Configuration .
+    op containsCycle : AlgebraicLoopSet -> Bool . 
+    op loopStep : PortSet  Configuration ActionList -> Pair .
     op solveLoopConf : Configuration AlgebraicLoop -> Configuration .
     op solveLoopAlgorithm : Configuration AlgebraicLoop -> ActionList .
 
     op fst : Pair -> ActionList .
     op snd : Pair -> Configuration .
 
-    var LOOPS : Set{ALGEBRAICLOOPAsTRIV} .  
+    var LOOPS : AlgebraicLoopSet .  
     var LOOPTYPE : LoopType .
     vars CONF OUTPUTS INPUTS : Configuration .
     vars INPUT OUTPUT : PortId .
     vars ID1 ID2 : SUID .
-    vars PSet GSet : Set{EPortIdAsTRIV} .
+    vars PSet GSet : PortSet .
     var ALGO : ActionList .
     var TIME T1 VALUE : Nat .
     var STEP FUTURETIME : NzNat .
-    var FEEDTHROUGH : Set{OIdAsTRIV}  .
+    var FEEDTHROUGH : OidSet  .
     var CONTRACT : Contract .
-    var SUIDS : Set{OIdAsTRIV}  .
+    var SUIDS : OidSet  .
     var SUINSTANCE : Object .
     var EVENT : Action .
 
@@ -48,19 +48,19 @@ load SimulationUnit
         if SUIDS := getSUs(PSet, empty) .
 
     *** Forget All Connections depending on type of loop 
-    ceq breakLoop((ID1 ! INPUT) ;; PSet,   
+    ceq breakLoop(((ID1 ! INPUT) , PSet),   
                      < ID1 : SU | inputs : (< INPUT : Input | contract : CONTRACT > INPUTS) > 
                      < ID2 : SU | outputs : (< OUTPUT : Output | > OUTPUTS) > 
                      (ID2 ! OUTPUT ==> ID1 ! INPUT) guessOn: GSet CONF, LOOPTYPE) = 
-                        breakLoop((ID1 ! INPUT) ;; PSet, < ID1 : SU | > < ID2 : SU | > guessOn: ((ID1 ! INPUT) ;; GSet) CONF, LOOPTYPE) 
+                        breakLoop(((ID1 ! INPUT) , PSet), < ID1 : SU | > < ID2 : SU | > guessOn: ((ID1 ! INPUT) , GSet) CONF, LOOPTYPE) 
                         if (LOOPTYPE == R and CONTRACT == r) or (LOOPTYPE == F and CONTRACT == d) .
 
     eq breakLoop(PSet, CONF, LOOPTYPE) = CONF [owise] .
 
     *** Set value using Guess
-    ceq loopStep((ID1 ! INPUT) ;; PSet, 
+    ceq loopStep(((ID1 ! INPUT) , PSet), 
                       < ID1 : SU | time : TIME, inputs : (< INPUT : Input | time : T1, contract : CONTRACT > INPUTS) > 
-                    guessOn: ((ID1 ! INPUT) ;; GSet) stepSize: STEP CONF, ALGO) = 
+                    guessOn: ((ID1 ! INPUT) , GSet) stepSize: STEP CONF, ALGO) = 
             loopStep(PSet, SUINSTANCE guessOn: GSet stepSize: STEP CONF, (ALGO ; EVENT)) 
                     if VALUE := random(TIME) 
                     /\ FUTURETIME := T1 + STEP
@@ -69,7 +69,7 @@ load SimulationUnit
                     /\ (CONTRACT == r and T1 == TIME) or (CONTRACT == d and TIME == FUTURETIME) .
 
     *** Set value on input
-    ceq loopStep((ID1 ! INPUT) ;; PSet, 
+    ceq loopStep(((ID1 ! INPUT) , PSet), 
                       < ID1 : SU | inputs : (< INPUT : Input | time : TIME, contract : CONTRACT > INPUTS) > 
                       < ID2 : SU | outputs : (< OUTPUT : Output | value : VALUE, time : FUTURETIME, status : Def > OUTPUTS) > (ID2 ! OUTPUT ==> ID1 ! INPUT) CONF, ALGO) = 
               loopStep(PSet, SUINSTANCE < ID2 : SU | > (ID2 ! OUTPUT ==> ID1 ! INPUT) CONF, (ALGO ; EVENT)) 
@@ -78,7 +78,7 @@ load SimulationUnit
                     /\ FUTURETIME > TIME .
 
     *** Get output value
-    ceq loopStep((ID1 ! OUTPUT) ;; PSet, 
+    ceq loopStep(((ID1 ! OUTPUT) , PSet), 
                     < ID1 : SU | time : TIME, outputs : (< OUTPUT : Output | status : Undef, dependsOn : FEEDTHROUGH > OUTPUTS), inputs : INPUTS > CONF, ALGO) = 
                     loopStep(PSet, SUINSTANCE CONF, (ALGO ; EVENT)) 
                   if EVENT :=  portEvent: Get SU: ID1 PId: OUTPUT
@@ -86,8 +86,8 @@ load SimulationUnit
                   /\ feedthroughSatisfied(FEEDTHROUGH, INPUTS, TIME) .
 
     *** Step
-    ceq loopStep((ID1 ! OUTPUT) ;; PSet, < ID1 : SU | time : TIME, outputs : OUTPUTS, inputs : INPUTS > stepSize: STEP CONF, ALGO) = 
-                  loopStep((ID1 ! OUTPUT) ;; PSet, SUINSTANCE stepSize: STEP CONF, (ALGO ; EVENT))
+    ceq loopStep(((ID1 ! OUTPUT) , PSet), < ID1 : SU | time : TIME, outputs : OUTPUTS, inputs : INPUTS > stepSize: STEP CONF, ALGO) = 
+                  loopStep(((ID1 ! OUTPUT) , PSet), SUINSTANCE stepSize: STEP CONF, (ALGO ; EVENT))
                   if EVENT := stepEvent: ID1 StepSize: STEP
                   /\ SUINSTANCE := stepAction(< ID1 : SU | >, STEP) 
                   /\ FUTURETIME := TIME + STEP

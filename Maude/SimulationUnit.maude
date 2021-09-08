@@ -17,50 +17,50 @@ load Algorithm
      state : fmiState .
    
    op askStepSize : Object NzNat -> NzNat .
-   op feedthroughSatisfied : Set{OIdAsTRIV} Configuration Nat -> Bool .
+   op feedthroughSatisfied : OidSet Configuration Nat -> Bool .
    op allDef : Configuration Nat -> Bool .
    op undefPorts : Configuration Nat -> Configuration .
    op undefInputs : Configuration -> Configuration .  
    op allInputsDef : Configuration Nat Nat -> Bool .
    op allInputsSet : Configuration -> Bool .
    op canStep : Nat NzNat Configuration Configuration -> Bool .
-   op getAction : Object Set{OIdAsTRIV} -> Object .
-   op getActionValues : Object Set{OIdAsTRIV} Configuration Set{PortValueMapEntryAsTRIV} -> Set{PortValueMapEntryAsTRIV} .
-   op setAction : Object Set{OIdAsTRIV} Nat Nat -> Object .
+   op getAction : Object OidSet -> Object .
+   op getActionValues : Object OidSet Configuration PortValueMap -> PortValueMap .
+   op setAction : Object OidSet Nat Nat -> Object .
    op stepAction : Object NzNat -> Object .
-   op getAllPorts : Configuration Set{EPortIdAsTRIV} -> Set{EPortIdAsTRIV} .
-   op getAllReactivePorts : Configuration Set{EPortIdAsTRIV} -> Set{EPortIdAsTRIV} .
+   op getAllPorts : Configuration PortSet -> PortSet .
+   op getAllReactivePorts : Configuration PortSet -> PortSet .
 
-   op setActionPortMap : Object Set{PortValueMapEntryAsTRIV} -> Object .
+   op setActionPortMap : Object PortValueMap -> Object .
 
    vars ID ID1 ID2 : SUID .
    vars PId INPUT OUTPUT : PortId .
    vars TIME SUTIME VALUE : Nat .
    vars CONF INPUTS OUTPUTS : Configuration .
    var PORTSTATUS : PortStatus .
-   vars FEEDTHROUGH PORTS : Set{OIdAsTRIV} .
+   vars FEEDTHROUGH PORTS : OidSet .
    vars FUTURETIME STEP : NzNat .
-   var PORTMAP : Set{PortValueMapEntryAsTRIV} .
-   var PORTSET : Set{EPortIdAsTRIV} .
+   var PORTMAP : PortValueMap .
+   var PORTSET : PortSet .
 
    *** Get All ports in the scenario:
-  ceq getAllPorts(< ID1 : SU | inputs : (< INPUT : Input | > INPUTS) > CONF, PORTSET) = getAllPorts(< ID1 : SU | > CONF,  (ID1 ! INPUT) ;; PORTSET)
+  ceq getAllPorts(< ID1 : SU | inputs : (< INPUT : Input | > INPUTS) > CONF, PORTSET) = getAllPorts(< ID1 : SU | > CONF,  ((ID1 ! INPUT) , PORTSET))
     if not (ID1 ! INPUT) in PORTSET .
 
-  ceq getAllPorts(< ID1 : SU | outputs : (< OUTPUT : Output | > OUTPUTS) > CONF, PORTSET) = getAllPorts(< ID1 : SU | > CONF,  (ID1 ! OUTPUT) ;; PORTSET)
+  ceq getAllPorts(< ID1 : SU | outputs : (< OUTPUT : Output | > OUTPUTS) > CONF, PORTSET) = getAllPorts(< ID1 : SU | > CONF, ((ID1 ! OUTPUT) , PORTSET))
       if not (ID1 ! OUTPUT) in PORTSET .
 
   eq getAllPorts(CONF, PORTSET) = PORTSET [owise] . 
 
-  ceq getAllReactivePorts(< ID1 : SU | inputs : (< INPUT : Input | contract : r > INPUTS) > CONF, PORTSET) = getAllReactivePorts(< ID1 : SU | > CONF,  (ID1 ! INPUT) ;; PORTSET)
+  ceq getAllReactivePorts(< ID1 : SU | inputs : (< INPUT : Input | contract : r > INPUTS) > CONF, PORTSET) = getAllReactivePorts(< ID1 : SU | > CONF, ((ID1 ! INPUT) , PORTSET))
     if not (ID1 ! INPUT) in PORTSET .
 
   eq getAllReactivePorts(CONF, PORTSET) = PORTSET [owise] . 
 
    *** Checks if all feedthrough constraints are satisfied
    eq feedthroughSatisfied(empty, CONF, TIME) = true .
-   eq feedthroughSatisfied(PId ;; FEEDTHROUGH, < PId : Input | status : Undef > CONF, TIME) = false .
-   eq feedthroughSatisfied(PId ;; FEEDTHROUGH, < PId : Input | time : TIME, status : Def > CONF, TIME) =  feedthroughSatisfied(FEEDTHROUGH, CONF, TIME) .
+   eq feedthroughSatisfied((PId , FEEDTHROUGH), < PId : Input | status : Undef > CONF, TIME) = false .
+   eq feedthroughSatisfied((PId , FEEDTHROUGH), < PId : Input | time : TIME, status : Def > CONF, TIME) =  feedthroughSatisfied(FEEDTHROUGH, CONF, TIME) .
 
    eq allDef(none, TIME) = true .
    eq allDef(< PId : Port | status : PORTSTATUS, time : TIME > CONF, TIME) = PORTSTATUS == Def and allDef(CONF, TIME) .
@@ -85,18 +85,20 @@ load Algorithm
 
   *** Updates the time and status of the input
   eq getAction(< ID : SU | >, empty) = < ID : SU | > .
-  eq getAction(< ID : SU | time : TIME, outputs : (< OUTPUT : Output | > OUTPUTS) >, OUTPUT ;; PORTS) = 
+  eq getAction(< ID : SU | time : TIME, outputs : (< OUTPUT : Output | > OUTPUTS) >, (OUTPUT , PORTS)) = 
     getAction(< ID : SU | outputs : (< OUTPUT : Output | time : TIME, status : Def > OUTPUTS) >, PORTS) .
 
   eq getActionValues(< ID : SU | >, empty, CONF, PORTMAP) = PORTMAP .
-  eq getActionValues(< ID : SU | outputs : (< OUTPUT : Output | value : VALUE, time : TIME > OUTPUTS) >, OUTPUT ;; PORTS, (ID ! OUTPUT ==> ID1 ! INPUT) CONF, PORTMAP) 
-    = getActionValues(< ID : SU | >, PORTS, CONF, (INPUT => < TIME ; VALUE >) ;; PORTMAP) . 
+  eq getActionValues(< ID : SU | outputs : (< OUTPUT : Output | value : VALUE, time : TIME > OUTPUTS) >, (OUTPUT , PORTS), (ID ! OUTPUT ==> ID1 ! INPUT) CONF, PORTMAP) 
+    = getActionValues(< ID : SU | >, PORTS, CONF, ((INPUT |-> < TIME ; VALUE >) , PORTMAP)) . 
 
   eq setAction(< ID : SU | > , empty, VALUE, TIME) =  < ID : SU | > .
-  eq setAction(< ID : SU | inputs : (< INPUT : Input | > INPUTS) > , INPUT ;; PORTS, VALUE, TIME) =  setAction(< ID : SU | inputs : (< INPUT : Input | time : TIME, status : Def > INPUTS) >, PORTS, VALUE, TIME) .
+  eq setAction(< ID : SU | inputs : (< INPUT : Input | > INPUTS) > , (INPUT , PORTS), VALUE, TIME) = 
+            setAction(< ID : SU | inputs : (< INPUT : Input | time : TIME, status : Def > INPUTS) >, PORTS, VALUE, TIME) .
 
   eq setActionPortMap(< ID : SU | > , empty) =  < ID : SU | > .
-  eq setActionPortMap(< ID : SU | inputs : (< INPUT : Input | > INPUTS) > , (INPUT => < TIME ; VALUE >) ;; PORTMAP) =  setActionPortMap(< ID : SU | inputs : (< INPUT : Input | value : VALUE, time : TIME, status : Def > INPUTS) >, PORTMAP).
+  eq setActionPortMap(< ID : SU | inputs : (< INPUT : Input | > INPUTS) > , ((INPUT |-> < TIME ; VALUE >) , PORTMAP)) = 
+     setActionPortMap(< ID : SU | inputs : (< INPUT : Input | value : VALUE, time : TIME, status : Def > INPUTS) >, PORTMAP).
 
   *** Updates the time and the status of the outputs
   ceq stepAction(< ID : SU | time : TIME, outputs : OUTPUTS >, STEP) = < ID : SU | time : FUTURETIME, outputs : undefPorts(OUTPUTS, FUTURETIME) > 

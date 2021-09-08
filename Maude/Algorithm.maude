@@ -47,9 +47,9 @@ endfm)
 
  *** Operations
  op _memberOf_ : EPortId AlgebraicLoopSet -> Bool . 
+ op getSUs : PortSet OidSet -> OidSet .
  op emptyList : -> ActionList [ctor] .
  op _;_ : ActionList ActionList -> ActionList [ctor assoc id: emptyList] .
- op getSUs : PortSet OidSet -> OidSet .
 
  var ID : SUID .
  var SUSet : OidSet .
@@ -63,8 +63,8 @@ endfm)
  eq PORT memberOf LOOPS = false [owise] .
 
  eq getSUs(empty, SUSet) = SUSet .
- ceq getSUs(((ID ! PORTID) , PORTSET), SUSet) = getSUs(PORTSET, SUSet) if ID in SUSet .
- eq getSUs(((ID ! PORTID) , PORTSET), SUSet) = getSUs(PORTSET, (ID , SUSet)) [owise] .
+ ceq getSUs(((ID ! PORTID), PORTSET), SUSet) = getSUs(PORTSET, SUSet) if ID in SUSet .
+ eq getSUs(((ID ! PORTID), PORTSET), SUSet) = getSUs(PORTSET, (ID , SUSet)) [owise] .
 
 endom)
 

@@ -12,9 +12,9 @@ load Environment
     var IM : IndexMap .
     var CONF : Configuration .
     var SCCs : SCCMap .
-    vars N N1 N2  : NzNat .
+    vars VISITED VISITED1 VISITED2  : NzNat .
     vars SCCNUMBER INDEX : Nat .
-    vars E E1 E2 : Environment .
+    vars ENV ENV1 ENV2 : Environment .
     vars OLDSTACK STACK SCCSTACK : PortList .
     vars LOOPS LOOPSet : AlgebraicLoopSet .
     vars SUIDs REACTIVESUs : OidSet .
@@ -32,34 +32,34 @@ load Environment
     eq loopsInStepNegotiation((LOOP , LOOPS), SUIDs, CONF, LOOPSet) = 
         loopsInStepNegotiation(LOOPS, SUIDs, CONF, LOOPSet) [owise] .
 
-    ceq tarjan(CONF) = getLoops(E1, CONF)
-       if < E1 ; INDEX > := dfs(getAllPorts(CONF, empty), env(nil, empty, 1, 0, createIndexMap(getAllPorts(CONF, empty), empty)), CONF) .
+    ceq tarjan(CONF) = getLoops(ENV1, CONF)
+       if < ENV1 ; INDEX > := dfs(getAllPorts(CONF, empty), env(nil, empty, 1, 0, createIndexMap(getAllPorts(CONF, empty), empty)), CONF) .
 
-    *** PORT has been visisted before - N is non-zero!
-    ceq dfs((PORT , PORTSET), env(STACK, SCCs, INDEX, SCCNUMBER, ((PORT |-> N), IM)), CONF) = < E ; min(N, N1) > 
-       if < E ; N1 > := dfs(PORTSET, env(STACK, SCCs, INDEX, SCCNUMBER, ((PORT |-> N) , IM)), CONF) .
+    *** PORT has been visisted before - VISITED is non-zero!
+    ceq dfs((PORT , PORTSET), env(STACK, SCCs, INDEX, SCCNUMBER, ((PORT |-> VISITED), IM)), CONF) = < ENV ; min(VISITED, VISITED1) > 
+       if < ENV ; VISITED1 > := dfs(PORTSET, env(STACK, SCCs, INDEX, SCCNUMBER, ((PORT |-> VISITED) , IM)), CONF) .
 
     *** Dead end - no successor!
-    eq dfs(empty, E, CONF) = < E ; 100000 > .
+    eq dfs(empty, ENV, CONF) = < ENV ; 100000 > .
 
     *** PORT has not been visited before - none of the other cases match
-    ceq dfs((PORT, PORTSET), E, CONF) = < E2 ; min(N1, N2) >
-        if < E1 ; N1 > := dfs1(PORT, E, CONF) 
-        /\ < E2 ; N2 > := dfs(PORTSET, E1, CONF) [owise] .
+    ceq dfs((PORT, PORTSET), ENV, CONF) = < ENV2 ; min(VISITED1, VISITED2) >
+        if < ENV1 ; VISITED1 > := dfs1(PORT, ENV, CONF) 
+        /\ < ENV2 ; VISITED2 > := dfs(PORTSET, ENV1, CONF) [owise] .
 
     *** If we can find a Node with a lower index we use the lower index
-    ceq dfs1(PORT, E, CONF) = dfs(SUCCESORS, E1, CONF)
+    ceq dfs1(PORT, ENV, CONF) = dfs(SUCCESORS, ENV1, CONF)
         if SUCCESORS := findSuccesors(PORT, CONF) 
-           /\ E1 := addStackIncr(PORT, E) 
-           /\ < E2 ; INDEX > := dfs(SUCCESORS, E1, CONF) 
-           /\ INDEX < getSN(E) .
+           /\ ENV1 := addStackIncr(PORT, ENV) 
+           /\ < ENV2 ; INDEX > := dfs(SUCCESORS, ENV1, CONF) 
+           /\ INDEX < getSN(ENV) .
             
     *** If we cannot find a Node with a lower index
-    ceq dfs1(PORT, E, CONF) = 
+    ceq dfs1(PORT, ENV, CONF) = 
         < env(OLDSTACK, insert(SCCNUMBER, SCCSTACK, SCCs), INDEX, SCCNUMBER + 1, setInfty(SCCSTACK, IM)) ; 100000 >
                 if SUCCESORS := findSuccesors(PORT, CONF) 
-                /\ E1 := addStackIncr(PORT, E) 
-                /\ < env(STACK, SCCs, INDEX, SCCNUMBER, IM) ; N > := dfs(SUCCESORS, E1, CONF) 
+                /\ ENV1 := addStackIncr(PORT, ENV) 
+                /\ < env(STACK, SCCs, INDEX, SCCNUMBER, IM) ; VISITED > := dfs(SUCCESORS, ENV1, CONF) 
                 /\ < SCCSTACK ; OLDSTACK >  := split(PORT, STACK, < nil ; nil > ) [owise] .   
 
 endom)

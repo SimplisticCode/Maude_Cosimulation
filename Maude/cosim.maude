@@ -15,15 +15,16 @@ load Scenario
    vars ID1 ID2 : SUID .
    vars INPUT OUTPUT : PortId .
    vars TIME TIME1 TIME2 VALUE : Nat .
+   var PORTVALUE : PortValueAndTime .
    vars INPUTS OUTPUTS CONF STARTCONF : Configuration . 
    var STATE : fmiState .
    vars ALGO STEPNEGOALGO : ActionList .
    vars SUIDs FEEDTHROUGH PORTIDSET : OidSet .
+   var SUIDsNE : NeOidSet . 
    vars STEPSIZE NEGOTIATEDSTEPSIZE FUTURETIME ENDTIME : NzNat .
    var LOOP : AlgebraicLoop .  
    vars LOOPS SOLVEDLOOPS LOOPTOSOLVE : AlgebraicLoopSet .  
    var INPUTTYPE : Contract .
-   var STEPRes : findStepPair .
    vars PORTVALUES PORTVALUESTOSET : PortValueMap .
    var SUINSTANCE : Object .
    var EVENT : Action .
@@ -33,20 +34,17 @@ load Scenario
 
   *** Step Negotiation
   ceq performStepNegotiation(CONF stepSize: STEPSIZE UnsolvedSCC: LOOPS SolvedSCC: SOLVEDLOOPS
-                                 SNSet: SUIDs Algorithm: ALGO) = 
+                                 SNSet: SUIDsNE Algorithm: ALGO) = 
                               CONF SNSet: empty Algorithm: (ALGO ; EVENT) stepSize: NEGOTIATEDSTEPSIZE
                                 UnsolvedSCC: LOOPS SolvedSCC: SOLVEDLOOPS
                                 ***UnsolvedSCC: (LOOPS - LOOPTOSOLVE)  SolvedSCC: (SOLVEDLOOPS ;; LOOPTOSOLVE)
-                              if needsStepNegotiation(SUIDs) 
-                              /\ STARTCONF := CONF stepSize: STEPSIZE UnsolvedSCC: LOOPS SolvedSCC: SOLVEDLOOPS
-                              /\ STEPRes := findStep(SUIDs, STARTCONF, STARTCONF, emptyList)
+                              if STARTCONF := CONF stepSize: STEPSIZE UnsolvedSCC: LOOPS SolvedSCC: SOLVEDLOOPS
+                              /\ < NEGOTIATEDSTEPSIZE ++ STEPNEGOALGO > := findStep(SUIDsNE, STARTCONF, STARTCONF, emptyList)
                               ***/\ LOOPTOSOLVE := loopsInStepNegotiation(LOOPS, SUIDs, CONF) 
                               *** I need to break the loop (by removing the reactive connections) here to avoid it
-                              /\ NEGOTIATEDSTEPSIZE := getStep(STEPRes) 
-                              /\ STEPNEGOALGO := getAL(STEPRes)
-                              /\ EVENT := complexEvent: StepNegotiation SaveSUs: SUIDs RestoreSUs: SUIDs Actions: STEPNEGOALGO .
+                              /\ EVENT := complexEvent: StepNegotiation SaveSUs: SUIDsNE RestoreSUs: SUIDsNE Actions: STEPNEGOALGO .
 
-  ceq performStepNegotiation(CONF SNSet: SUIDs) = CONF if not needsStepNegotiation(SUIDs) .  
+  eq performStepNegotiation(CONF SNSet: empty) = CONF .  
 
   *** All SUs are in the simulation state
   eq allSUinSimulation(< ID1 : SU | state : STATE > CONF) = STATE == Simulation and allSUinSimulation(CONF) . 
@@ -71,13 +69,13 @@ load Scenario
   eq ValuesToSetInit(< INPUT : Input | > INPUTS, ID1, PORTVALUES, PORTVALUESTOSET) 
             = ValuesToSetInit(INPUTS, ID1, PORTVALUES, PORTVALUESTOSET) [owise] .
 
+  *** How can I make it faster?
   *** Perform the global simulation step
   *** Set input                     
-  ceq performGlobalStep(CONF < ID1 : SU | time : TIME, inputs : INPUTS > Algorithm: ALGO valuesToSet: PORTVALUES) = 
-      performGlobalStep(CONF SUINSTANCE Algorithm: (ALGO ; EVENT) valuesToSet: (PORTVALUES \ PORTVALUESTOSET))
-                        if PORTVALUESTOSET := ValuesToSet(INPUTS, ID1, TIME, PORTVALUES, empty) 
+  ceq performGlobalStep(CONF < ID1 : SU | time : TIME, inputs : (< INPUT : Input | > INPUTS) > Algorithm: ALGO valuesToSet: ((INPUT |-> PORTVALUE) , PORTVALUES)) = 
+      performGlobalStep(CONF SUINSTANCE Algorithm: (ALGO ; EVENT) valuesToSet: (((INPUT |-> PORTVALUE) , PORTVALUES) \ PORTVALUESTOSET))
+                        if PORTVALUESTOSET := ValuesToSet((< INPUT : Input | > INPUTS), ID1, TIME, ((INPUT |-> PORTVALUE) , PORTVALUES), empty) 
                         /\ PORTIDSET := getPortFromMap(PORTVALUESTOSET,empty) 
-                        /\ PORTVALUESTOSET =/= empty 
                         /\ SUINSTANCE := setActionPortMap( < ID1 : SU | >, PORTVALUESTOSET) 
                         /\ EVENT := portEvent: Set SU: ID1 PId: PORTIDSET .
   *** Step
@@ -139,10 +137,9 @@ load Scenario
                   /\ EVENT := portEvent: Get SU: ID1 PId: PORTIDSET . 
 
    *** Inputs can only rely on one connection 
-   crl [set-init] : < ID1 : SU | inputs : INPUTS, state : Initialize > Initialization: ALGO CONF valuesToSet: PORTVALUES
-                        => SUINSTANCE Initialization: (ALGO ; EVENT) valuesToSet: (PORTVALUES \ PORTVALUESTOSET)
-                    if PORTVALUESTOSET := ValuesToSetInit(INPUTS, ID1, PORTVALUES, empty) 
-                      /\ PORTVALUESTOSET =/= empty 
+   crl [set-init] : < ID1 : SU | inputs : (< INPUT : Input | status : Undef > INPUTS), state : Initialize > Initialization: ALGO CONF valuesToSet: ((INPUT |-> PORTVALUE) , PORTVALUES)
+                        => SUINSTANCE Initialization: (ALGO ; EVENT) valuesToSet: (((INPUT |-> PORTVALUE) , PORTVALUES) \ PORTVALUESTOSET)
+                    if PORTVALUESTOSET := ValuesToSetInit((< INPUT : Input | status : Undef > INPUTS), ID1, ((INPUT |-> PORTVALUE) , PORTVALUES), empty) 
                       /\ PORTIDSET := getPortFromMap(PORTVALUESTOSET, empty) 
                       /\ SUINSTANCE := setActionPortMap( < ID1 : SU | >, PORTVALUESTOSET) 
                       /\ EVENT := portEvent: Set SU: ID1 PId: PORTIDSET .
@@ -151,14 +148,14 @@ load Scenario
 
   ***If the scenario contains SUs that require step negotiation
   ***The step negotiation
-  crl [stepNego] : { CONF SNSet: SUIDs} => 
-          { performStepNegotiation(CONF SNSet: SUIDs)}
-          if needsStepNegotiation(SUIDs) and allSUinSimulation(CONF) .
+  crl [stepNego] : { CONF SNSet: SUIDsNE } => 
+          { performStepNegotiation(CONF SNSet: SUIDsNE)}
+          if allSUinSimulation(CONF) .
 
 
-  crl [simulationStep]: { CONF SNSet: SUIDs} => 
-          { performGlobalStep(CONF SNSet: SUIDs) }
-        if (not needsStepNegotiation(SUIDs)) and allSUinSimulation(CONF) .
+  crl [simulationStep]: { CONF SNSet: empty } => 
+          { performGlobalStep(CONF SNSet: empty) }
+        if allSUinSimulation(CONF) .
 
 endom)
 
@@ -174,7 +171,6 @@ show search graph .
 
 (red validScenario(externalConnection, simulationUnits) . )
 
-( red needsStepNegotiation(setup) . )
 ( red allSUinSimulation(setup) . )
 
 ( red breakLoop(('msd1 ! 'x1) ;; ('msd2 ! 'x1) ;; ('msd2 ! 'v1) ;; ('msd1 ! 'v1), (simulationUnits externalConnection stepSize: 1 endTime: 1 Algorithm: emptyList SNSet: empty guessOn: emptyLoop) , R) . )

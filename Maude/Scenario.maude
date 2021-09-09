@@ -39,13 +39,15 @@ load ScenarioAnalyser
 
 
   ***Encoding of the Scenario 
-eq externalConnection = ('msd1 ! 'x1 ==> 'msd2 ! 'x1) ('msd1 ! 'v1 ==> 'msd2 ! 'v1) ('msd2 ! 'fk ==> 'msd1 ! 'fk) ('msd2 ! 'z ==> 'msd3 ! 'z) ('msd3 ! 'G ==> 'msd2 ! 'G) .
+eq externalConnection = ('env ! 'psu ==> 'plant ! 'psu) ('env ! 'ref ==> 'ctrl ! 'ref) ('load ! 'xaft ==> 'ctrl ! 'xaft) ('ctrl ! 'o ==> 'plant ! 'o) ('plant ! 'w ==> 'ctrl ! 'w) ('load ! 'x ==> 'plant ! 'x) ('load ! 'v ==> 'plant ! 'v) ('plant ! 'f ==> 'load ! 'f) .
 
-eq simulationUnits = (< 'msd3 : SU | path : "A" , time : 0, inputs : (< 'z : Input | value : 0, type : integer, time : 0, contract : d, status : Undef  >), outputs : (< 'G : Output | value : 0, type : integer, time : 0, status : Undef, dependsOn : ( 'z ) >), state : Instantiated, canReject : true >)
+eq simulationUnits = (< 'env : SU | path : "A" , time : 0, inputs : none, outputs : (< 'ref : Output | value : 0, type : integer, time : 0, status : Undef, dependsOn : empty >) (< 'psu : Output | value : 0, type : integer, time : 0, status : Undef, dependsOn : empty >), state : Instantiated, canReject : false >)
 
- 	 (< 'msd2 : SU | path : "A" , time : 0, inputs : (< 'v1 : Input | value : 0, type : integer, time : 0, contract : r, status : Undef  >) (< 'x1 : Input | value : 0, type : integer, time : 0, contract : d, status : Undef  >) (< 'G : Input | value : 0, type : integer, time : 0, contract : r, status : Undef  >), outputs : (< 'fk : Output | value : 0, type : integer, time : 0, status : Undef, dependsOn : ( 'x1 , 'v1 ) >) (< 'z : Output | value : 0, type : integer, time : 0, status : Undef, dependsOn : empty >), state : Instantiated, canReject : true >)
+ 	 (< 'load : SU | path : "A" , time : 0, inputs : (< 'f : Input | value : 0, type : integer, time : 0, contract : d, status : Undef  >), outputs : (< 'v : Output | value : 0, type : integer, time : 0, status : Undef, dependsOn : empty >) (< 'xaft : Output | value : 0, type : integer, time : 0, status : Undef, dependsOn : empty >) (< 'x : Output | value : 0, type : integer, time : 0, status : Undef, dependsOn : empty >), state : Instantiated, canReject : false >)
 
- 	 (< 'msd1 : SU | path : "A" , time : 0, inputs : (< 'fk : Input | value : 0, type : integer, time : 0, contract : r, status : Undef  >), outputs : (< 'x1 : Output | value : 0, type : integer, time : 0, status : Undef, dependsOn : empty >) (< 'v1 : Output | value : 0, type : integer, time : 0, status : Undef, dependsOn : empty >), state : Instantiated, canReject : true >) .
+ 	 (< 'ctrl : SU | path : "A" , time : 0, inputs : (< 'ref : Input | value : 0, type : integer, time : 0, contract : d, status : Undef  >) (< 'w : Input | value : 0, type : integer, time : 0, contract : d, status : Undef  >) (< 'xaft : Input | value : 0, type : integer, time : 0, contract : d, status : Undef  >), outputs : (< 'o : Output | value : 0, type : integer, time : 0, status : Undef, dependsOn : empty >), state : Instantiated, canReject : false >)
+
+ 	 (< 'plant : SU | path : "A" , time : 0, inputs : (< 'x : Input | value : 0, type : integer, time : 0, contract : r, status : Undef  >) (< 'v : Input | value : 0, type : integer, time : 0, contract : r, status : Undef  >) (< 'o : Input | value : 0, type : integer, time : 0, contract : d, status : Undef  >) (< 'psu : Input | value : 0, type : integer, time : 0, contract : r, status : Undef  >), outputs : (< 'w : Output | value : 0, type : integer, time : 0, status : Undef, dependsOn : ( 'v ) >) (< 'f : Output | value : 0, type : integer, time : 0, status : Undef, dependsOn : ( 'v , 'x ) >), state : Instantiated, canReject : false >) .
 
 
 

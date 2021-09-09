@@ -8,9 +8,6 @@ load LOOPSolver
 
   *** Current State x Initial State -> Nat
   op findStep : OidSet Configuration Configuration ActionList -> findStepPair .
-  op needsStepNegotiation : OidSet -> Bool .
-  op getStep : findStepPair -> NzNat .
-  op getAL : findStepPair -> ActionList .
   op stepFindingDone : OidSet Configuration NzNat -> Bool .
 
    vars ID1 ID2 : SUID .
@@ -29,14 +26,6 @@ load LOOPSolver
 
    eq stepFindingDone(empty, CONF, STEPSIZE) = true .
    eq stepFindingDone((ID1 , SUIDs), < ID1 : SU | time : FUTURETIME1 > CONF, STEPSIZE) = FUTURETIME1 == STEPSIZE and stepFindingDone(SUIDs, CONF, STEPSIZE) .
-
-
-   eq getStep( < STEPSIZE ++ ALGO >) = STEPSIZE .
-   eq getAL( < STEPSIZE ++ ALGO >) = ALGO .
-
-  *** Step negotiation is needed if at least one SU can reject a Step
-  eq needsStepNegotiation(empty) = false .
-  eq needsStepNegotiation(SUIDs) = true [owise] .
 
   *** Get case (only on reactive outputs)
   ceq findStep((ID1 , ID2 , SUIDs), 

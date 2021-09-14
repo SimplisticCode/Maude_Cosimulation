@@ -1,11 +1,17 @@
 \section{Analysis techniques}\label{sc:casestudy}
 
-The formalization in Maude enables several interesting analyses of both the system of interest and the orchestration algorithm. 
+The formalization in Maude enables several analyses of both the system of interest and the orchestration algorithm itself. 
 This section walks through the different analyses types.
 
 \subsection{Confluent Algorithms}
-An important property of co-simulation algorithms is that they should lead to deterministic co-simulation results. 
-This analysis 
+The described techniques for synthesizing orchestration algorithms will not always lead to one unique orchestration algorithm.
+In fact, the rules often permit the synthesizing of multiple distinct orchestration algorithms that all respects the contracts of the scenario.
+
+However, using Maude we can show an important property of the set of allowed - mainly that all of them leads to the same co-simulation result.
+
+This analysis is carried out by Maude's built in LTL model checker using the following command:
+$Add LTL expression$
+This checks that all possible allowed rewriting of the systems end to same unique final state.
 
 \subsection{Checking Safety properties}
 The formalization enables a designer of a CPS to define their own $\fdoStep{}$-functions for the different SUs.  

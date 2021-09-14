@@ -1,0 +1,73 @@
+load cosim 
+
+(omod AlgorithmVerifier is 
+    protecting COSIMULATION .
+
+
+    ***eq run()
+    var RESTALGORITHM : ActionList .
+    vars OUTPUTS INPUTS : Configuration .
+    vars OUTPUT INPUT : PortId .
+    vars ID1 ID2 : SUID . 
+    vars STEPSIZE FUTURETIME : NzNat .
+    var TIME : Nat .
+    var VALUE : FMIValue .
+
+    ***
+
+  *** FMI-standard fmistate transition:
+  rl [setExp] : < ID1 : SU | fmistate : Instantiated > Initialization: ((fmiEvent: CreateExp SU: ID1) ; RESTALGORITHM) 
+                 => < ID1 : SU | fmistate : ExperimentSetup > Initialization: RESTALGORITHM .
+
+  rl [init] : < ID1 : SU | inputs : INPUTS , outputs : OUTPUTS, fmistate : ExperimentSetup >  
+                                    Initialization: ((fmiEvent: EnterInitialization SU: ID1) ; ALGO) 
+           => < ID1 : SU | inputs : undefPorts(INPUTS, 0), outputs : undefPorts(OUTPUTS, 0), fmistate : Initialize > 
+              Initialization: RESTALGORITHM .
+
+  crl [simulate] : < ID1 : SU | inputs : INPUTS , outputs : OUTPUTS, fmistate : Initialize > CONF Initialization: ( ExitInitialization SU: ID1 ; RESTALGORITHM)
+                => < ID1 : SU | fmistate : Simulation > CONF Initialization: RESTALGORITHM
+                if allDef(INPUTS, 0) and allDef(OUTPUTS, 0) and allInputsSet(CONF) .
+
+  crl [terminate] : < ID1 : SU | time : TIME, inputs : INPUTS , outputs : OUTPUTS , fmistate : Simulation > endTime: TIME Termination: ALGO 
+                 => < ID1 : SU | fmistate : Terminated > endTime: TIME Termination: (ALGO ; (fmiEvent: Terminate SU: ID1))
+                 if allDef(OUTPUTS, TIME) and allDef(INPUTS, TIME) .
+
+  rl [free] : < ID1 : SU | fmistate : Terminated > Termination: ALGO 
+           => < ID1 : SU | fmistate : InstanceFreed > Termination: (ALGO ; (fmiEvent: FreeInstance SU: ID1)) .
+
+  rl [unload] : < ID1 : SU | fmistate : InstanceFreed > Termination: ALGO
+              => < ID1 : SU | fmistate : Unloaded > Termination: (ALGO ; (fmiEvent: Unload SU: ID1)) .
+
+    *** Simulation State
+
+    rl [get] : Algorithm: ((portEvent: Get SU: ID1 PId: OUTPUT) ; RESTALGORITHM)
+                < ID1 : SU | outputs : (< OUTPUT : Output | status : Undef, value : VALUE > OUTPUTS) > 
+                => Algorithm: RESTALGORITHM
+                < ID1 : SU | outputs : (< OUTPUT : Output | status : Def, value : VALUE > OUTPUTS) > .
+                
+    rl [set] : Algorithm: ((portEvent: Set SU: ID1 PId: INPUT) ; RESTALGORITHM)
+                    < ID1 : SU | inputs : (< INPUT : Input | status : Undef > INPUTS) > 
+                => Algorithm: RESTALGORITHM
+                    < ID1 : SU | inputs : (< INPUT : Input | status : Undef > INPUTS) >  .
+
+    crl [step-action] : Algorithm: ((stepEvent: ID1 StepSize: STEPSIZE) ; RESTALGORITHM)
+                    < ID1 : SU | time : TIME, inputs : INPUTS, outputs : OUTPUTS, fmistate : Simulation > 
+                => Algorithm: RESTALGORITHM
+                    stepAction(< ID1 : SU | time : TIME, inputs : INPUTS, outputs : OUTPUTS, fmistate : Simulation >, STEPSIZE)
+        if canStep(TIME, TIME + STEPSIZE, INPUTS, OUTPUTS) .
+
+    
+
+    rl [step-negotiation] : Algorithm: ((complexEvent: Get SU: ID1 PId: OUTPUT) ; RESTALGORITHM)
+                < ID1 : SU | outputs : (< OUTPUT : Output | status : Undef, value : VALUE > OUTPUTS) > 
+                => Algorithm: RESTALGORITHM
+                < ID1 : SU | outputs : (< OUTPUT : Output | status : Def, value : VALUE > OUTPUTS) > .
+                
+    rl [loop-solving] : Algorithm: ((portEvent: Set SU: ID1 PId: INPUT) ; RESTALGORITHM)
+                    < ID1 : SU | inputs : (< INPUT : Input | status : Undef > INPUTS) > 
+                => Algorithm: RESTALGORITHM
+                    < ID1 : SU | inputs : (< INPUT : Input | status : Undef > INPUTS) >  .
+
+
+
+endom)

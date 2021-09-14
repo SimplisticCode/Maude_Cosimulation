@@ -1,0 +1,100 @@
+load file
+load Cosimulation
+
+mod CALCULATOR is 
+ including STD-STREAM . 
+ protecting LEXICAL . 
+ protecting META-LEVEL .
+ protecting COSIMULATION . 
+ 
+ op scenarioParser : -> Cid . 
+ op parser : -> Oid . 
+ ops simulationUnits:_ connections:_ : Configuration -> Attribute . 
+ ops enterCons:_ enterSUs:_ : Bool -> Attribute .
+ op run : -> Configuration . 
+ op simunit : -> [Configuration] .
+ vars O O2 : Oid . 
+ var A : AttributeSet . 
+ vars B B1 B2 : Bool .
+ vars S T : String . 
+ vars SUs CONNECTIONS : Configuration .
+
+ op parseConf : String -> Configuration . 
+ eq parseConf(S) = createConf(metaParse(['COSIMULATION], tokenize(S), anyType)) . 
+ 
+ op createConf : ResultPair? -> Configuration . 
+ eq createConf({T:Term, Q:Qid}) = castToConf(metaReduce(['COSIMULATION], T:Term)) . 
+ eq createConf(noParse(N:Nat)) = none . 
+
+ op castToConf : ResultPair? -> Configuration . 
+ eq castToConf({T:Term, Q:Qid}) = downTerm(T:Term, simunit) . 
+
+
+ op compute : String -> String . 
+ eq compute(S) = compute2(metaParse(['COSIMULATION], tokenize(S), anyType)) . 
+ 
+ op compute2 : ResultPair? -> String . 
+ eq compute2({T:Term, Q:Qid}) = compute3(metaReduce(['COSIMULATION], T:Term)) . 
+ eq compute2(noParse(N:Nat)) = printTokens('\r) + "syntax error" + printTokens('\o) . 
+ 
+ op compute3 : ResultPair? -> String . 
+ eq compute3({T:Term, Q:Qid}) = printTokens(Q:Qid) . 
+ 
+ eq run = <> 
+   < parser : scenarioParser | enterCons: false, enterSUs: false, simulationUnits: none, connections: none > 
+   write(stdout, parser, "\The Scenario Parser\n------------\n") . 
+ rl < O : scenarioParser | enterCons: false, enterSUs: false, A > wrote(O, O2) => < O : scenarioParser | enterCons: false, enterSUs: false, A > 
+    getLine(stdin, O, "You can now define your scenario:\n Enter 'SU' for entering the Simulation Units \n Or Enter 'CON' for entering the connections> ") .  
+
+
+  rl < O : scenarioParser | enterCons: false, enterSUs: false, A > gotLine(O, O2, T) => 
+    if T == "Q\n"
+      then < O : scenarioParser | A >
+      else
+      if T == "SU\n"
+        then
+          < O : scenarioParser | enterCons: false, enterSUs: true, A > 
+              write(stdout, O, "Enter the Simulation Units:" + "\n") 
+        else 
+        if T == "CON\n"
+          then
+            < O : scenarioParser | enterCons: true, enterCons: false, A > 
+                write(stdout, O, "Enter the connections:" + "\n") 
+          else 
+          < O : scenarioParser | enterCons: false, enterCons: false, A > 
+            write(stdout, O, "Try agian." + "\n")  
+        fi 
+      fi
+    fi .
+
+  rl < O : scenarioParser | enterCons: true, A > wrote(O, O2) => < O : scenarioParser | enterCons: true, A > 
+    getLine(stdin, O, "Connections> ") .
+
+  rl < O : scenarioParser | enterSUs: true, A > wrote(O, O2) => < O : scenarioParser | enterSUs: true, A > 
+    getLine(stdin, O, "SUs> ") .
+
+  rl < O : scenarioParser | enterCons: true, connections: CONNECTIONS, A > gotLine(O, O2, T) =>  
+   if T == "Q\n" 
+    then < O : scenarioParser | enterCons: false, connections: CONNECTIONS, A >
+      write(stdout, O, "\The Scenario Parser\n------------\n") 
+    else < O : scenarioParser | enterCons: true, connections: (CONNECTIONS parseConf(T)), A >
+        getLine(stdin, O, "Connections> ") 
+   fi . 
+
+  rl < O : scenarioParser | enterSUs: true, simulationUnits: SUs, A > gotLine(O, O2, T) =>  
+   if T == "Q\n" 
+    then < O : scenarioParser | enterSUs: false, simulationUnits: SUs, A >
+      write(stdout, O, "\The Scenario Parser\n------------\n") 
+    else < O : scenarioParser | enterSUs: true, simulationUnits: (SUs parseConf(T)), A >
+       getLine(stdin, O, "SUs> ") 
+   fi . 
+
+endm
+
+
+erew run .
+
+
+eof 
+
+parse < 'ctrl : SU | path : "A" , time : 0, inputs : (< 'ref : Input | value : 0, type : integer, time : 0, contract : d, status : Undef  >) (< 'w : Input | value : 0, type : integer, time : 0, contract : d, status : Undef  >) (< 'xaft : Input | value : 0, type : integer, time : 0, contract : d, status : Undef  >), outputs : (< 'o : Output | value : 0, type : integer, time : 0, status : Undef, dependsOn : empty >), state : Instantiated, canReject : false > .

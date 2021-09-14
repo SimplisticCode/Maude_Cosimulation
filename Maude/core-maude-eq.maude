@@ -1,0 +1,1217 @@
+mod ScenarioAnalyser is
+  sorts Action ActionList ActionType AlgebraicLoop AlgebraicLoopSet Attribute
+    AttributeSet Bool Char Cid ComplexActionType Configuration Connection
+    Contract DFSPair EPortId Entry{EPortIdAsTRIV,Nat}Entry{Nat,
+    PortListAsTRIV}Entry{OIdAsTRIV,PortValueAndTimeAsTRIV}Environment
+    FMIActionType FindResult IndexMap Input LoopType Msg Nat NeALSet NeOidSet
+    NePortList NePortSet NzNat Object Oid OidSet Output Parameter Port PortId
+    PortList PortListPair PortSet PortStatus PortType PortValueAndTime
+    PortValueMap Portal Qid SCCMap SU SUID String Value Zero fmiState .
+  subsort Action < ActionList .
+  subsort AlgebraicLoop < NeALSet .
+  subsort Attribute < AttributeSet .
+  subsort Char < String .
+  subsort Connection < Configuration .
+  subsort EPortId < NePortList .
+  subsort EPortId < NePortSet .
+  subsort Entry{EPortIdAsTRIV,Nat}< IndexMap .
+  subsort Entry{Nat,PortListAsTRIV}< SCCMap .
+  subsort Entry{OIdAsTRIV,PortValueAndTimeAsTRIV}< PortValueMap .
+  subsort Input < Cid .
+  subsort Input < Port .
+  subsort Msg < Configuration .
+  subsort Nat < FindResult .
+  subsort NeALSet < AlgebraicLoopSet .
+  subsort NeOidSet < OidSet .
+  subsort NePortList < PortList .
+  subsort NePortSet < PortSet .
+  subsort NzNat < Nat .
+  subsort Object < Configuration .
+  subsort Output < Cid .
+  subsort Output < Port .
+  subsort Parameter < Cid .
+  subsort Port < Cid .
+  subsort PortId < NeOidSet .
+  subsort PortId < Oid .
+  subsort Portal < Configuration .
+  subsort SU < Cid .
+  subsort SUID < Oid .
+  subsort Value < Nat .
+  subsort Zero < Nat .
+  op $card : AlgebraicLoopSet Nat -> Nat .
+  op $card : OidSet Nat -> Nat .
+  op $card : PortSet Nat -> Nat .
+  op $diff : AlgebraicLoopSet AlgebraicLoopSet AlgebraicLoopSet ->
+    AlgebraicLoopSet .
+  op $diff : OidSet OidSet OidSet -> OidSet .
+  op $diff : PortSet PortSet PortSet -> PortSet .
+  op $hasMapping : IndexMap EPortId -> Bool .
+  op $hasMapping : PortValueMap PortId -> Bool .
+  op $hasMapping : SCCMap Nat -> Bool .
+  op $intersect : AlgebraicLoopSet AlgebraicLoopSet AlgebraicLoopSet ->
+    AlgebraicLoopSet .
+  op $intersect : OidSet OidSet OidSet -> OidSet .
+  op $intersect : PortSet PortSet PortSet -> PortSet .
+  op $reverse : PortList PortList -> PortList .
+  op $size : PortList Nat -> Nat .
+  op 1st : DFSPair -> Environment .
+  op 1st : PortListPair -> PortList .
+  op 1st : PortValueAndTime -> Nat .
+  op 2nd : DFSPair -> Nat .
+  op 2nd : PortListPair -> PortList .
+  op 2nd : PortValueAndTime -> Nat .
+  op <_:_|`> : Oid Cid -> Object .
+  op <_;_> : Environment Nat -> DFSPair .
+  op <_;_> : Nat Nat -> PortValueAndTime .
+  op <_;_> : PortList PortList -> PortListPair .
+  op Input : -> Input .
+  op Output : -> Output .
+  op Parameter : -> Parameter .
+  op Port : -> Port .
+  op SU : -> SU .
+  op _\_ : PortValueMap PortValueMap -> PortValueMap .
+  op _in_ : AlgebraicLoop AlgebraicLoopSet -> Bool .
+  op _in_ : Connection Configuration -> Bool .
+  op _in_ : EPortId PortSet -> Bool .
+  op _in_ : PortId OidSet -> Bool .
+  op _memberOf_ : EPortId AlgebraicLoopSet -> Bool .
+  op _psubset_ : AlgebraicLoopSet AlgebraicLoopSet -> Bool .
+  op _psubset_ : OidSet OidSet -> Bool .
+  op _psubset_ : PortSet PortSet -> Bool .
+  op _subset_ : AlgebraicLoopSet AlgebraicLoopSet -> Bool .
+  op _subset_ : OidSet OidSet -> Bool .
+  op _subset_ : PortSet PortSet -> Bool .
+  op addStackIncr : EPortId Environment -> Environment .
+  op allDef : Configuration Nat -> Bool .
+  op allInputsDef : Configuration Nat Nat -> Bool .
+  op allInputsSet : Configuration -> Bool .
+  op append : NePortList PortList -> NePortList .
+  op append : PortList NePortList -> NePortList .
+  op append : PortList PortList -> PortList .
+  op askStepSize : Object NzNat -> NzNat .
+  op canStep : Nat NzNat Configuration Configuration -> Bool .
+  op createAlgebraic : SCCMap Configuration AlgebraicLoopSet ->
+    AlgebraicLoopSet .
+  op createIndexMap : PortSet IndexMap -> IndexMap .
+  op delete : AlgebraicLoop AlgebraicLoopSet -> AlgebraicLoopSet .
+  op delete : EPortId PortSet -> PortSet .
+  op delete : PortId OidSet -> OidSet .
+  op dfs : PortSet Environment Configuration -> DFSPair .
+  op dfs1 : EPortId Environment Configuration -> DFSPair .
+  op diffMap : PortValueMap PortValueMap PortValueMap -> PortValueMap .
+  op elems : PortList PortSet -> PortSet .
+  op feedthroughSatisfied : OidSet Configuration Nat -> Bool .
+  op findSuccesors : EPortId Configuration -> PortSet .
+  op front : NePortList -> PortList .
+  op getAction : Object OidSet -> Object .
+  op getActionValues : Object OidSet Configuration PortValueMap -> PortValueMap
+    .
+  op getAllPorts : Configuration PortSet -> PortSet .
+  op getAllReactivePorts : Configuration PortSet -> PortSet .
+  op getClass : Object -> Cid .
+  op getIM : Environment -> IndexMap .
+  op getLoops : Environment Configuration -> AlgebraicLoopSet .
+  op getPortFromMap : PortValueMap OidSet -> OidSet .
+  op getSCC : Environment -> SCCMap .
+  op getSCCN : Environment -> Nat .
+  op getSN : Environment -> Nat .
+  op getSUs : PortSet OidSet -> OidSet .
+  op getStack : Environment -> PortList .
+  op head : NePortList -> EPortId .
+  op insert : AlgebraicLoop AlgebraicLoopSet -> AlgebraicLoopSet .
+  op insert : EPortId PortSet -> PortSet .
+  op insert : PortId OidSet -> OidSet .
+  op insert : EPortId Nat IndexMap -> IndexMap .
+  op insert : Nat PortList SCCMap -> SCCMap .
+  op insert : PortId PortValueAndTime PortValueMap -> PortValueMap .
+  op intersection : AlgebraicLoopSet AlgebraicLoopSet -> AlgebraicLoopSet .
+  op intersection : OidSet OidSet -> OidSet .
+  op intersection : PortSet PortSet -> PortSet .
+  op isReactiveLoop : PortSet Configuration -> Bool .
+  op last : NePortList -> EPortId .
+  op loopsInStepNegotiation : AlgebraicLoopSet OidSet Configuration
+    AlgebraicLoopSet -> AlgebraicLoopSet .
+  op nodeHasBeenVisited : EPortId Environment -> Bool .
+  op occurs : EPortId PortList -> Bool .
+  op reverse : NePortList -> NePortList .
+  op reverse : PortList -> PortList .
+  op setAction : Object OidSet Nat Nat -> Object .
+  op setActionPortMap : Object PortValueMap -> Object .
+  op setInfty : PortList IndexMap -> IndexMap .
+  op size : NePortList -> NzNat .
+  op size : PortList -> Nat .
+  op split : EPortId PortList PortListPair -> PortListPair .
+  op stepAction : Object NzNat -> Object .
+  op succesors : EPortId Configuration PortSet -> PortSet .
+  op tail : NePortList -> PortList .
+  op tarjan : Configuration -> AlgebraicLoopSet .
+  op undefInputs : Configuration -> Configuration .
+  op undefPorts : Configuration Nat -> Configuration .
+  op union : AlgebraicLoopSet AlgebraicLoopSet -> AlgebraicLoopSet .
+  op union : AlgebraicLoopSet NeALSet -> NeALSet .
+  op union : NeALSet AlgebraicLoopSet -> NeALSet .
+  op union : NeOidSet OidSet -> NeOidSet .
+  op union : NePortSet PortSet -> NePortSet .
+  op union : OidSet NeOidSet -> NeOidSet .
+  op union : OidSet OidSet -> OidSet .
+  op union : PortSet NePortSet -> NePortSet .
+  op union : PortSet PortSet -> PortSet .
+  op valuesToSet:_ : PortValueMap -> Configuration .
+  op |_| : AlgebraicLoopSet -> Nat .
+  op |_| : NeALSet -> NzNat .
+  op |_| : NeOidSet -> NzNat .
+  op |_| : NePortSet -> NzNat .
+  op |_| : OidSet -> Nat .
+  op |_| : PortSet -> Nat .
+  op 0 : -> Zero
+    [ctor] .
+  op <> : -> Portal
+    [ctor] .
+  op <Qids> : -> Qid
+    [special(id-hook QuotedIdentifierSymbol)] .
+  op <Strings> : -> Char
+    [special(id-hook StringSymbol)] .
+  op <Strings> : -> String
+    [special(id-hook StringSymbol)] .
+  op <_:_|_> : Oid Cid AttributeSet -> Object
+    [ctor object] .
+  op AlgebraicLoop:_Type:_ : PortSet LoopType -> AlgebraicLoop
+    [ctor] .
+  op Algorithm:_ : ActionList -> Configuration
+    [format(nib! d d)ctor] .
+  op CreateExp : -> FMIActionType
+    [ctor] .
+  op Def : -> PortStatus
+    [ctor] .
+  op EnterInitialization : -> FMIActionType
+    [ctor] .
+  op ExitInitialization : -> FMIActionType
+    [ctor] .
+  op ExperimentSetup : -> fmiState
+    [ctor] .
+  op F : -> LoopType
+    [ctor] .
+  op FreeInstance : -> FMIActionType
+    [ctor] .
+  op Get : -> ActionType
+    [ctor] .
+  op Initialization:_ : ActionList -> Configuration
+    [format(nib! d d)ctor] .
+  op Initialize : -> fmiState
+    [ctor] .
+  op InstanceFreed : -> fmiState
+    [ctor] .
+  op Instantiated : -> fmiState
+    [ctor] .
+  op Loop : -> ComplexActionType
+    [ctor] .
+  op R : -> LoopType
+    [ctor] .
+  op SNSet:_ : OidSet -> Configuration
+    [format(ni d d)ctor] .
+  op Save : -> ActionType
+    [ctor] .
+  op Set : -> ActionType
+    [ctor] .
+  op Simulation : -> fmiState
+    [ctor] .
+  op SolvedSCC:_ : AlgebraicLoopSet -> Configuration
+    [format(nim! d d)ctor] .
+  op Step : -> ActionType
+    [ctor] .
+  op StepNegotiation : -> ComplexActionType
+    [ctor] .
+  op Terminate : -> FMIActionType
+    [ctor] .
+  op Terminated : -> fmiState
+    [ctor] .
+  op Termination:_ : ActionList -> Configuration
+    [format(nib! d d)ctor] .
+  op Undef : -> PortStatus
+    [ctor] .
+  op Unload : -> FMIActionType
+    [ctor] .
+  op Unloaded : -> fmiState
+    [ctor] .
+  op UnsolvedSCC:_ : AlgebraicLoopSet -> Configuration
+    [format(nim! d d)ctor] .
+  op _!_ : SUID PortId -> EPortId
+    [ctor] .
+  op _&_ : Nat Nat -> Nat
+    [assoc comm prec 53 special(id-hook ACU_NumberOpSymbol(&)op-hook
+    succSymbol(s_ : Nat ~> NzNat))] .
+  op _*_ : Nat Nat -> Nat
+    [assoc comm prec 31 special(id-hook ACU_NumberOpSymbol(*)op-hook
+    succSymbol(s_ : Nat ~> NzNat))] .
+  op _*_ : NzNat NzNat -> NzNat
+    [assoc comm prec 31 special(id-hook ACU_NumberOpSymbol(*)op-hook
+    succSymbol(s_ : Nat ~> NzNat))] .
+  op _+_ : Nat Nat -> Nat
+    [assoc comm prec 33 special(id-hook ACU_NumberOpSymbol(+)op-hook
+    succSymbol(s_ : Nat ~> NzNat))] .
+  op _+_ : NzNat Nat -> NzNat
+    [assoc comm prec 33 special(id-hook ACU_NumberOpSymbol(+)op-hook
+    succSymbol(s_ : Nat ~> NzNat))] .
+  op _+_ : String String -> String
+    [prec 33 gather(E e)special(id-hook StringOpSymbol(+)op-hook stringSymbol(
+    <Strings> : ~> Char))] .
+  op _;_ : ActionList ActionList -> ActionList
+    [assoc id: emptyList ctor] .
+  op _<<_ : Nat Nat -> Nat
+    [prec 35 gather(E e)special(id-hook NumberOpSymbol(<<)op-hook succSymbol(s_
+    : Nat ~> NzNat))] .
+  op _<=_ : Nat Nat -> Bool
+    [prec 37 special(id-hook NumberOpSymbol(<=)op-hook succSymbol(s_ : Nat ~>
+    NzNat)term-hook trueTerm(true)term-hook falseTerm(false))] .
+  op _<=_ : String String -> Bool
+    [prec 37 special(id-hook StringOpSymbol(<=)op-hook stringSymbol(<Strings> :
+    ~> Char)term-hook trueTerm(true)term-hook falseTerm(false))] .
+  op _<_ : Nat Nat -> Bool
+    [prec 37 special(id-hook NumberOpSymbol(<)op-hook succSymbol(s_ : Nat ~>
+    NzNat)term-hook trueTerm(true)term-hook falseTerm(false))] .
+  op _<_ : String String -> Bool
+    [prec 37 special(id-hook StringOpSymbol(<)op-hook stringSymbol(<Strings> :
+    ~> Char)term-hook trueTerm(true)term-hook falseTerm(false))] .
+  op _=/=_ : Universal Universal -> Bool
+    [poly(1 2)prec 51 special(id-hook EqualitySymbol term-hook equalTerm(
+    false)term-hook notEqualTerm(true))] .
+  op _==>_ : EPortId EPortId -> Connection
+    [format(niy! d d d)ctor] .
+  op _==_ : Universal Universal -> Bool
+    [poly(1 2)prec 51 special(id-hook EqualitySymbol term-hook equalTerm(
+    true)term-hook notEqualTerm(false))] .
+  op _>=_ : Nat Nat -> Bool
+    [prec 37 special(id-hook NumberOpSymbol(>=)op-hook succSymbol(s_ : Nat ~>
+    NzNat)term-hook trueTerm(true)term-hook falseTerm(false))] .
+  op _>=_ : String String -> Bool
+    [prec 37 special(id-hook StringOpSymbol(>=)op-hook stringSymbol(<Strings> :
+    ~> Char)term-hook trueTerm(true)term-hook falseTerm(false))] .
+  op _>>_ : Nat Nat -> Nat
+    [prec 35 gather(E e)special(id-hook NumberOpSymbol(>>)op-hook succSymbol(s_
+    : Nat ~> NzNat))] .
+  op _>_ : Nat Nat -> Bool
+    [prec 37 special(id-hook NumberOpSymbol(>)op-hook succSymbol(s_ : Nat ~>
+    NzNat)term-hook trueTerm(true)term-hook falseTerm(false))] .
+  op _>_ : String String -> Bool
+    [prec 37 special(id-hook StringOpSymbol(>)op-hook stringSymbol(<Strings> :
+    ~> Char)term-hook trueTerm(true)term-hook falseTerm(false))] .
+  op _\_ : AlgebraicLoopSet AlgebraicLoopSet -> AlgebraicLoopSet
+    [gather(E e)] .
+  op _\_ : OidSet OidSet -> OidSet
+    [gather(E e)] .
+  op _\_ : PortSet PortSet -> PortSet
+    [gather(E e)] .
+  op _^_ : Nat Nat -> Nat
+    [prec 29 gather(E e)special(id-hook NumberOpSymbol(^)op-hook succSymbol(s_
+    : Nat ~> NzNat))] .
+  op _^_ : NzNat Nat -> NzNat
+    [prec 29 gather(E e)special(id-hook NumberOpSymbol(^)op-hook succSymbol(s_
+    : Nat ~> NzNat))] .
+  op __ : Configuration Configuration -> Configuration
+    [assoc comm id:(none).Configuration ctor config] .
+  op __ : NePortList PortList -> NePortList
+    [assoc id: nil prec 25 ctor] .
+  op __ : PortList NePortList -> NePortList
+    [assoc id: nil prec 25 ctor] .
+  op __ : PortList PortList -> PortList
+    [assoc id: nil prec 25 ctor] .
+  op _`,_ : AlgebraicLoopSet AlgebraicLoopSet -> AlgebraicLoopSet
+    [assoc comm id:(empty).AlgebraicLoopSet prec 121 format(d r os d)ctor] .
+  op _`,_ : AttributeSet AttributeSet -> AttributeSet
+    [assoc comm id:(none).AttributeSet ctor] .
+  op _`,_ : IndexMap IndexMap -> IndexMap
+    [assoc comm id:(empty).IndexMap prec 121 format(d r os d)ctor] .
+  op _`,_ : NeALSet AlgebraicLoopSet -> NeALSet
+    [assoc comm id:(empty).AlgebraicLoopSet prec 121 format(d r os d)ctor] .
+  op _`,_ : NeOidSet OidSet -> NeOidSet
+    [assoc comm id:(empty).OidSet prec 121 format(d r os d)ctor] .
+  op _`,_ : NePortSet PortSet -> NePortSet
+    [assoc comm id:(empty).PortSet prec 121 format(d r os d)ctor] .
+  op _`,_ : OidSet OidSet -> OidSet
+    [assoc comm id:(empty).OidSet prec 121 format(d r os d)ctor] .
+  op _`,_ : PortSet PortSet -> PortSet
+    [assoc comm id:(empty).PortSet prec 121 format(d r os d)ctor] .
+  op _`,_ : PortValueMap PortValueMap -> PortValueMap
+    [assoc comm id:(empty).PortValueMap prec 121 format(d r os d)ctor] .
+  op _`,_ : SCCMap SCCMap -> SCCMap
+    [assoc comm id:(empty).SCCMap prec 121 format(d r os d)ctor] .
+  op _`[_`] : IndexMap EPortId ->[Nat]
+    [prec 23] .
+  op _`[_`] : PortValueMap PortId ->[PortValueAndTime]
+    [prec 23] .
+  op _`[_`] : SCCMap Nat ->[PortList]
+    [prec 23] .
+  op _and-then_ : Bool Bool -> Bool
+    [strat(1 0)prec 55 gather(e E)] .
+  op _and_ : Bool Bool -> Bool
+    [assoc comm prec 55] .
+  op _divides_ : NzNat Nat -> Bool
+    [prec 51 special(id-hook NumberOpSymbol(divides)op-hook succSymbol(s_ : Nat
+    ~> NzNat)term-hook trueTerm(true)term-hook falseTerm(false))] .
+  op _implies_ : Bool Bool -> Bool
+    [prec 61 gather(e E)] .
+  op _or-else_ : Bool Bool -> Bool
+    [strat(1 0)prec 59 gather(e E)] .
+  op _or_ : Bool Bool -> Bool
+    [assoc comm prec 59] .
+  op _quo_ : Nat NzNat -> Nat
+    [prec 31 gather(E e)special(id-hook NumberOpSymbol(quo)op-hook succSymbol(
+    s_ : Nat ~> NzNat))] .
+  op _rem_ : Nat NzNat -> Nat
+    [prec 31 gather(E e)special(id-hook NumberOpSymbol(rem)op-hook succSymbol(
+    s_ : Nat ~> NzNat))] .
+  op _xor_ : Bool Bool -> Bool
+    [assoc comm prec 57] .
+  op _xor_ : Nat Nat -> Nat
+    [assoc comm prec 55 special(id-hook ACU_NumberOpSymbol(xor)op-hook
+    succSymbol(s_ : Nat ~> NzNat))] .
+  op _|->_ : EPortId Nat -> Entry{EPortIdAsTRIV,Nat}
+    [ctor] .
+  op _|->_ : Nat PortList -> Entry{Nat,PortListAsTRIV}
+    [ctor] .
+  op _|->_ : PortId PortValueAndTime -> Entry{OIdAsTRIV,PortValueAndTimeAsTRIV}
+    [ctor] .
+  op _|_ : Nat Nat -> Nat
+    [assoc comm prec 57 special(id-hook ACU_NumberOpSymbol(|)op-hook
+    succSymbol(s_ : Nat ~> NzNat))] .
+  op _|_ : NzNat Nat -> NzNat
+    [assoc comm prec 57 special(id-hook ACU_NumberOpSymbol(|)op-hook
+    succSymbol(s_ : Nat ~> NzNat))] .
+  op ascii : Char -> Nat
+    [special(id-hook StringOpSymbol(ascii)op-hook stringSymbol(<Strings> : ~>
+    Char)op-hook succSymbol(s_ : Nat ~> NzNat))] .
+  op boolean : -> PortType
+    [ctor] .
+  op canReject`:_ : Bool -> Attribute
+    [gather(&)] .
+  op char :[FindResult]->[String]
+    [special(id-hook StringOpSymbol(char)op-hook stringSymbol(<Strings> : ~>
+    Char)op-hook succSymbol(s_ : Nat ~> NzNat))] .
+  op complexEvent:_SaveSUs:_RestoreSUs:_Actions:_ : ComplexActionType OidSet
+    OidSet ActionList -> Action
+    [format(niy! d d d d d d ni! niy!)ctor] .
+  op contract`:_ : Contract -> Attribute
+    [gather(&)] .
+  op d : -> Contract
+    [ctor] .
+  op dependsOn`:_ : OidSet -> Attribute
+    [gather(&)] .
+  op empty : -> AlgebraicLoopSet
+    [ctor] .
+  op empty : -> IndexMap
+    [ctor] .
+  op empty : -> OidSet
+    [ctor] .
+  op empty : -> PortSet
+    [ctor] .
+  op empty : -> PortValueMap
+    [ctor] .
+  op empty : -> SCCMap
+    [ctor] .
+  op emptyList : -> ActionList
+    [ctor] .
+  op endTime:_ : NzNat -> Configuration
+    [format(nim! d d)ctor] .
+  op env : PortList SCCMap Nat Nat IndexMap -> Environment
+    [ctor] .
+  op false : -> Bool
+    [ctor special(id-hook SystemFalse)] .
+  op find : String String Nat -> FindResult
+    [special(id-hook StringOpSymbol(find)op-hook stringSymbol(<Strings> : ~>
+    Char)op-hook succSymbol(s_ : Nat ~> NzNat)term-hook notFoundTerm(
+    notFound))] .
+  op fmiEvent:_SU:_ : FMIActionType PortId -> Action
+    [format(nir! d d d d)ctor] .
+  op gcd : Nat Nat -> Nat
+    [assoc comm special(id-hook ACU_NumberOpSymbol(gcd)op-hook succSymbol(s_ :
+    Nat ~> NzNat))] .
+  op gcd : NzNat Nat -> NzNat
+    [assoc comm special(id-hook ACU_NumberOpSymbol(gcd)op-hook succSymbol(s_ :
+    Nat ~> NzNat))] .
+  op guessOn:_ : PortSet -> Configuration
+    [format(nip! d d)ctor] .
+  op if_then_else_fi : Bool Universal Universal -> Universal
+    [poly(2 3 0)special(id-hook BranchSymbol term-hook 1(true)term-hook 2(
+    false))] .
+  op inputs`:_ : Configuration -> Attribute
+    [gather(&)] .
+  op integer : -> PortType
+    [ctor] .
+  op lcm : Nat Nat -> Nat
+    [assoc comm special(id-hook ACU_NumberOpSymbol(lcm)op-hook succSymbol(s_ :
+    Nat ~> NzNat))] .
+  op lcm : NzNat NzNat -> NzNat
+    [assoc comm special(id-hook ACU_NumberOpSymbol(lcm)op-hook succSymbol(s_ :
+    Nat ~> NzNat))] .
+  op length : String -> Nat
+    [special(id-hook StringOpSymbol(length)op-hook stringSymbol(<Strings> : ~>
+    Char)op-hook succSymbol(s_ : Nat ~> NzNat))] .
+  op lowerCase : String -> String
+    [special(id-hook StringOpSymbol(lowerCase)op-hook stringSymbol(<Strings> :
+    ~> Char))] .
+  op max : Nat Nat -> Nat
+    [assoc comm special(id-hook ACU_NumberOpSymbol(max)op-hook succSymbol(s_ :
+    Nat ~> NzNat))] .
+  op max : NzNat Nat -> NzNat
+    [assoc comm special(id-hook ACU_NumberOpSymbol(max)op-hook succSymbol(s_ :
+    Nat ~> NzNat))] .
+  op min : Nat Nat -> Nat
+    [assoc comm special(id-hook ACU_NumberOpSymbol(min)op-hook succSymbol(s_ :
+    Nat ~> NzNat))] .
+  op min : NzNat NzNat -> NzNat
+    [assoc comm special(id-hook ACU_NumberOpSymbol(min)op-hook succSymbol(s_ :
+    Nat ~> NzNat))] .
+  op modExp :[Nat][Nat][Nat]->[Nat]
+    [special(id-hook NumberOpSymbol(modExp)op-hook succSymbol(s_ : Nat ~>
+    NzNat))] .
+  op nil : -> PortList
+    [ctor] .
+  op none : -> AttributeSet
+    [ctor] .
+  op none : -> Configuration
+    [ctor] .
+  op notFound : -> FindResult
+    [ctor] .
+  op not_ : Bool -> Bool
+    [prec 53] .
+  op outputs`:_ : Configuration -> Attribute
+    [gather(&)] .
+  op path`:_ : String -> Attribute
+    [gather(&)] .
+  op portEvent:_SU:_PId:_ : ActionType SUID OidSet -> Action
+    [format(nib! d d d d d d)ctor] .
+  op qid :[String]->[Qid]
+    [special(id-hook QuotedIdentifierOpSymbol(qid)op-hook
+    quotedIdentifierSymbol(<Qids> : ~> Qid)op-hook stringSymbol(<Strings> : ~>
+    Char))] .
+  op r : -> Contract
+    [ctor] .
+  op random : Nat -> Nat
+    [special(id-hook RandomOpSymbol op-hook succSymbol(s_ : Nat ~> NzNat))] .
+  op real : -> PortType
+    [ctor] .
+  op rfind : String String Nat -> FindResult
+    [special(id-hook StringOpSymbol(rfind)op-hook stringSymbol(<Strings> : ~>
+    Char)op-hook succSymbol(s_ : Nat ~> NzNat)term-hook notFoundTerm(
+    notFound))] .
+  op s_ : Nat -> NzNat
+    [ctor iter special(id-hook SuccSymbol term-hook zeroTerm(0))] .
+  op sd : Nat Nat -> Nat
+    [comm special(id-hook CUI_NumberOpSymbol(sd)op-hook succSymbol(s_ : Nat ~>
+    NzNat))] .
+  op state`:_ : fmiState -> Attribute
+    [gather(&)] .
+  op status`:_ : PortStatus -> Attribute
+    [gather(&)] .
+  op stepEvent:_StepSize:_ : SUID NzNat -> Action
+    [format(nig! d d d d)ctor] .
+  op stepSize:_ : NzNat -> Configuration
+    [format(nig! d d)ctor] .
+  op string : Qid -> String
+    [special(id-hook QuotedIdentifierOpSymbol(string)op-hook
+    quotedIdentifierSymbol(<Qids> : ~> Qid)op-hook stringSymbol(<Strings> : ~>
+    Char))] .
+  op string : -> PortType
+    [ctor] .
+  op substr : String Nat Nat -> String
+    [special(id-hook StringOpSymbol(substr)op-hook stringSymbol(<Strings> : ~>
+    Char)op-hook succSymbol(s_ : Nat ~> NzNat))] .
+  op time`:_ : Nat -> Attribute
+    [gather(&)] .
+  op true : -> Bool
+    [ctor special(id-hook SystemTrue)] .
+  op type`:_ : PortType -> Attribute
+    [gather(&)] .
+  op undefined : ->[Nat]
+    [ctor] .
+  op undefined : ->[PortList]
+    [ctor] .
+  op undefined : ->[PortValueAndTime]
+    [ctor] .
+  op upperCase : String -> String
+    [special(id-hook StringOpSymbol(upperCase)op-hook stringSymbol(<Strings> :
+    ~> Char))] .
+  op value`:_ : Nat -> Attribute
+    [gather(&)] .
+  op value`:_ : Value -> Attribute
+    [gather(&)] .
+  eq $card((empty).AlgebraicLoopSet,C:Nat)
+    = C:Nat .
+  eq $card((empty).OidSet,C:Nat)
+    = C:Nat .
+  eq $card((empty).PortSet,C:Nat)
+    = C:Nat .
+  eq $card((N:NeALSet, N:NeALSet, S:AlgebraicLoopSet),C:Nat)
+    = $card((N:NeALSet, S:AlgebraicLoopSet),C:Nat) .
+  eq $card((N:NeOidSet, N:NeOidSet, S:OidSet),C:Nat)
+    = $card((N:NeOidSet, S:OidSet),C:Nat) .
+  eq $card((N:NePortSet, N:NePortSet, S:PortSet),C:Nat)
+    = $card((N:NePortSet, S:PortSet),C:Nat) .
+  eq $diff((empty).AlgebraicLoopSet,S':AlgebraicLoopSet,A:AlgebraicLoopSet)
+    = A:AlgebraicLoopSet .
+  eq $diff((empty).OidSet,S':OidSet,A:OidSet)
+    = A:OidSet .
+  eq $diff((empty).PortSet,S':PortSet,A:PortSet)
+    = A:PortSet .
+  eq $diff((E:AlgebraicLoop, S:AlgebraicLoopSet),S':AlgebraicLoopSet,
+    A:AlgebraicLoopSet)
+    = $diff(S:AlgebraicLoopSet,S':AlgebraicLoopSet,if E:AlgebraicLoop in
+    S':AlgebraicLoopSet then A:AlgebraicLoopSet else E:AlgebraicLoop,
+    A:AlgebraicLoopSet fi) .
+  eq $diff((E:EPortId, S:PortSet),S':PortSet,A:PortSet)
+    = $diff(S:PortSet,S':PortSet,if E:EPortId in S':PortSet then A:PortSet else
+    E:EPortId, A:PortSet fi) .
+  eq $diff((E:PortId, S:OidSet),S':OidSet,A:OidSet)
+    = $diff(S:OidSet,S':OidSet,if E:PortId in S':OidSet then A:OidSet else
+    E:PortId, A:OidSet fi) .
+  eq $hasMapping((M:IndexMap, D:EPortId |-> R:Nat),D:EPortId)
+    = true .
+  eq $hasMapping((M:PortValueMap, D:PortId |-> R:PortValueAndTime),D:PortId)
+    = true .
+  eq $hasMapping((M:SCCMap, D:Nat |-> R:PortList),D:Nat)
+    = true .
+  eq $intersect((empty).AlgebraicLoopSet,S':AlgebraicLoopSet,
+    A:AlgebraicLoopSet)
+    = A:AlgebraicLoopSet .
+  eq $intersect((empty).OidSet,S':OidSet,A:OidSet)
+    = A:OidSet .
+  eq $intersect((empty).PortSet,S':PortSet,A:PortSet)
+    = A:PortSet .
+  eq $intersect((E:AlgebraicLoop, S:AlgebraicLoopSet),S':AlgebraicLoopSet,
+    A:AlgebraicLoopSet)
+    = $intersect(S:AlgebraicLoopSet,S':AlgebraicLoopSet,if E:AlgebraicLoop in
+    S':AlgebraicLoopSet then E:AlgebraicLoop, A:AlgebraicLoopSet else
+    A:AlgebraicLoopSet fi) .
+  eq $intersect((E:EPortId, S:PortSet),S':PortSet,A:PortSet)
+    = $intersect(S:PortSet,S':PortSet,if E:EPortId in S':PortSet then
+    E:EPortId, A:PortSet else A:PortSet fi) .
+  eq $intersect((E:PortId, S:OidSet),S':OidSet,A:OidSet)
+    = $intersect(S:OidSet,S':OidSet,if E:PortId in S':OidSet then E:PortId,
+    A:OidSet else A:OidSet fi) .
+  eq $reverse(nil,A:PortList)
+    = A:PortList .
+  eq $reverse(E:EPortId L:PortList,A:PortList)
+    = $reverse(L:PortList,E:EPortId A:PortList) .
+  eq $size(nil,C:Nat)
+    = C:Nat .
+  eq $size(E:EPortId L:PortList,C:Nat)
+    = $size(L:PortList,C:Nat + 1) .
+  eq 1st(< A:Environment ; B:Nat >)
+    = A:Environment .
+  eq 1st(< A:Nat ; B:Nat >)
+    = A:Nat .
+  eq 1st(< A:PortList ; B:PortList >)
+    = A:PortList .
+  eq 2nd(< A:Environment ; B:Nat >)
+    = B:Nat .
+  eq 2nd(< A:Nat ; B:Nat >)
+    = B:Nat .
+  eq 2nd(< A:PortList ; B:PortList >)
+    = B:PortList .
+  eq PORTMAP1:PortValueMap \ PORTMAP2:PortValueMap
+    = diffMap(PORTMAP1:PortValueMap,PORTMAP2:PortValueMap,empty) .
+  eq PORTMAP:PortValueMap \(empty).PortValueMap
+    = PORTMAP:PortValueMap .
+  eq S:AlgebraicLoopSet \ N:NeALSet
+    = $diff(S:AlgebraicLoopSet,N:NeALSet,(empty).AlgebraicLoopSet) .
+  eq S:AlgebraicLoopSet \(empty).AlgebraicLoopSet
+    = S:AlgebraicLoopSet .
+  eq S:OidSet \ N:NeOidSet
+    = $diff(S:OidSet,N:NeOidSet,(empty).OidSet) .
+  eq S:OidSet \(empty).OidSet
+    = S:OidSet .
+  eq S:PortSet \ N:NePortSet
+    = $diff(S:PortSet,N:NePortSet,(empty).PortSet) .
+  eq S:PortSet \(empty).PortSet
+    = S:PortSet .
+  eq N:NeALSet, N:NeALSet
+    = N:NeALSet .
+  eq N:NeOidSet, N:NeOidSet
+    = N:NeOidSet .
+  eq N:NePortSet, N:NePortSet
+    = N:NePortSet .
+  eq (M:IndexMap, D:EPortId |-> R:Nat)[D:EPortId]
+    = if $hasMapping(M:IndexMap,D:EPortId)then(undefined).FindResult else R:Nat
+    fi .
+  eq (M:PortValueMap, D:PortId |-> R:PortValueAndTime)[D:PortId]
+    = if $hasMapping(M:PortValueMap,D:PortId)then(undefined).PortValueAndTime
+    else R:PortValueAndTime fi .
+  eq (M:SCCMap, D:Nat |-> R:PortList)[D:Nat]
+    = if $hasMapping(M:SCCMap,D:Nat)then(undefined).PortList else R:PortList fi
+    .
+  eq false and-then B:[Bool]
+    = false .
+  eq true and-then B:[Bool]
+    = B:[Bool] .
+  eq A:Bool and A:Bool
+    = A:Bool .
+  eq A:Bool and(B:Bool xor C:Bool)
+    = A:Bool and B:Bool xor A:Bool and C:Bool .
+  eq false and A:Bool
+    = false .
+  eq true and A:Bool
+    = A:Bool .
+  eq A:Bool implies B:Bool
+    = not(A:Bool xor A:Bool and B:Bool) .
+  eq CON:Connection in CON:Connection CONF:Configuration
+    = true .
+  eq E:AlgebraicLoop in(E:AlgebraicLoop, S:AlgebraicLoopSet)
+    = true .
+  eq E:EPortId in(E:EPortId, S:PortSet)
+    = true .
+  eq E:PortId in(E:PortId, S:OidSet)
+    = true .
+  eq PORT:EPortId memberOf(AlgebraicLoop: PORT:EPortId, PORTSET:PortSet Type:
+    LOOPTYPE:LoopType, LOOPS:AlgebraicLoopSet)
+    = true .
+  eq false or-else B:[Bool]
+    = B:[Bool] .
+  eq true or-else B:[Bool]
+    = true .
+  eq A:Bool or B:Bool
+    = A:Bool and B:Bool xor A:Bool xor B:Bool .
+  eq S:AlgebraicLoopSet psubset S':AlgebraicLoopSet
+    = S:AlgebraicLoopSet =/= S':AlgebraicLoopSet and-then S:AlgebraicLoopSet
+    subset S':AlgebraicLoopSet .
+  eq S:OidSet psubset S':OidSet
+    = S:OidSet =/= S':OidSet and-then S:OidSet subset S':OidSet .
+  eq S:PortSet psubset S':PortSet
+    = S:PortSet =/= S':PortSet and-then S:PortSet subset S':PortSet .
+  eq (empty).AlgebraicLoopSet subset S':AlgebraicLoopSet
+    = true .
+  eq (empty).OidSet subset S':OidSet
+    = true .
+  eq (empty).PortSet subset S':PortSet
+    = true .
+  eq (E:AlgebraicLoop, S:AlgebraicLoopSet)subset S':AlgebraicLoopSet
+    = E:AlgebraicLoop in S':AlgebraicLoopSet and-then S:AlgebraicLoopSet subset
+    S':AlgebraicLoopSet .
+  eq (E:EPortId, S:PortSet)subset S':PortSet
+    = E:EPortId in S':PortSet and-then S:PortSet subset S':PortSet .
+  eq (E:PortId, S:OidSet)subset S':OidSet
+    = E:PortId in S':OidSet and-then S:OidSet subset S':OidSet .
+  eq A:Bool xor A:Bool
+    = false .
+  eq false xor A:Bool
+    = A:Bool .
+  eq addStackIncr(PORT:EPortId,env(STACK:PortList,SCCs:SCCMap,INDEX:Nat,
+    SCCNUMBER:Nat,(PORT:EPortId |-> M:Nat, IM:IndexMap)))
+    = env(PORT:EPortId STACK:PortList,SCCs:SCCMap,INDEX:Nat + 1,SCCNUMBER:Nat,
+    insert(PORT:EPortId,INDEX:Nat,IM:IndexMap)) .
+  eq allDef(none,TIME:Nat)
+    = true .
+  eq allDef(< PId:PortId : V#0:Port | value : V#2:Nat,type : V#1:PortType,time
+    : TIME:Nat,status : PORTSTATUS:PortStatus,none,V#3:AttributeSet >
+    CONF:Configuration,TIME:Nat)
+    = PORTSTATUS:PortStatus == Def and allDef(CONF:Configuration,TIME:Nat) .
+  eq allInputsDef(none,SUTIME:Nat,FUTURETIME:NzNat)
+    = true .
+  eq allInputsDef(< PId:PortId : V#4:Input | value : V#6:Nat,type :
+    V#5:PortType,status : PORTSTATUS:PortStatus,contract : r,time :
+    FUTURETIME:NzNat,none,V#7:AttributeSet > CONF:Configuration,SUTIME:Nat,
+    FUTURETIME:NzNat)
+    = PORTSTATUS:PortStatus == Def and allInputsDef(CONF:Configuration,
+    SUTIME:Nat,FUTURETIME:NzNat) .
+  eq allInputsDef(< PId:PortId : V#8:Input | value : V#10:Nat,type :
+    V#9:PortType,status : PORTSTATUS:PortStatus,contract : d,time : SUTIME:Nat,
+    none,V#11:AttributeSet > CONF:Configuration,SUTIME:Nat,FUTURETIME:NzNat)
+    = PORTSTATUS:PortStatus == Def and allInputsDef(CONF:Configuration,
+    SUTIME:Nat,FUTURETIME:NzNat) .
+  eq allInputsSet(none)
+    = true .
+  eq allInputsSet(< ID:SUID : V#12:SU | time : V#17:Nat,state : V#16:fmiState,
+    path : V#15:String,outputs : V#14:Configuration,canReject : V#13:Bool,
+    inputs : INPUTS:Configuration,none,V#18:AttributeSet > CONF:Configuration)
+    = allDef(INPUTS:Configuration,0)and allInputsSet(CONF:Configuration) .
+  eq append(A:PortList,L:PortList)
+    = A:PortList L:PortList .
+  eq askStepSize(< ID:SUID : V#19:SU | time : V#25:Nat,state : V#24:fmiState,
+    path : V#23:String,outputs : V#22:Configuration,inputs :
+    V#21:Configuration,canReject : V#20:Bool,none,V#26:AttributeSet >,
+    STEP:NzNat)
+    = STEP:NzNat .
+  eq canStep(SUTIME:Nat,FUTURETIME:NzNat,INPUTS:Configuration,
+    OUTPUTS:Configuration)
+    = allInputsDef(INPUTS:Configuration,SUTIME:Nat,FUTURETIME:NzNat)and allDef(
+    OUTPUTS:Configuration,SUTIME:Nat) .
+  eq createAlgebraic(empty,CONF:Configuration,LOOPS:AlgebraicLoopSet)
+    = LOOPS:AlgebraicLoopSet .
+  eq createIndexMap(empty,IM:IndexMap)
+    = IM:IndexMap .
+  eq createIndexMap((PORT:EPortId, PORTSET:PortSet),(PORT:EPortId |->
+    NONZERO:NzNat, IM:IndexMap))
+    = createIndexMap(PORTSET:PortSet,insert(PORT:EPortId,NONZERO:NzNat,
+    IM:IndexMap)) .
+  eq delete(E:AlgebraicLoop,(E:AlgebraicLoop, S:AlgebraicLoopSet))
+    = delete(E:AlgebraicLoop,S:AlgebraicLoopSet) .
+  eq delete(E:EPortId,(E:EPortId, S:PortSet))
+    = delete(E:EPortId,S:PortSet) .
+  eq delete(E:PortId,(E:PortId, S:OidSet))
+    = delete(E:PortId,S:OidSet) .
+  eq dfs(empty,ENV:Environment,CONF:Configuration)
+    = < ENV:Environment ; 100000 > .
+  eq diffMap(empty,PORTMAP1:PortValueMap,PORTMAP:PortValueMap)
+    = PORTMAP:PortValueMap .
+  eq diffMap((PID:PortId |-> VALUE:PortValueAndTime, PORTMAP1:PortValueMap),
+    PORTMAP2:PortValueMap,PORTMAP:PortValueMap)
+    = diffMap(PORTMAP1:PortValueMap,PORTMAP2:PortValueMap,if $hasMapping(
+    PORTMAP2:PortValueMap,PID:PortId)then PORTMAP:PortValueMap else insert(
+    PID:PortId,VALUE:PortValueAndTime,PORTMAP:PortValueMap)fi) .
+  eq elems(nil,PORTSET:PortSet)
+    = PORTSET:PortSet .
+  eq elems(PORT:EPortId STACK:PortList,PORTSET:PortSet)
+    = elems(STACK:PortList,(PORT:EPortId, PORTSET:PortSet)) .
+  eq feedthroughSatisfied(empty,CONF:Configuration,TIME:Nat)
+    = true .
+  eq feedthroughSatisfied((PId:PortId, FEEDTHROUGH:OidSet),< PId:PortId :
+    V#27:Input | value : V#30:Nat,type : V#29:PortType,contract :
+    V#28:Contract,status : Def,time : TIME:Nat,none,V#31:AttributeSet >
+    CONF:Configuration,TIME:Nat)
+    = feedthroughSatisfied(FEEDTHROUGH:OidSet,CONF:Configuration,TIME:Nat) .
+  eq feedthroughSatisfied((PId:PortId, FEEDTHROUGH:OidSet),< PId:PortId :
+    V#32:Input | value : V#36:Nat,type : V#35:PortType,time : V#34:Nat,contract
+    : V#33:Contract,status : Undef,none,V#37:AttributeSet > CONF:Configuration,
+    TIME:Nat)
+    = false .
+  eq findSuccesors(PORT:EPortId,CONF:Configuration)
+    = succesors(PORT:EPortId,CONF:Configuration,empty) .
+  eq front(L:PortList E:EPortId)
+    = L:PortList .
+  eq getAction(< ID:SUID : V#45:SU | state : V#49:fmiState,path : V#48:String,
+    inputs : V#47:Configuration,canReject : V#46:Bool,outputs :(< OUTPUT:PortId
+    : V#38:Output | value : V#43:Nat,type : V#42:PortType,time : V#41:Nat,
+    status : V#40:PortStatus,dependsOn : V#39:OidSet,none,V#44:AttributeSet >
+    OUTPUTS:Configuration),time : TIME:Nat,none,V#50:AttributeSet >,(
+    OUTPUT:PortId, PORTS:OidSet))
+    = getAction(< ID:SUID : V#45:SU | outputs :(< OUTPUT:PortId : V#38:Output |
+    time : TIME:Nat,status : Def,dependsOn : V#39:OidSet,type : V#42:PortType,
+    value : V#43:Nat,V#44:AttributeSet > OUTPUTS:Configuration),canReject :
+    V#46:Bool,inputs : V#47:Configuration,path : V#48:String,state :
+    V#49:fmiState,time : TIME:Nat,V#50:AttributeSet >,PORTS:OidSet) .
+  eq getAction(< ID:SUID : V#51:SU | time : V#57:Nat,state : V#56:fmiState,path
+    : V#55:String,outputs : V#54:Configuration,inputs : V#53:Configuration,
+    canReject : V#52:Bool,none,V#58:AttributeSet >,empty)
+    = < ID:SUID : V#51:SU | canReject : V#52:Bool,inputs : V#53:Configuration,
+    outputs : V#54:Configuration,path : V#55:String,state : V#56:fmiState,time
+    : V#57:Nat,V#58:AttributeSet > .
+  eq getActionValues(< ID:SUID : V#64:SU | time : V#69:Nat,state :
+    V#68:fmiState,path : V#67:String,inputs : V#66:Configuration,canReject :
+    V#65:Bool,outputs :(< OUTPUT:PortId : V#59:Output | type : V#62:PortType,
+    status : V#61:PortStatus,dependsOn : V#60:OidSet,time : TIME:Nat,value :
+    VALUE:Nat,none,V#63:AttributeSet > OUTPUTS:Configuration),none,
+    V#70:AttributeSet >,(OUTPUT:PortId, PORTS:OidSet),(
+ID:SUID ! OUTPUT:PortId ==> ID1:SUID ! INPUT:PortId)CONF:Configuration,
+    PORTMAP:PortValueMap)
+    = getActionValues(< ID:SUID : V#64:SU | canReject : V#65:Bool,inputs :
+    V#66:Configuration,outputs :(< OUTPUT:PortId : V#59:Output | type :
+    V#62:PortType,status : V#61:PortStatus,dependsOn : V#60:OidSet,time :
+    TIME:Nat,value : VALUE:Nat,none,V#63:AttributeSet > OUTPUTS:Configuration),
+    path : V#67:String,state : V#68:fmiState,time : V#69:Nat,V#70:AttributeSet
+    >,PORTS:OidSet,CONF:Configuration,(INPUT:PortId |-> < TIME:Nat ; VALUE:Nat
+    >, PORTMAP:PortValueMap)) .
+  eq getActionValues(< ID:SUID : V#71:SU | time : V#77:Nat,state :
+    V#76:fmiState,path : V#75:String,outputs : V#74:Configuration,inputs :
+    V#73:Configuration,canReject : V#72:Bool,none,V#78:AttributeSet >,empty,
+    CONF:Configuration,PORTMAP:PortValueMap)
+    = PORTMAP:PortValueMap .
+  eq getClass(< O:Oid : C:Cid | A:AttributeSet >)
+    = C:Cid .
+  eq getIM(env(STACK:PortList,SCCs:SCCMap,INDEX:Nat,SCCNUMBER:Nat,IM:IndexMap))
+    = IM:IndexMap .
+  eq getLoops(env(STACK:PortList,SCCs:SCCMap,INDEX:Nat,SCCNUMBER:Nat,
+    IM:IndexMap),CONF:Configuration)
+    = createAlgebraic(SCCs:SCCMap,CONF:Configuration,empty) .
+  eq getPortFromMap(empty,PORTIDSET:OidSet)
+    = PORTIDSET:OidSet .
+  eq getPortFromMap((PID:PortId |-> VALUE:PortValueAndTime,
+    PORTMAP:PortValueMap),PORTIDSET:OidSet)
+    = getPortFromMap(PORTMAP:PortValueMap,(PID:PortId, PORTIDSET:OidSet)) .
+  eq getSCC(env(STACK:PortList,SCCs:SCCMap,INDEX:Nat,SCCNUMBER:Nat,
+    IM:IndexMap))
+    = SCCs:SCCMap .
+  eq getSCCN(env(STACK:PortList,SCCs:SCCMap,INDEX:Nat,SCCNUMBER:Nat,
+    IM:IndexMap))
+    = SCCNUMBER:Nat .
+  eq getSN(env(STACK:PortList,SCCs:SCCMap,INDEX:Nat,SCCNUMBER:Nat,IM:IndexMap))
+    = INDEX:Nat .
+  eq getSUs(empty,SUSet:OidSet)
+    = SUSet:OidSet .
+  eq getStack(env(STACK:PortList,SCCs:SCCMap,INDEX:Nat,SCCNUMBER:Nat,
+    IM:IndexMap))
+    = STACK:PortList .
+  eq head(E:EPortId L:PortList)
+    = E:EPortId .
+  eq insert(E:AlgebraicLoop,S:AlgebraicLoopSet)
+    = E:AlgebraicLoop, S:AlgebraicLoopSet .
+  eq insert(E:EPortId,S:PortSet)
+    = E:EPortId, S:PortSet .
+  eq insert(E:PortId,S:OidSet)
+    = E:PortId, S:OidSet .
+  eq insert(D:EPortId,R:Nat,(M:IndexMap, D:EPortId |-> R':Nat))
+    = if $hasMapping(M:IndexMap,D:EPortId)then insert(D:EPortId,R:Nat,
+    M:IndexMap)else M:IndexMap, D:EPortId |-> R:Nat fi .
+  eq insert(D:Nat,R:PortList,(M:SCCMap, D:Nat |-> R':PortList))
+    = if $hasMapping(M:SCCMap,D:Nat)then insert(D:Nat,R:PortList,M:SCCMap)else
+    M:SCCMap, D:Nat |-> R:PortList fi .
+  eq insert(D:PortId,R:PortValueAndTime,(M:PortValueMap, D:PortId |->
+    R':PortValueAndTime))
+    = if $hasMapping(M:PortValueMap,D:PortId)then insert(D:PortId,
+    R:PortValueAndTime,M:PortValueMap)else M:PortValueMap, D:PortId |->
+    R:PortValueAndTime fi .
+  eq intersection(S:AlgebraicLoopSet,N:NeALSet)
+    = $intersect(S:AlgebraicLoopSet,N:NeALSet,(empty).AlgebraicLoopSet) .
+  eq intersection(S:AlgebraicLoopSet,(empty).AlgebraicLoopSet)
+    = (empty).AlgebraicLoopSet .
+  eq intersection(S:OidSet,N:NeOidSet)
+    = $intersect(S:OidSet,N:NeOidSet,(empty).OidSet) .
+  eq intersection(S:OidSet,(empty).OidSet)
+    = (empty).OidSet .
+  eq intersection(S:PortSet,N:NePortSet)
+    = $intersect(S:PortSet,N:NePortSet,(empty).PortSet) .
+  eq intersection(S:PortSet,(empty).PortSet)
+    = (empty).PortSet .
+  eq isReactiveLoop((ID1:SUID ! INPUT:PortId, PORTSET:PortSet),< ID1:SUID :
+    V#6:SU | time : V#11:Nat,state : V#10:fmiState,path : V#9:String,outputs :
+    V#8:Configuration,canReject : V#7:Bool,inputs :(< INPUT:PortId : V#0:Input
+    | value : V#4:Nat,type : V#3:PortType,time : V#2:Nat,status :
+    V#1:PortStatus,contract : r,none,V#5:AttributeSet > INPUTS:Configuration),
+    none,V#12:AttributeSet > CONF:Configuration)
+    = true .
+  eq last(L:PortList E:EPortId)
+    = E:EPortId .
+  eq loopsInStepNegotiation(LOOPS:AlgebraicLoopSet,empty,CONF:Configuration,
+    LOOPSet:AlgebraicLoopSet)
+    = LOOPSet:AlgebraicLoopSet .
+  eq loopsInStepNegotiation(empty,SUIDs:OidSet,CONF:Configuration,
+    LOOPSet:AlgebraicLoopSet)
+    = LOOPSet:AlgebraicLoopSet .
+  eq nodeHasBeenVisited(PORT:EPortId,env(STACK:PortList,SCCs:SCCMap,INDEX:Nat,
+    SCCNUMBER:Nat,(PORT:EPortId |-> NONZERO:NzNat, IM:IndexMap)))
+    = true .
+  eq not A:Bool
+    = true xor A:Bool .
+  eq occurs(E:EPortId,nil)
+    = false .
+  eq occurs(E:EPortId,E':EPortId L:PortList)
+    = if E:EPortId == E':EPortId then true else occurs(E:EPortId,L:PortList)fi
+    .
+  eq reverse(L:PortList)
+    = $reverse(L:PortList,nil) .
+  eq setAction(< ID:SUID : V#86:SU | time : V#91:Nat,state : V#90:fmiState,path
+    : V#89:String,outputs : V#88:Configuration,canReject : V#87:Bool,inputs :(<
+    INPUT:PortId : V#79:Input | value : V#84:Nat,type : V#83:PortType,time :
+    V#82:Nat,status : V#81:PortStatus,contract : V#80:Contract,none,
+    V#85:AttributeSet > INPUTS:Configuration),none,V#92:AttributeSet >,(
+    INPUT:PortId, PORTS:OidSet),VALUE:Nat,TIME:Nat)
+    = setAction(< ID:SUID : V#86:SU | inputs :(< INPUT:PortId : V#79:Input |
+    time : TIME:Nat,status : Def,contract : V#80:Contract,type : V#83:PortType,
+    value : V#84:Nat,V#85:AttributeSet > INPUTS:Configuration),canReject :
+    V#87:Bool,outputs : V#88:Configuration,path : V#89:String,state :
+    V#90:fmiState,time : V#91:Nat,V#92:AttributeSet >,PORTS:OidSet,VALUE:Nat,
+    TIME:Nat) .
+  eq setAction(< ID:SUID : V#93:SU | time : V#99:Nat,state : V#98:fmiState,path
+    : V#97:String,outputs : V#96:Configuration,inputs : V#95:Configuration,
+    canReject : V#94:Bool,none,V#100:AttributeSet >,empty,VALUE:Nat,TIME:Nat)
+    = < ID:SUID : V#93:SU | canReject : V#94:Bool,inputs : V#95:Configuration,
+    outputs : V#96:Configuration,path : V#97:String,state : V#98:fmiState,time
+    : V#99:Nat,V#100:AttributeSet > .
+  eq setActionPortMap(< ID:SUID : V#108:SU | time : V#113:Nat,state :
+    V#112:fmiState,path : V#111:String,outputs : V#110:Configuration,canReject
+    : V#109:Bool,inputs :(< INPUT:PortId : V#101:Input | value : V#106:Nat,type
+    : V#105:PortType,time : V#104:Nat,status : V#103:PortStatus,contract :
+    V#102:Contract,none,V#107:AttributeSet > INPUTS:Configuration),none,
+    V#114:AttributeSet >,(INPUT:PortId |-> < TIME:Nat ; VALUE:Nat >,
+    PORTMAP:PortValueMap))
+    = setActionPortMap(< ID:SUID : V#108:SU | inputs :(< INPUT:PortId :
+    V#101:Input | value : VALUE:Nat,time : TIME:Nat,status : Def,contract :
+    V#102:Contract,type : V#105:PortType,V#107:AttributeSet >
+    INPUTS:Configuration),canReject : V#109:Bool,outputs : V#110:Configuration,
+    path : V#111:String,state : V#112:fmiState,time : V#113:Nat,
+    V#114:AttributeSet >,PORTMAP:PortValueMap) .
+  eq setActionPortMap(< ID:SUID : V#115:SU | time : V#121:Nat,state :
+    V#120:fmiState,path : V#119:String,outputs : V#118:Configuration,inputs :
+    V#117:Configuration,canReject : V#116:Bool,none,V#122:AttributeSet >,empty)
+    = < ID:SUID : V#115:SU | canReject : V#116:Bool,inputs :
+    V#117:Configuration,outputs : V#118:Configuration,path : V#119:String,state
+    : V#120:fmiState,time : V#121:Nat,V#122:AttributeSet > .
+  eq setInfty(nil,IM:IndexMap)
+    = IM:IndexMap .
+  eq setInfty(PORT:EPortId STACK:PortList,(PORT:EPortId |-> NONZERO:NzNat,
+    IM:IndexMap))
+    = setInfty(STACK:PortList,insert(PORT:EPortId,100000,IM:IndexMap)) .
+  eq size(L:PortList)
+    = $size(L:PortList,0) .
+  eq split(PORT:EPortId,nil,PORTPAIR:PortListPair)
+    = PORTPAIR:PortListPair .
+  eq tail(E:EPortId L:PortList)
+    = L:PortList .
+  eq undefInputs(none)
+    = (none).Configuration .
+  eq undefInputs(< PId:PortId : V#123:Port | value : V#127:Nat,type :
+    V#126:PortType,time : V#125:Nat,status : V#124:PortStatus,none,
+    V#128:AttributeSet > CONF:Configuration)
+    = < PId:PortId : V#123:Port | status : Undef,time : V#125:Nat,type :
+    V#126:PortType,value : V#127:Nat,V#128:AttributeSet > undefInputs(
+    CONF:Configuration) .
+  eq undefPorts(none,TIME:Nat)
+    = (none).Configuration .
+  eq undefPorts(< PId:PortId : V#129:Port | value : V#133:Nat,type :
+    V#132:PortType,time : V#131:Nat,status : V#130:PortStatus,none,
+    V#134:AttributeSet > CONF:Configuration,TIME:Nat)
+    = < PId:PortId : V#129:Port | value : random(TIME:Nat),status : Undef,time
+    : TIME:Nat,type : V#132:PortType,V#134:AttributeSet > undefPorts(
+    CONF:Configuration,TIME:Nat) .
+  eq union(S:AlgebraicLoopSet,S':AlgebraicLoopSet)
+    = S:AlgebraicLoopSet, S':AlgebraicLoopSet .
+  eq union(S:OidSet,S':OidSet)
+    = S:OidSet, S':OidSet .
+  eq union(S:PortSet,S':PortSet)
+    = S:PortSet, S':PortSet .
+  eq | S:AlgebraicLoopSet |
+    = $card(S:AlgebraicLoopSet,0) .
+  eq | S:OidSet |
+    = $card(S:OidSet,0) .
+  eq | S:PortSet |
+    = $card(S:PortSet,0) .
+  ceq createAlgebraic((INDEX:Nat |-> STACK:PortList, SCCs:SCCMap),
+    CONF:Configuration,LOOPS:AlgebraicLoopSet)
+    = createAlgebraic(SCCs:SCCMap,CONF:Configuration,(AlgebraicLoop:
+    PORTSET:PortSet Type: F, LOOPS:AlgebraicLoopSet))
+    if PORTSET:PortSet := elems(STACK:PortList,empty)/\ size(STACK:PortList)> 1
+    and not isReactiveLoop(PORTSET:PortSet,CONF:Configuration)= true .
+  ceq createAlgebraic((INDEX:Nat |-> STACK:PortList, SCCs:SCCMap),
+    CONF:Configuration,LOOPS:AlgebraicLoopSet)
+    = createAlgebraic(SCCs:SCCMap,CONF:Configuration,(AlgebraicLoop:
+    PORTSET:PortSet Type: R, LOOPS:AlgebraicLoopSet))
+    if PORTSET:PortSet := elems(STACK:PortList,empty)/\ size(STACK:PortList)> 1
+    and isReactiveLoop(PORTSET:PortSet,CONF:Configuration)= true .
+  ceq dfs((PORT:EPortId, PORTSET:PortSet),env(STACK:PortList,SCCs:SCCMap,
+    INDEX:Nat,SCCNUMBER:Nat,(PORT:EPortId |-> VISITED:NzNat, IM:IndexMap)),
+    CONF:Configuration)
+    = < ENV:Environment ; min(VISITED:NzNat,VISITED1:NzNat)>
+    if < ENV:Environment ; VISITED1:NzNat > := dfs(PORTSET:PortSet,env(
+    STACK:PortList,SCCs:SCCMap,INDEX:Nat,SCCNUMBER:Nat,(PORT:EPortId |->
+    VISITED:NzNat, IM:IndexMap)),CONF:Configuration) .
+  ceq dfs1(PORT:EPortId,ENV:Environment,CONF:Configuration)
+    = dfs(SUCCESORS:PortSet,ENV1:Environment,CONF:Configuration)
+    if SUCCESORS:PortSet := findSuccesors(PORT:EPortId,CONF:Configuration)/\
+    ENV1:Environment := addStackIncr(PORT:EPortId,ENV:Environment)/\ <
+    ENV2:Environment ; INDEX:Nat > := dfs(SUCCESORS:PortSet,ENV1:Environment,
+    CONF:Configuration)/\ INDEX:Nat < getSN(ENV:Environment)= true .
+  ceq getAllPorts(< ID1:SUID : V#142:SU | time : V#147:Nat,state :
+    V#146:fmiState,path : V#145:String,outputs : V#144:Configuration,canReject
+    : V#143:Bool,inputs :(< INPUT:PortId : V#135:Input | value : V#140:Nat,type
+    : V#139:PortType,time : V#138:Nat,status : V#137:PortStatus,contract :
+    V#136:Contract,none,V#141:AttributeSet > INPUTS:Configuration),none,
+    V#148:AttributeSet > CONF:Configuration,PORTSET:PortSet)
+    = getAllPorts(< ID1:SUID : V#142:SU | canReject : V#143:Bool,inputs :(<
+    INPUT:PortId : V#135:Input | value : V#140:Nat,type : V#139:PortType,time :
+    V#138:Nat,status : V#137:PortStatus,contract : V#136:Contract,none,
+    V#141:AttributeSet > INPUTS:Configuration),outputs : V#144:Configuration,
+    path : V#145:String,state : V#146:fmiState,time : V#147:Nat,
+    V#148:AttributeSet > CONF:Configuration,(ID1:SUID ! INPUT:PortId,
+    PORTSET:PortSet))
+    if not ID1:SUID ! INPUT:PortId in PORTSET:PortSet = true .
+  ceq getAllPorts(< ID1:SUID : V#156:SU | time : V#161:Nat,state :
+    V#160:fmiState,path : V#159:String,inputs : V#158:Configuration,canReject :
+    V#157:Bool,outputs :(< OUTPUT:PortId : V#149:Output | value : V#154:Nat,
+    type : V#153:PortType,time : V#152:Nat,status : V#151:PortStatus,dependsOn
+    : V#150:OidSet,none,V#155:AttributeSet > OUTPUTS:Configuration),none,
+    V#162:AttributeSet > CONF:Configuration,PORTSET:PortSet)
+    = getAllPorts(< ID1:SUID : V#156:SU | canReject : V#157:Bool,inputs :
+    V#158:Configuration,outputs :(< OUTPUT:PortId : V#149:Output | value :
+    V#154:Nat,type : V#153:PortType,time : V#152:Nat,status : V#151:PortStatus,
+    dependsOn : V#150:OidSet,none,V#155:AttributeSet > OUTPUTS:Configuration),
+    path : V#159:String,state : V#160:fmiState,time : V#161:Nat,
+    V#162:AttributeSet > CONF:Configuration,(ID1:SUID ! OUTPUT:PortId,
+    PORTSET:PortSet))
+    if not ID1:SUID ! OUTPUT:PortId in PORTSET:PortSet = true .
+  ceq getAllReactivePorts(< ID1:SUID : V#169:SU | time : V#174:Nat,state :
+    V#173:fmiState,path : V#172:String,outputs : V#171:Configuration,canReject
+    : V#170:Bool,inputs :(< INPUT:PortId : V#163:Input | value : V#167:Nat,type
+    : V#166:PortType,time : V#165:Nat,status : V#164:PortStatus,contract : r,
+    none,V#168:AttributeSet > INPUTS:Configuration),none,V#175:AttributeSet >
+    CONF:Configuration,PORTSET:PortSet)
+    = getAllReactivePorts(< ID1:SUID : V#169:SU | canReject : V#170:Bool,inputs
+    :(< INPUT:PortId : V#163:Input | value : V#167:Nat,type : V#166:PortType,
+    time : V#165:Nat,status : V#164:PortStatus,contract : r,none,
+    V#168:AttributeSet > INPUTS:Configuration),outputs : V#171:Configuration,
+    path : V#172:String,state : V#173:fmiState,time : V#174:Nat,
+    V#175:AttributeSet > CONF:Configuration,(ID1:SUID ! INPUT:PortId,
+    PORTSET:PortSet))
+    if not ID1:SUID ! INPUT:PortId in PORTSET:PortSet = true .
+  ceq getSUs((ID:SUID ! PORTID:PortId, PORTSET:PortSet),SUSet:OidSet)
+    = getSUs(PORTSET:PortSet,SUSet:OidSet)
+    if ID:SUID in SUSet:OidSet = true .
+  ceq loopsInStepNegotiation((AlgebraicLoop: PORTSET:PortSet Type: R,
+    LOOPS:AlgebraicLoopSet),(SU:SUID, SUIDs:OidSet),CONF:Configuration,
+    LOOPSet:AlgebraicLoopSet)
+    = loopsInStepNegotiation(LOOPS:AlgebraicLoopSet,(SU:SUID, SUIDs:OidSet),
+    CONF:Configuration,(AlgebraicLoop: PORTSET:PortSet Type: R,
+    LOOPSet:AlgebraicLoopSet))
+    if REACTIVEPORTS:PortSet := getAllReactivePorts(CONF:Configuration,empty)/\
+    REACTIVESUs:OidSet := getSUs(REACTIVEPORTS:PortSet,empty)/\ SU:SUID in
+    REACTIVESUs:OidSet = true .
+  ceq split(PORT:EPortId,STACK:PortList,< STACK1:PortList ; STACK2:PortList >)
+    = < STACK1:PortList PORT:EPortId ; tail(STACK:PortList)STACK2:PortList >
+    if PORT:EPortId := head(STACK:PortList) .
+  ceq stepAction(< ID:SUID : V#176:SU | state : V#180:fmiState,path :
+    V#179:String,inputs : V#178:Configuration,canReject : V#177:Bool,outputs :
+    OUTPUTS:Configuration,time : TIME:Nat,none,V#181:AttributeSet >,STEP:NzNat)
+    = < ID:SUID : V#176:SU | time : FUTURETIME:NzNat,outputs : undefPorts(
+    OUTPUTS:Configuration,FUTURETIME:NzNat),canReject : V#177:Bool,inputs :
+    V#178:Configuration,path : V#179:String,state : V#180:fmiState,
+    V#181:AttributeSet >
+    if FUTURETIME:NzNat := TIME:Nat + STEP:NzNat .
+  ceq succesors(ID1:SUID ! INPUT:PortId,< ID1:SUID : V#26:SU | time : V#30:Nat,
+    state : V#29:fmiState,path : V#28:String,canReject : V#27:Bool,outputs :(<
+    OUTPUT:PortId : V#19:Output | value : V#24:Nat,type : V#23:PortType,time :
+    V#22:Nat,status : V#21:PortStatus,dependsOn : V#20:OidSet,none,
+    V#25:AttributeSet > OUTPUTS:Configuration),inputs :(< INPUT:PortId :
+    V#13:Input | value : V#17:Nat,type : V#16:PortType,time : V#15:Nat,status :
+    V#14:PortStatus,contract : r,none,V#18:AttributeSet >
+    INPUTS:Configuration),none,V#31:AttributeSet > CONF:Configuration,
+    PORTSET:PortSet)
+    = succesors(ID1:SUID ! INPUT:PortId,< ID1:SUID : V#26:SU | canReject :
+    V#27:Bool,inputs :(< INPUT:PortId : V#13:Input | value : V#17:Nat,type :
+    V#16:PortType,time : V#15:Nat,status : V#14:PortStatus,contract : r,none,
+    V#18:AttributeSet > INPUTS:Configuration),outputs :(< OUTPUT:PortId :
+    V#19:Output | value : V#24:Nat,type : V#23:PortType,time : V#22:Nat,status
+    : V#21:PortStatus,dependsOn : V#20:OidSet,none,V#25:AttributeSet >
+    OUTPUTS:Configuration),path : V#28:String,state : V#29:fmiState,time :
+    V#30:Nat,V#31:AttributeSet > CONF:Configuration,(ID1:SUID ! OUTPUT:PortId,
+    PORTSET:PortSet))
+    if not ID1:SUID ! OUTPUT:PortId in PORTSET:PortSet = true .
+  ceq succesors(ID1:SUID ! INPUT:PortId,< ID1:SUID : V#45:SU | time : V#49:Nat,
+    state : V#48:fmiState,path : V#47:String,canReject : V#46:Bool,outputs :(<
+    OUTPUT:PortId : V#39:Output | value : V#43:Nat,type : V#42:PortType,time :
+    V#41:Nat,status : V#40:PortStatus,dependsOn :(INPUT:PortId, FT:OidSet),
+    none,V#44:AttributeSet > OUTPUTS:Configuration),inputs :(< INPUT:PortId :
+    V#32:Input | value : V#37:Nat,type : V#36:PortType,time : V#35:Nat,status :
+    V#34:PortStatus,contract : V#33:Contract,none,V#38:AttributeSet >
+    INPUTS:Configuration),none,V#50:AttributeSet > CONF:Configuration,
+    PORTSET:PortSet)
+    = succesors(ID1:SUID ! INPUT:PortId,< ID1:SUID : V#45:SU | canReject :
+    V#46:Bool,inputs :(< INPUT:PortId : V#32:Input | value : V#37:Nat,type :
+    V#36:PortType,time : V#35:Nat,status : V#34:PortStatus,contract :
+    V#33:Contract,none,V#38:AttributeSet > INPUTS:Configuration),outputs :(<
+    OUTPUT:PortId : V#39:Output | value : V#43:Nat,type : V#42:PortType,time :
+    V#41:Nat,status : V#40:PortStatus,dependsOn :(INPUT:PortId, FT:OidSet),
+    none,V#44:AttributeSet > OUTPUTS:Configuration),path : V#47:String,state :
+    V#48:fmiState,time : V#49:Nat,V#50:AttributeSet > CONF:Configuration,(
+    ID1:SUID ! OUTPUT:PortId, PORTSET:PortSet))
+    if not ID1:SUID ! OUTPUT:PortId in PORTSET:PortSet = true .
+  ceq succesors(ID2:SUID ! OUTPUT:PortId,< ID1:SUID : V#58:SU | time :
+    V#63:Nat,state : V#62:fmiState,path : V#61:String,outputs :
+    V#60:Configuration,canReject : V#59:Bool,inputs :(< INPUT:PortId :
+    V#51:Input | value : V#56:Nat,type : V#55:PortType,time : V#54:Nat,status :
+    V#53:PortStatus,contract : V#52:Contract,none,V#57:AttributeSet >
+    INPUTS:Configuration),none,V#64:AttributeSet > < ID2:SUID : V#72:SU | time
+    : V#77:Nat,state : V#76:fmiState,path : V#75:String,inputs :
+    V#74:Configuration,canReject : V#73:Bool,outputs :(< OUTPUT:PortId :
+    V#65:Output | value : V#70:Nat,type : V#69:PortType,time : V#68:Nat,status
+    : V#67:PortStatus,dependsOn : V#66:OidSet,none,V#71:AttributeSet >
+    OUTPUTS:Configuration),none,V#78:AttributeSet >(
+ID2:SUID ! OUTPUT:PortId ==> ID1:SUID ! INPUT:PortId)CONF:Configuration,
+    PORTSET:PortSet)
+    = succesors(ID2:SUID ! OUTPUT:PortId,< ID1:SUID : V#58:SU | canReject :
+    V#59:Bool,inputs :(< INPUT:PortId : V#51:Input | value : V#56:Nat,type :
+    V#55:PortType,time : V#54:Nat,status : V#53:PortStatus,contract :
+    V#52:Contract,none,V#57:AttributeSet > INPUTS:Configuration),outputs :
+    V#60:Configuration,path : V#61:String,state : V#62:fmiState,time :
+    V#63:Nat,V#64:AttributeSet > < ID2:SUID : V#72:SU | canReject : V#73:Bool,
+    inputs : V#74:Configuration,outputs :(< OUTPUT:PortId : V#65:Output | value
+    : V#70:Nat,type : V#69:PortType,time : V#68:Nat,status : V#67:PortStatus,
+    dependsOn : V#66:OidSet,none,V#71:AttributeSet > OUTPUTS:Configuration),
+    path : V#75:String,state : V#76:fmiState,time : V#77:Nat,V#78:AttributeSet
+    >(
+ID2:SUID ! OUTPUT:PortId ==> ID1:SUID ! INPUT:PortId)CONF:Configuration,(
+    ID1:SUID ! INPUT:PortId, PORTSET:PortSet))
+    if not ID1:SUID ! INPUT:PortId in PORTSET:PortSet = true .
+  ceq tarjan(CONF:Configuration)
+    = getLoops(ENV1:Environment,CONF:Configuration)
+    if < ENV1:Environment ; INDEX:Nat > := dfs(getAllPorts(CONF:Configuration,
+    empty),env(nil,empty,1,0,createIndexMap(getAllPorts(CONF:Configuration,
+    empty),empty)),CONF:Configuration) .
+  eq $card((E:AlgebraicLoop, S:AlgebraicLoopSet),C:Nat)
+    = $card(S:AlgebraicLoopSet,C:Nat + 1) [owise] .
+  eq $card((E:EPortId, S:PortSet),C:Nat)
+    = $card(S:PortSet,C:Nat + 1) [owise] .
+  eq $card((E:PortId, S:OidSet),C:Nat)
+    = $card(S:OidSet,C:Nat + 1) [owise] .
+  eq $hasMapping(M:IndexMap,D:EPortId)
+    = false [owise] .
+  eq $hasMapping(M:PortValueMap,D:PortId)
+    = false [owise] .
+  eq $hasMapping(M:SCCMap,D:Nat)
+    = false [owise] .
+  eq M:IndexMap[D:EPortId]
+    = (undefined).FindResult [owise] .
+  eq M:PortValueMap[D:PortId]
+    = (undefined).PortValueAndTime [owise] .
+  eq M:SCCMap[D:Nat]
+    = (undefined).PortList [owise] .
+  eq CON:Connection in CONF:Configuration
+    = false [owise] .
+  eq E:AlgebraicLoop in S:AlgebraicLoopSet
+    = false [owise] .
+  eq E:EPortId in S:PortSet
+    = false [owise] .
+  eq E:PortId in S:OidSet
+    = false [owise] .
+  eq PORT:EPortId memberOf LOOPS:AlgebraicLoopSet
+    = false [owise] .
+  eq createAlgebraic((INDEX:Nat |-> PORTSET:PortSet, SCCs:SCCMap),
+    CONF:Configuration,LOOPS:AlgebraicLoopSet)
+    = createAlgebraic(SCCs:SCCMap,CONF:Configuration,LOOPS:AlgebraicLoopSet) [
+    owise] .
+  eq createIndexMap((PORT:EPortId, PORTSET:PortSet),IM:IndexMap)
+    = createIndexMap(PORTSET:PortSet,insert(PORT:EPortId,0,IM:IndexMap)) [
+    owise] .
+  eq delete(E:AlgebraicLoop,S:AlgebraicLoopSet)
+    = S:AlgebraicLoopSet [owise] .
+  eq delete(E:EPortId,S:PortSet)
+    = S:PortSet [owise] .
+  eq delete(E:PortId,S:OidSet)
+    = S:OidSet [owise] .
+  eq getAllPorts(CONF:Configuration,PORTSET:PortSet)
+    = PORTSET:PortSet [owise] .
+  eq getAllReactivePorts(CONF:Configuration,PORTSET:PortSet)
+    = PORTSET:PortSet [owise] .
+  eq getSUs((ID:SUID ! PORTID:PortId, PORTSET:PortSet),SUSet:OidSet)
+    = getSUs(PORTSET:PortSet,(ID:SUID, SUSet:OidSet)) [owise] .
+  eq insert(D:EPortId,R:Nat,M:IndexMap)
+    = M:IndexMap, D:EPortId |-> R:Nat [owise] .
+  eq insert(D:Nat,R:PortList,M:SCCMap)
+    = M:SCCMap, D:Nat |-> R:PortList [owise] .
+  eq insert(D:PortId,R:PortValueAndTime,M:PortValueMap)
+    = M:PortValueMap, D:PortId |-> R:PortValueAndTime [owise] .
+  eq isReactiveLoop(PORTSET:PortSet,CONF:Configuration)
+    = false [owise] .
+  eq loopsInStepNegotiation((LOOP:AlgebraicLoop, LOOPS:AlgebraicLoopSet),
+    SUIDs:OidSet,CONF:Configuration,LOOPSet:AlgebraicLoopSet)
+    = loopsInStepNegotiation(LOOPS:AlgebraicLoopSet,SUIDs:OidSet,
+    CONF:Configuration,LOOPSet:AlgebraicLoopSet) [owise] .
+  eq nodeHasBeenVisited(PORT:EPortId,ENV:Environment)
+    = false [owise] .
+  eq split(PORT:EPortId,STACK:PortList,< STACK1:PortList ; STACK2:PortList >)
+    = split(PORT:EPortId,tail(STACK:PortList),< STACK1:PortList head(
+    STACK:PortList); STACK2:PortList >) [owise] .
+  eq succesors(PORT:EPortId,CONF:Configuration,PORTSET:PortSet)
+    = PORTSET:PortSet [owise] .
+  ceq dfs((PORT:EPortId, PORTSET:PortSet),ENV:Environment,CONF:Configuration)
+    = < ENV2:Environment ; min(VISITED1:NzNat,VISITED2:NzNat)>
+    if < ENV1:Environment ; VISITED1:NzNat > := dfs1(PORT:EPortId,
+    ENV:Environment,CONF:Configuration)/\ < ENV2:Environment ; VISITED2:NzNat >
+    := dfs(PORTSET:PortSet,ENV1:Environment,CONF:Configuration) [owise] .
+  ceq dfs1(PORT:EPortId,ENV:Environment,CONF:Configuration)
+    = < env(OLDSTACK:PortList,insert(SCCNUMBER:Nat,SCCSTACK:PortList,
+    SCCs:SCCMap),INDEX:Nat,SCCNUMBER:Nat + 1,setInfty(SCCSTACK:PortList,
+    IM:IndexMap)); 100000 >
+    if SUCCESORS:PortSet := findSuccesors(PORT:EPortId,CONF:Configuration)/\
+    ENV1:Environment := addStackIncr(PORT:EPortId,ENV:Environment)/\ < env(
+    STACK:PortList,SCCs:SCCMap,INDEX:Nat,SCCNUMBER:Nat,IM:IndexMap);
+    VISITED:NzNat > := dfs(SUCCESORS:PortSet,ENV1:Environment,
+    CONF:Configuration)/\ < SCCSTACK:PortList ; OLDSTACK:PortList > := split(
+    PORT:EPortId,STACK:PortList,< nil ; nil >) [owise] .
+endm

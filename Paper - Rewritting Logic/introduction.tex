@@ -1,18 +1,44 @@
 \section{Introduction}\label{sc:introduction}
-Cyber-physical systems (CPS) are omnipresent and embody physical processes being controlled by cyber elements. A CPS is typically developed in a distributed fashion using different tools and techniques. Such systems are becoming increasingly complex~\cite{4519604}, which leads to the desire for techniques to assist in the development of these.
+\begin{itemize}
+    \item Introduce co-simulation
+    \item And the orchestration problem
+\end{itemize}
+
+Cyber-physical systems (CPS) embody physical processes controlled by cyber elements. 
+CPSs are omnipresent and control more and more critical functions in our daily life.
+A CPS is typically developed in a distributed fashion using different tools and techniques. 
+Such systems are becoming increasingly complex~\cite{4519604}, which leads to the desire for techniques to assist in the development of dependable CPS.
 % Why and what is co-simulation
-One such technique is co-simulation: the study of how to coordinate multiple black-box simulation units (SUs), each responsible for computing the behavior of a sub-system, in order to compute their combined behavior, and therefore produce the global behavior of a system, as a discrete trace (see, e.g., \cite{Kubler2000,Gomes2018}).
+Co-simulation is one of these techniques. Co-simulation is the study of how to coordinate multiple black-box simulation units (SUs).
+An SU represents a sub-system. 
+The SU is responsible for computing the behavior of the sub-system, in order to compute their combined behavior, and therefore produce the global behavior of a system, as a discrete trace (see, e.g., \cite{Kubler2000,Gomes2018}).
+
 
 Co-simulation allows iterative integration of constituents to explore the global system behavior without violating the constituents' intellectual property. 
 The SUs are coupled by an orchestration algorithm that interacts with each SU through an interface.
 An example of such an SU is a Functional Mock-up Unit (FMU) defined by the Functional Mock-up Interface Standard~\cite{FMI2014} (FMI), which inspires the notion of an SU in this paper. FMI is a widely adopted standard used commercially and supported by many tools~\cite{Tools_FMI}.
 
-The overarching challenge of co-simulation is ensuring correct simulation results. Previous studies \cite{Gomes2019,Oakes2021,Gomes2018f,Schweizer2015c} have shown that obtaining a correct co-simulation result requires an algorithm specifically tailored to the scenario that respects the SUs' input approximation functions. Not considering such details can lead to hard to debug errors in the co-simulation results as highlighted in \cite{Gomes2019,Oakes2021}, where it is shown how contracts on the co-simulation algorithm could be constructed based on the SUs. Obeying such contracts leads to a substantial reduction of co-simulation errors (see also \cref{sc:related} for more related work). An even more challenging class of scenarios to simulate are complex scenarios subject to either algebraic loops or adaptive steps. Complex scenarios are simulated using a specific iterative algorithm \cite{thrane2021}. The iterative algorithm solves the algebraic loop (cyclic dependencies between the SUs) and ensures that all SUs agree on a step; the latter is referred to as step negotiation. Step negotiation permits the SUs to implement error estimation and refuse certain future state evaluations to minimize the simulation error while ensuring that the SUs move in lockstep.
-We propose an approach that has been implemented as a tool. The tool lets users verify that their algorithm respects the contracts of the SUs.
+The overarching challenge of co-simulation is ensuring correct and deterministic simulation results. 
+Previous studies \cite{Gomes2019,Oakes2021,Gomes2018f,Schweizer2015c} show that obtaining a correct and deterministic co-simulation result requires an implementation-aware algorithm.
+The algorithm should be specifically tailored to the scenario to respect the SUs' input approximation functions.
+
+Not considering such details can lead to hard to debug errors in the co-simulation results as highlighted in \cite{Gomes2019,Oakes2021}. 
+They show how contracts on the co-simulation algorithm could be constructed based on the SUs. 
+Obeying such contracts leads to a substantial reduction of co-simulation errors (see also \cref{sc:related} for more related work). 
+Complex scenarios are an even more challenging class of scenarios to simulate.
+These scenarios are subject to either algebraic loops or adaptive steps. 
+Complex scenarios are simulated using a specific iterative algorithm \cite{thrane2021}. 
+The iterative algorithm solves the algebraic loop (cyclic dependencies between the SUs) and ensures that all SUs agree on a step; the latter is referred to as step negotiation. 
+Step negotiation permits the SUs to implement error estimation and refuse specific future state evaluations to minimize the simulation error while ensuring that the SUs move in lockstep.
+
+We propose an approach that has been implemented as a tool. The tool lets users synthesize orchestration algorithms and perform various analyses of the system of interest within a formal framework.
 
 \textit{Contribution:}
-This paper describes an approach for verifying that a co-simulation algorithm satisfies the contracts of the scenario. The approach covers complex scenarios subject to algebraic loops and adaptive steps.
-It has been implemented in UPPAAL~\cite{behrmann_uppaal_2006} and has been applied to several case studies, including an industrial case study from Boeing \cite{Gomes2019a} and complex scenarios subject to algebraic loops and step negotiation.
+This paper describes an executable Maude formalization for synthesizing co-simulation algorithms satisfying the contracts of the scenario.
+The approach covers complex scenarios subject to algebraic loops and adaptive steps.
+
+The formalization enables multiple analyses of both the generated algorithm and the system of interest. 
 
 \textit{Structure:}
-The paper starts with introducing co-simulation and the verification challenge of co-simulation algorithms in \cref{sc:background}. \Cref{sc:related} describes other approaches for obtaining reliable and deterministic co-simulation results. \Cref{sc:verification} follows with a presentation of the verification technique. \Cref{sc:casestudy} discusses a case study and \cref{sc:summary} concludes.
+The paper starts with introducing rewriting logic, co-simulation and the verification challenge of co-simulation algorithms in \cref{sc:background}. Then, \Cref{sc:related} describes other approaches for obtaining reliable and deterministic co-simulation results. 
+Finally, \cref{sc:summary} concludes.

@@ -1,4 +1,3 @@
-load StepFinder
 load Scenario
 
 (omod COSIMULATION is 
@@ -160,6 +159,9 @@ load Scenario
 endom)
 
 eof
+
+(show all .)
+q 
 
 ( frew [100] setup . )
 

@@ -1,21 +1,15 @@
 load GenericDT
 
 (omod Ports is 
- protecting QID + NAT + PORT-LIST + OID-SET + PORT-SET + PORTVALUEMAP .
+ protecting PORT-LIST + OID-SET + PORT-SET + FMIVALUE-MAP + PORTVALUEMAP .
  sorts Contract PortStatus Connection PortType .
  op _==>_ : EPortId EPortId -> Connection [ctor format(niy! d d d)] .
  subsort Connection < Configuration .
 
- sort Value .
- *** How to do the value type
- ***subsort Nat < Value .
- ***subsort Bool < Value .
-
- *** Values are currently natural numbers - maybe different types should be different syb-types
  class Port | value : Nat, type : PortType, time : Nat, status : PortStatus . 
  class Input | contract : Contract .
  class Output | dependsOn : OidSet .
- class Parameter | value : Value .
+ ***class Parameter | value : FMIValue .
  subclasses Input Output < Port . 
  ops d r : -> Contract [ctor] .   *** d = delayed, r = Reactive.
  ops integer string real boolean : -> PortType [ctor] . 
@@ -52,6 +46,7 @@ load GenericDT
     eq diffMap(empty, PORTMAP1, PORTMAP) = PORTMAP .
     eq diffMap(((PID |-> VALUE), PORTMAP1), PORTMAP2, PORTMAP) = 
         diffMap(PORTMAP1, PORTMAP2, if $hasMapping(PORTMAP2, PID) then PORTMAP else insert(PID, VALUE, PORTMAP) fi) .
+
 endom)
 
 

@@ -64,8 +64,11 @@ load Environment
 
 endom)
 
-eof
 
+
+eof
+(show all .)
+q 
 
 (red split(('SU1 ! 'S), ('SU1 ! 'R) ('SU1 ! 'S) ('SU1 ! 'T), < nil ; nil > ) . )
 

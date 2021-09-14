@@ -11,14 +11,12 @@ load LOOPSolver
   op stepFindingDone : OidSet Configuration NzNat -> Bool .
 
    vars ID1 ID2 : SUID .
-   var SUIDs : OidSet .
+   vars FEEDTHROUGH SUIDs : OidSet .
    vars INPUT OUTPUT : PortId .
    vars TIME INPUTTIME OUTPUTTIME VALUE : Nat .
    vars STEPSIZE FUTURETIME FUTURETIME1 MINSTEP : NzNat .
-   vars INPUTS OUTPUTS INPUTS1 : Configuration . 
-   vars CONF SAVEDCONF : Configuration .
+   vars INPUTS OUTPUTS INPUTS1 CONF SAVEDCONF : Configuration . 
    var ALGO : ActionList .
-   var FEEDTHROUGH : OidSet .
    var LOOP : AlgebraicLoop .  
    var LOOPS SOLVEDLOOPS : AlgebraicLoopSet .  
    var SUINSTANCE : Object .
@@ -63,7 +61,8 @@ load LOOPSolver
                     *** The simulations should both have stepped, but not to the same time
 
   *** Solve Algebraic Loops *** Information should be carried over!
-  eq findStep(SUIDs, CONF UnsolvedSCC: (LOOP , LOOPS), SAVEDCONF UnsolvedSCC: (LOOP , LOOPS) SolvedSCC: SOLVEDLOOPS, ALGO) = findStep(SUIDs, solveLoopConf(CONF UnsolvedSCC: LOOPS SolvedSCC: (LOOP , SOLVEDLOOPS), LOOP), SAVEDCONF UnsolvedSCC: LOOPS SolvedSCC: (LOOP , SOLVEDLOOPS), ALGO ; solveLoopAlgorithm(CONF UnsolvedSCC: LOOPS, LOOP)) [owise] . 
+  eq findStep(SUIDs, CONF UnsolvedSCC: (LOOP , LOOPS), SAVEDCONF UnsolvedSCC: (LOOP , LOOPS) SolvedSCC: SOLVEDLOOPS, ALGO) = 
+  findStep(SUIDs, solveLoopConf(CONF UnsolvedSCC: LOOPS SolvedSCC: (LOOP , SOLVEDLOOPS), LOOP), SAVEDCONF UnsolvedSCC: LOOPS SolvedSCC: (LOOP , SOLVEDLOOPS), ALGO ; solveLoopAlgorithm(CONF UnsolvedSCC: LOOPS, LOOP)) [owise] . 
 
   ceq findStep(SUIDs, CONF stepSize: STEPSIZE, SAVEDCONF, ALGO) = < STEPSIZE ++ ALGO > if stepFindingDone(SUIDs, CONF, STEPSIZE) . 
 

@@ -1,13 +1,15 @@
+load full-maude
+
 (fmod PORTID is
  protecting QID .
  sort PortId .
- subsorts Qid < PortId < Oid .
+ subsorts String < PortId < Oid .
 endfm)
 
 (fmod SUID is
  protecting QID + PORTID .
  sort SUID .
- subsorts Qid < SUID < Oid .
+ subsorts String < SUID < Oid .
 endfm)
 
 (fmod EPORTID is
@@ -15,6 +17,20 @@ endfm)
     sort EPortId .
     op _!_ : SUID PortId -> EPortId [ctor] .
 endfm)
+
+(fmod FMIVALUE is
+  protecting NAT + BOOL + STRING + FLOAT .
+  sort FMIValue .
+  op <_> : Nat -> FMIValue [ctor] .
+  op <_> : Bool -> FMIValue [ctor] .
+  op <_> : String -> FMIValue [ctor] .
+  op <_> : Float -> FMIValue [ctor] .
+endfm)
+
+(view FMIVALUEAsTRIV from TRIV to FMIVALUE is
+  protecting FMIVALUE .
+  sort Elt to FMIValue .
+endv)
 
 (view OIdAsTRIV from TRIV to PORTID is
   protecting PORTID .
@@ -65,6 +81,10 @@ endfm)
 
 (fmod INDEX-MAP is
     protecting MAP{EPortIdAsTRIV, Nat} * (sort Map{EPortIdAsTRIV, Nat} to IndexMap) .
+endfm) 
+
+(fmod FMIVALUE-MAP is
+    protecting MAP{EPortIdAsTRIV, FMIVALUEAsTRIV} * (sort Map{EPortIdAsTRIV, FMIVALUEAsTRIV} to FMIValueMap) .
 endfm) 
 
 (view PortListAsTRIV from TRIV to PORT-LIST is

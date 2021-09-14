@@ -1,14 +1,14 @@
 load Algorithm
 
 (omod SimulationUnit is
-   protecting Algorithm + RANDOM + STRING .
+   protecting Algorithm + RANDOM + STRING + FMIVALUE-MAP .
    sort fmiState .
    
    *** The different states of the FMI standard
    ops Instantiated ExperimentSetup Initialize Simulation Terminated InstanceFreed Unloaded : -> fmiState [ctor] . 
 
-  *** SU -> Values of the input ports -> SU State -> Step size -> New SU State
-   op doStep : SUID FMIValueMap Object NzNat -> Object .
+  *** SU -> Values of the input ports -> 
+   op doStep : Object NzNat -> Object .
 
    ***Classes
    class SU |
@@ -17,7 +17,9 @@ load Algorithm
      inputs : Configuration, ***Input ports
      outputs : Configuration, ***Output ports
      canReject : Bool, 
-     state : fmiState .
+     fmistate : fmiState .
+     ***parameter : Configuration,
+     ***localState : FMIValueMap .
      *** Parameters
      *** Local State Map<String, FMIValue >
 
@@ -31,7 +33,7 @@ load Algorithm
    op canStep : Nat NzNat Configuration Configuration -> Bool .
    op getAction : Object OidSet -> Object .
    op getActionValues : Object OidSet Configuration PortValueMap -> PortValueMap .
-   op setAction : Object OidSet Nat Nat -> Object .
+   op setAction : Object OidSet FMIValue Nat -> Object .
    op stepAction : Object NzNat -> Object .
    op getAllPorts : Configuration PortSet -> PortSet .
    op getAllReactivePorts : Configuration PortSet -> PortSet .
@@ -39,9 +41,9 @@ load Algorithm
 
    vars ID ID1 ID2 : SUID .
    vars PId INPUT OUTPUT : PortId .
-   vars TIME SUTIME VALUE VALVESTATE WATERLEVEL : Nat .
+   vars TIME SUTIME VALVESTATE WATERLEVEL : Nat .
    vars CONF INPUTS OUTPUTS : Configuration .
-   var FMIVALUE : FMIValue .
+   var VALUE : FMIValue .
    var PORTSTATUS : PortStatus .
    vars FEEDTHROUGH PORTS : OidSet .
    vars FUTURETIME STEP : NzNat .
@@ -76,7 +78,7 @@ load Algorithm
    eq allInputsDef(< PId : Input | time : FUTURETIME, contract : r,  status : PORTSTATUS > CONF, SUTIME, FUTURETIME ) = PORTSTATUS == Def and allInputsDef(CONF, SUTIME, FUTURETIME) .
 
    eq undefPorts(none, TIME) = none .
-   eq undefPorts(< PId : Port | > CONF, TIME) =  < PId : Port | value : random(TIME), status : Undef, time : TIME > undefPorts(CONF, TIME) .
+   eq undefPorts(< PId : Port | > CONF, TIME) =  < PId : Port | value : < random(TIME) >, status : Undef, time : TIME > undefPorts(CONF, TIME) .
 
    eq undefInputs(none) = none .
    eq undefInputs(< PId : Port | > CONF) =  < PId : Port | status : Undef > undefInputs(CONF) .
@@ -103,8 +105,8 @@ load Algorithm
             setAction(< ID : SU | inputs : (< INPUT : Input | time : TIME, status : Def > INPUTS) >, PORTS, VALUE, TIME) .
 
   eq setActionPortMap(< ID : SU | > , empty) =  < ID : SU | > .
-  eq setActionPortMap(< ID : SU | inputs : (< INPUT : Input | > INPUTS) > , ((INPUT |-> < TIME ; VALUE >) , PORTMAP)) = 
-     setActionPortMap(< ID : SU | inputs : (< INPUT : Input | value : VALUE, time : TIME, status : Def > INPUTS) >, PORTMAP).
+  eq setActionPortMap(< ID : SU | inputs : (< INPUT : Input | > INPUTS) > , ((INPUT |-> < TIME ; VALUE >) , PORTMAP)) 
+  = setActionPortMap(< ID : SU | inputs : (< INPUT : Input | value : VALUE, time : TIME, status : Def > INPUTS) >, PORTMAP).
 
   *** Updates the time and the status of the outputs
   ceq stepAction(< ID : SU | time : TIME, outputs : OUTPUTS >, STEP) 

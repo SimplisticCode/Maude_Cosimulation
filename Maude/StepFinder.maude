@@ -13,7 +13,8 @@ load LOOPSolver
    vars ID1 ID2 : SUID .
    vars FEEDTHROUGH SUIDs : OidSet .
    vars INPUT OUTPUT : PortId .
-   vars TIME INPUTTIME OUTPUTTIME VALUE : Nat .
+   vars TIME INPUTTIME OUTPUTTIME : Nat .
+   var VALUE : FMIValue .
    vars STEPSIZE FUTURETIME FUTURETIME1 MINSTEP : NzNat .
    vars INPUTS OUTPUTS INPUTS1 CONF SAVEDCONF : Configuration . 
    var ALGO : ActionList .

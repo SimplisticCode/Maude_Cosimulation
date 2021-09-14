@@ -1,0 +1,99 @@
+% This is samplepaper.tex, a sample chapter demonstrating the
+% LLNCS macro package for Springer Computer Science proceedings;
+% Version 2.20 of 2017/10/04
+%
+\documentclass[runningheads]{llncs}
+
+\usepackage{graphicx}
+\usepackage{ae,aecompl}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{verbatim}
+\usepackage{graphicx}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{stmaryrd}
+\usepackage{amstext}
+\usepackage{bm} 
+\let\proof\relax
+\let\endproof\relax
+\usepackage{amsthm}
+\usepackage{siunitx}
+\usepackage{mathrsfs}
+\usepackage{wrapfig}
+\usepackage{semantic}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{float}
+\usepackage{rotating}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{paralist}
+\usepackage[colorlinks]{hyperref}
+\usepackage[capitalise,nameinlink]{cleveref}
+\usepackage{url}
+\usepackage[nounderscore]{syntax}
+\usepackage{environ}
+\usepackage{listings}
+\usepackage{etoolbox}
+\usepackage{subcaption}
+
+\AtBeginEnvironment{algorithm}{\linespread{1.05}\selectfont}
+\AtBeginEnvironment{grammar}{\small}
+\AtBeginEnvironment{grammar}{\linespread{0.6}\selectfont}
+
+\input{commands}
+
+
+
+% Used for displaying a sample figure. If possible, figure files should
+% be included in EPS format.
+%
+% If you use the hyperref package, please uncomment the following line
+% to display URLs in blue roman font according to Springer's eBook style:
+% \renewcommand\UrlFont{\color{blue}\rmfamily}
+
+\begin{document}
+
+\title{Co-Simulation is Rewriting Logic
+\thanks{We are grateful to the Poul Due Jensen Foundation, which has supported the establishment of a new Centre for Digital Twin Technology at Aarhus University.}}
+
+\author{Simon Thrane Hansen\inst{1} \orcidID{0000-0002-3796-4319} 
+\and Peter Csaba Olveczky \inst{2} \orcidID{0000-0002-3796-4319}}
+%
+\authorrunning{S. Thrane et al.}
+
+\titlerunning{Co-Simulation using Rewriting Logic}
+
+% First names are abbreviated in the running head.
+% If there are more than two authors, 'et al.' is used.
+%
+\institute{
+  DIGIT, Department of Electrical and Computer Engineering, Aarhus University, \\
+  %\email{\{sth, claudio.gomes, casper.thule\}@ece.au.dk\} 
+  \and DIGIT, Department of Computer Science, Aarhus University \\
+}
+
+\maketitle              % typeset the header of the contribution
+
+\input{abstract.tex}
+
+\input{introduction.tex}
+
+\input{background.tex}
+
+\input{relatedwork.tex}
+
+\input{maudeModel.tex}
+
+\input{casestudy.tex}
+
+\input{conclusion.tex}
+%
+% ---- Bibliography ---
+
+
+\bibliographystyle{splncs04}
+\bibliography{bib}
+
+\end{document}

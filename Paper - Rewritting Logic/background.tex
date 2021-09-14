@@ -1,9 +1,7 @@
 \section{Background}\label{sc:background}
-
 \subsection{Rewriting Logic}
 
-
-\subsection{Perhaps Model checking?}
+\subsubsection{Model checking?}
 % Model checking \cite{clarke99,baier_principles_2008} is a technique for automated verification of complex
 % reactive systems such as hardware components, embedded controllers, and network
 % protocols. The technique works by expressing the specification of a system using logical formulas.
@@ -34,7 +32,7 @@ Studies \cite{Gomes2019,Oakes2021,Gomes2018f,Schweizer2015c,Gomes2018a} have sho
   \end{compactitem}
 \end{definition}
 \vspace{-0.5em}
-\Cref{def:fmu} is inspired by \cite{Broman2013,Gomes2019c} and represents a symbolic version of an SU. 
+\Cref{def:fmu} is inspired by \cite{Broman2013,Gomes2019c,thrane2021} and represents a symbolic version of an SU. 
 The state of SU $A$ at time $t$ is denoted $\stateafter{A}{t}$.
 We assume the last value set on an input/output port can be inspected, for example, the value of input $\inputvar{x}$ could be $\inputvar{x} = \tuple{t, v_x}$, where $t$ is the timestamp when the value $v_x$ set on $\inputvar{x}$ was obtained.
 The function $\fdoStep{c}$ returns a step size because some SUs implement error estimation and may conclude that taking a step size of $H$ will result in an intolerable error meaning the SU takes a smaller step than planned.
@@ -52,7 +50,11 @@ The set of delayed components,
 \end{definition}  
 
 The syntax in \cref{fig:simpleexample} is used to graphically present co-simulation scenarios.
-The couplings of SUs and feedthrough can introduce algebraic loops like the one seen in the scenario in \cref{fig:algebraic_example}: The port variables in that scenario form a cyclic dependency, requiring that all their values are being set at the same time. The set of port variables involved in algebraic loops are the port variables of the non-trivial SCCs in the step operation graph, constructed based on Definition 15 in \cite{Gomes2019c}.
+A scenario can contain cyclic dependency between different ports, these are denoted algebraic loops.
+The algebraic loops are a consequence of the couplings of the SUs and feedthrough. 
+An example of an algebraic loop is depicted in \cref{fig:algebraic_example}.
+The port variables in that scenario form a cyclic dependency, requiring that all their values are being set at the same time. 
+The set of port variables involved in algebraic loops are the port variables of the non-trivial SCCs in the step operation graph, constructed based on Definition 15 in \cite{Gomes2019c}.
 The set $\algebraic{S}$ denotes such variables in scenario $S$:
 %\vspace{-0.5em}
 \begin{align*}
@@ -72,7 +74,7 @@ The input variables involved in an algebraic loop in the scenario $S$ are:
   \inputs{\algebraic{S}} \triangleq \algebraic{S} \cap \allinputs
 \end{align}
 
-Using the given definition of a scenario, we call a co-simulation scenario either simple or complex.
+A scenario is either simple or complex.
 \begin{definition}\label{def:simpleScenario}
   A scenario $S$ is simple if $\mayReject = \emptyset \land \algebraic{S} = \emptyset$.
 \end{definition}
@@ -122,7 +124,6 @@ It should be pointed out that each input and output has a timestamp referring to
   We denote this as the predicate: $\fpreset{c}: \stateset{c} \times \inputs{c} \times \valuesExchanged  \to \mathbb{B}$.
   \end{definition}
 
-  %\vspace{-0.7em}
   The criterion on a set-action will first have an effect when the SU is stepped. However, we found that it was easier to catch and correct an incorrect algorithm by moving this criterion to the set-action. 
   
   %\vspace{-1em}
@@ -144,29 +145,23 @@ It should be pointed out that each input and output has a timestamp referring to
   \end{align}
 \end{definition}
 
-The FMI-standard~\cite{FMI2014} also describes some contracts on the state-changing function. The implementation in UPPAAL enforces them, but they are not treated in this paper.  
-
-%like the ``Terminate''-function that tells an SU the simulation has ended. The implementation enforces them, but they are not treated in this paper. 
+The SU inspired by the FMI-standard~\cite{FMI2014} is a state-machine, the  SU as a state-machine.
+The formalization in Maude enforces them, but they are treated in this paper.
 
 \subsection{Co-simulation algorithms}\label{sc:cosimalgo}
-A scenario is simulated by a co-simulation algorithm that consists of state-changing functions, an initialization procedure, and a co-simulation step. This work concentrates on the co-simulation step, which we refer to as the algorithm throughout the paper. The other aspects of a co-simulation algorithm can trivially be derived from the method.  
+A scenario is , as described, simulated by a co-simulation algorithm that consists of state-changing functions, an initialization procedure, and a co-simulation step. 
+%This work concentrates on the co-simulation step, which we refer to as the algorithm throughout the paper. The other aspects of a co-simulation algorithm can trivially be derived from the method.  
 
-The purpose of the co-simulation step is to move all SUs $\fmus$, and all inputs and outputs $(\allinputs \cup \alloutputs)$, from the initial times $t$ to some future time $t+H, \textrm{ where } H > 0$. We use function $\ftime: \stateset{C} \to \timebase$ to obtain the current timestamp of an SU.
+The purpose of the co-simulation step is to advance all SUs $\fmus$, and all inputs and outputs $(\allinputs \cup \alloutputs)$, from the initial times $t$ to a future time $t+H, \textrm{ where } H > 0$. 
+We use function $\ftime: \stateset{C} \to \timebase$ to obtain the current timestamp of an SU.
 This makes it possible to define the Hoare-triple of the co-simulation step $P$:
 \begin{align*}
   Hoare(P) \,\triangleq\, &\{\forall v \in \allinputs \cup \alloutputs \ldotp v = \tuple{t, \dontcare} \land \forall c \in \fmus \ldotp \ftime(\stateafter{c}{t}) = t\} \qquad  P \\
   & \qquad \{\forall v \in \allinputs \cup \alloutputs \ldotp v = \tuple{t+H, \dontcare} \land \forall c \in \fmus \ldotp \ftime(\stateafter{c}{t+H}) = t+H \}
 \end{align*}
-%Nothing can be said about the numerical values -- since the work is performed on the symbolic level.
-% This is graphically presented in \cref{fig:cosimulationStep} from \cite{Gomes2019c}.
-% \begin{figure}[htb]
-%   \centering
-%   \includegraphics[width=0.85\textwidth]{images/cosimulationStep.png}
-%   \caption{Purpose of co-simulation step.}
-%   \label{fig:cosimulationStep}  
-% \end{figure}
 
-A co-simulation step $P$  is a sequence of instructions using the SU's functions $\fset{c},\fget{c}$, and $\fdoStep{c}$. Each index $i$ of the sequence $P[i]$ represents an action in the algorithm, for example, if $P$ is the co-simulation step in \cref{alg:algorithm_1} $P[0] = \fdoStep{A}(\stateafter{A}{0}, \dontcare)$. \Cref{fig:algorithms} shows three different co-simulation steps of the scenario in \cref{fig:simpleexample}. 
+A co-simulation step $P$  is a sequence of instructions using the SU's functions $\fset{c},\fget{c}$, and $\fdoStep{c}$. 
+Each index $i$ of the sequence $P[i]$ represents an action in the algorithm, for example, if $P$ is the co-simulation step in \cref{alg:algorithm_1} $P[0] = \fdoStep{A}(\stateafter{A}{0}, \dontcare)$. \Cref{fig:algorithms} shows three different co-simulation steps of the scenario in \cref{fig:simpleexample}. 
 \vspace{-1em}
 \begin{figure}[htb]
   \centering
@@ -238,7 +233,8 @@ An execution of $P(c_j)$ yields another configuration $c_{j+1} \in \configuratio
 \begin{align}
   guess_{j+1}(u) = value(u,P(c_j)) \text{ and } H_1 = minStep(P(c_j))  
 \end{align}  
-The execution of a configuration $c: \tuple{H, guess}$ has converged if all SUs accept the step $H$, and all algebraic loops are stabilized (all values in the range of $guess$ are fixed-points). The domain of $guess$ is all the inputs in $\inputs{algebraic}$ for the scenario; this means that all configurations of the same scenario have the same domain.
+The execution of a configuration $c: \tuple{H, guess}$ has converged if all SUs accept the step $H$, and all algebraic loops are stabilized (all values in the range of $guess$ are fixed-points). 
+The domain of $guess$ is all the inputs in $\inputs{algebraic}$ for the scenario; this means that all configurations of the same scenario have the same domain.
 \begin{definition}\label{def:convergent}
   Two configurations of the same scenario S $c_j:\tuple{H_1,guess_1} \in \configuration$ and $c_{j+1}: \tuple{H_2, guess_2} \in \configuration$ are convergent if:
   \vspace{-1em}

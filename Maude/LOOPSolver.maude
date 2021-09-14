@@ -13,16 +13,13 @@ load SimulationUnit
     op solveLoopConf : Configuration AlgebraicLoop -> Configuration .
     op solveLoopAlgorithm : Configuration AlgebraicLoop -> ActionList .
 
-    op fst : Pair -> ActionList .
-    op snd : Pair -> Configuration .
-
     var LOOPS : AlgebraicLoopSet .  
     var LOOPTYPE : LoopType .
-    vars CONF OUTPUTS INPUTS : Configuration .
+    vars CONF OUTPUTS INPUTS CONF1 : Configuration .
     vars INPUT OUTPUT : PortId .
     vars ID1 ID2 : SUID .
     vars PSet GSet : PortSet .
-    var ALGO : ActionList .
+    vars ALGO LOOPSOLVINGALGO : ActionList .
     var TIME T1 : Nat .
     var VALUE : FMIValue .
     var STEP FUTURETIME : NzNat .
@@ -32,6 +29,9 @@ load SimulationUnit
     var SUINSTANCE : Object .
     var EVENT : Action .
 
+    op fst : Pair -> ActionList .
+    op snd : Pair -> Configuration .
+
     eq fst(< ALGO ; CONF >) = ALGO . 
     eq snd(< ALGO ; CONF >) = CONF . 
 
@@ -39,8 +39,9 @@ load SimulationUnit
    eq containsCycle(empty) = false .
    eq containsCycle(LOOPS) = true [owise] .
 
-   eq solveLoop(CONF Algorithm: ALGO, AlgebraicLoop: PSet Type: LOOPTYPE) = solveLoopConf(CONF, AlgebraicLoop: PSet Type: LOOPTYPE)
-        Algorithm: (ALGO ; (solveLoopAlgorithm(CONF, AlgebraicLoop: PSet Type: LOOPTYPE))) .
+   ceq solveLoop(CONF Algorithm: ALGO, AlgebraicLoop: PSet Type: LOOPTYPE) = 
+        CONF1 Algorithm: (ALGO ; LOOPSOLVINGALGO)
+        if < LOOPSOLVINGALGO ; CONF1 > := loopStep(PSet, breakLoop(PSet, CONF, LOOPTYPE), emptyList) .
 
   eq solveLoopConf(CONF, AlgebraicLoop: PSet Type: LOOPTYPE) = snd(loopStep(PSet, breakLoop(PSet, CONF, LOOPTYPE), emptyList)) .
 

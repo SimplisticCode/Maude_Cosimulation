@@ -40,8 +40,9 @@ load SimulationUnit
    eq containsCycle(LOOPS) = true [owise] .
 
    ceq solveLoop(CONF Algorithm: ALGO, AlgebraicLoop: PSet Type: LOOPTYPE) = 
-        CONF1 Algorithm: (ALGO ; LOOPSOLVINGALGO)
-        if < LOOPSOLVINGALGO ; CONF1 > := loopStep(PSet, breakLoop(PSet, CONF, LOOPTYPE), emptyList) .
+        CONF1 Algorithm: (ALGO ; EVENT)
+        if < LOOPSOLVINGALGO ; CONF1 > := loopStep(PSet, breakLoop(PSet, CONF, LOOPTYPE), emptyList)
+        /\ EVENT := complexEvent: Loop SaveSUs: SUIDS RestoreSUs: SUIDS Actions: LOOPSOLVINGALGO .
 
   eq solveLoopConf(CONF, AlgebraicLoop: PSet Type: LOOPTYPE) = snd(loopStep(PSet, breakLoop(PSet, CONF, LOOPTYPE), emptyList)) .
 

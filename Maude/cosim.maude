@@ -154,7 +154,7 @@ load Scenario
 
 
   crl [simulationStep]: { CONF } => 
-          { performGlobalStep(performStepNegotiation(CONF)) }
+          { performGlobalStep(CONF) }
         if allSUinSimulation(CONF) .
 
 endom)

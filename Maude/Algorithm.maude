@@ -67,9 +67,3 @@ endfm)
  eq getSUs(((ID ! PORTID), PORTSET), SUSet) = getSUs(PORTSET, (ID , SUSet)) [owise] .
 
 endom)
-
-
-eof
-(red getSUs((('SU2 ! 'R) , ('SU1 ! 'S), ('SU1 ! 'T)), empty) . )
-
-(red getSUs(empty, empty) . )

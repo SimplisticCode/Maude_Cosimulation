@@ -7,18 +7,20 @@ load Algorithm
    *** The different states of the FMI standard
    ops Instantiated ExperimentSetup Initialize Simulation Terminated InstanceFreed Unloaded : -> fmiState [ctor] . 
 
+  *** SU -> Values of the input ports -> SU State -> Step size -> New SU State
    op doStep : SUID FMIValueMap Object NzNat -> Object .
 
    ***Classes
    class SU |
      path : String, 
      time : Nat, 
-     inputs : Configuration, 
-     outputs : Configuration, 
+     inputs : Configuration, ***Input ports
+     outputs : Configuration, ***Output ports
      canReject : Bool, 
      state : fmiState .
-     *** Local State .
-   
+     *** Parameters
+     *** Local State Map<String, FMIValue >
+
    op askStepSize : Object NzNat -> NzNat .
    op feedthroughSatisfied : OidSet Configuration Nat -> Bool .
    op allDef : Configuration Nat -> Bool .
@@ -46,26 +48,6 @@ load Algorithm
    var PORTMAP : PortValueMap .
    var PORTSET : PortSet .
    var VALUEMAP : FMIValueMap .
-
-   eq doStep("ctrl", (("ctrl" ! "waterlevel" |-> < VALUE >) , VALUEMAP), < "ctrl" : SU | outputs : (< "valveState" : Output | value : VALVESTATE >) >, STEP) = 
-      if VALUE >= 5 then
-        < "ctrl" : SU | outputs : (< "valveState" : Output | value : 1 >) >
-      else 
-      if VALUE <= 1 then
-        < "ctrl" : SU | outputs : (< "valveState" : Output | value : 1 >) >
-      else 
-        < "ctrl" : SU | outputs : (< "valveState" : Output | value : VALVESTATE >) >
-      fi
-    fi .
-
-  eq doStep("tank", (("tank" ! "waterlevel" |-> < VALUE >), VALUEMAP), < "tank" : SU | outputs : (< "waterlevel" : Output | value : WATERLEVEL >) >, STEP) = 
-    *** Valve is closed
-    if VALUE == 0 then
-      < "tank" : SU | outputs : (< "waterlevel" : Output | value : (WATERLEVEL + (STEP * 1)) >) >
-    else 
-      *** Valve is open
-      < "tank" : SU | outputs : (< "waterlevel" : Output | value : (WATERLEVEL + (STEP * 1)) >) >
-    fi .
 
    *** Get All ports in the scenario:
   ceq getAllPorts(< ID1 : SU | inputs : (< INPUT : Input | > INPUTS) > CONF, PORTSET) = getAllPorts(< ID1 : SU | > CONF,  ((ID1 ! INPUT) , PORTSET))

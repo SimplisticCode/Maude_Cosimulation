@@ -4,14 +4,15 @@ load ScenarioAnalyser
    protecting ScenarioAnalyser .
     sort GlobalState .
 
-    *** Definition of system
-    op externalConnection : ->  Configuration .    *** External Connections - all ports have unique name
-    op simulationUnits : -> Configuration .      *** SUs - ID * input ports * and outputs
-    op scenario : Configuration Configuration -> Configuration . 
-    op validScenario : Configuration Configuration -> Bool .
-    op setup : -> GlobalState .
-    op `{_`} : Configuration -> GlobalState .
-    op calculateSNSet : Configuration -> Configuration .
+  *** Definition of the scenario
+  *** External Connections - all ports have unique name
+  op externalConnection : ->  Configuration .    
+  op simulationUnits : -> Configuration .      *** SUs - ID * input ports * and outputs
+  op scenario : Configuration Configuration -> Configuration . 
+  op validScenario : Configuration Configuration -> Bool .
+  op setup : -> GlobalState .
+  op `{_`} : Configuration -> GlobalState .
+  op calculateSNSet : Configuration -> Configuration .
 
   vars ID1 ID2 : SUID .
   vars INPUT OUTPUT : PortId .
@@ -20,13 +21,18 @@ load ScenarioAnalyser
   var TYPE : PortType .
   var SCCs : AlgebraicLoopSet .
 
-  eq validScenario((ID1 ! OUTPUT ==> ID2 ! INPUT ) CONNECTIONS,  < ID1 : SU | outputs : < OUTPUT : Output | type : TYPE > OUTPUTS > < ID2 : SU | inputs : < INPUT : Input | type : TYPE > INPUTS > SUs) = validScenario(CONNECTIONS, < ID1 : SU | > < ID2 : SU | > SUs) .
+  *** One to one check - change into different input types
+  eq validScenario((ID1 ! OUTPUT ==> ID2 ! INPUT ) CONNECTIONS,  
+  < ID1 : SU | outputs : < OUTPUT : Output | type : TYPE > OUTPUTS > 
+  < ID2 : SU | inputs : < INPUT : Input | type : TYPE > INPUTS > SUs) 
+  = validScenario(CONNECTIONS, < ID1 : SU | > < ID2 : SU | > SUs) .
   eq validScenario(none, SUs) = true .
   eq validScenario(CONNECTIONS, SUs) = false [owise] .
+  *** Only one output per input
 
   *** Calculation of the members of the set of SUs that should be backtracked in the step negotiation
   ceq calculateSNSet(< ID1 : SU | inputs : (< INPUT : Input | contract : r > INPUTS) > 
-                      < ID2 : SU | outputs : (< OUTPUT : Output | > OUTPUTS) > 
+                     < ID2 : SU | outputs : (< OUTPUT : Output | > OUTPUTS) > 
                       (ID2 ! OUTPUT ==> ID1 ! INPUT) (SNSet: (ID1 , SUIDs))  CONF) = 
                       calculateSNSet(< ID1 : SU | > < ID2 : SU | > (ID2 ! OUTPUT ==> ID1 ! INPUT) 
                       (SNSet: (ID1 , ID2 , SUIDs)) CONF) 
@@ -34,20 +40,17 @@ load ScenarioAnalyser
   
   ceq calculateSNSet(< ID1 : SU | canReject : true > (SNSet: SUIDs) CONF ) = 
         calculateSNSet(< ID1 : SU | > (SNSet: (ID1 , SUIDs)) CONF )
-                                         if not ID1 in SUIDs .                                    
+                                         if not ID1 in SUIDs .                             
   eq calculateSNSet(CONF) = CONF [owise] .
 
-
   ***Encoding of the Scenario 
-eq externalConnection = ("env" ! "psu" ==> "plant" ! "psu") ("env" ! "ref" ==> "ctrl" ! "ref") ("load" ! "xaft" ==> "ctrl" ! "xaft") ("ctrl" ! "o" ==> "plant" ! "o") ("plant" ! "w" ==> "ctrl" ! "w") ("load" ! "x" ==> "plant" ! "x") ("load" ! "v" ==> "plant" ! "v") ("plant" ! "f" ==> "load" ! "f") .
+  *** Coupling or connections
+eq externalConnection = ("tank" ! "waterlevel" ==> "ctrl" ! "waterlevel") ("ctrl" ! "valveState" ==> "tank" ! "valveState") .
 
-eq simulationUnits = (< "env" : SU | path : "A" , time : 0, inputs : none, outputs : (< "ref" : Output | value : 0, type : integer, time : 0, status : Undef, dependsOn : empty >) (< "psu" : Output | value : 0, type : integer, time : 0, status : Undef, dependsOn : empty >), state : Instantiated, canReject : false >)
+eq simulationUnits = (< "tank" : SU | path : "" , time : 0, inputs : (< "valveState" : Input | value : 0, type : integer, time : 0, contract : d, status : Undef  >), outputs : (< "waterlevel" : Output | value : 0, type : integer, time : 0, status : Undef, dependsOn : empty >), state : Instantiated, canReject : false >)
 
- 	 (< "load" : SU | path : "A" , time : 0, inputs : (< "f" : Input | value : 0, type : integer, time : 0, contract : d, status : Undef  >), outputs : (< "v" : Output | value : 0, type : integer, time : 0, status : Undef, dependsOn : empty >) (< "xaft" : Output | value : 0, type : integer, time : 0, status : Undef, dependsOn : empty >) (< "x" : Output | value : 0, type : integer, time : 0, status : Undef, dependsOn : empty >), state : Instantiated, canReject : false >)
+ 	 (< "ctrl" : SU | path : "" , time : 0, inputs : (< "waterlevel" : Input | value : 0, type : integer, time : 0, contract : d, status : Undef  >), outputs : (< "valveState" : Output | value : 0, type : integer, time : 0, status : Undef, dependsOn : empty >), state : Instantiated, canReject : false >) .
 
- 	 (< "ctrl" : SU | path : "A" , time : 0, inputs : (< "ref" : Input | value : 0, type : integer, time : 0, contract : d, status : Undef  >) (< "w" : Input | value : 0, type : integer, time : 0, contract : d, status : Undef  >) (< "xaft" : Input | value : 0, type : integer, time : 0, contract : d, status : Undef  >), outputs : (< "o" : Output | value : 0, type : integer, time : 0, status : Undef, dependsOn : empty >), state : Instantiated, canReject : false >)
-
- 	 (< "plant" : SU | path : "A" , time : 0, inputs : (< "x" : Input | value : 0, type : integer, time : 0, contract : r, status : Undef  >) (< "v" : Input | value : 0, type : integer, time : 0, contract : r, status : Undef  >) (< "o" : Input | value : 0, type : integer, time : 0, contract : d, status : Undef  >) (< "psu" : Input | value : 0, type : integer, time : 0, contract : r, status : Undef  >), outputs : (< "w" : Output | value : 0, type : integer, time : 0, status : Undef, dependsOn : ( "v" ) >) (< "f" : Output | value : 0, type : integer, time : 0, status : Undef, dependsOn : ( "v" , "x" ) >), state : Instantiated, canReject : false >) .
 
 
 

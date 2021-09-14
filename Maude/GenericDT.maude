@@ -59,7 +59,6 @@ endfm)
     op <_;_> : X$Elt Y$Elt -> Pair{X, Y} . 
     op 1st : Pair{X, Y} -> X$Elt . 
     op 2nd : Pair{X, Y} -> Y$Elt . 
-    
     var A : X$Elt . 
     var B : Y$Elt . 
     eq 1st(< A ; B >) = A . 
@@ -76,10 +75,12 @@ endfm)
 endv)
 
 (fmod PORTVALUEMAP is
+    *** PortId -> PortValue(Time, Value)
     protecting MAP{OIdAsTRIV, PortValueAndTimeAsTRIV} * (sort Map{OIdAsTRIV, PortValueAndTimeAsTRIV} to PortValueMap) .
 endfm) 
 
 (fmod INDEX-MAP is
+    *** Tarjan
     protecting MAP{EPortIdAsTRIV, Nat} * (sort Map{EPortIdAsTRIV, Nat} to IndexMap) .
 endfm) 
 

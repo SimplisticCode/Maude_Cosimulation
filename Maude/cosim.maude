@@ -11,7 +11,7 @@ load Scenario
 
    vars ID1 ID2 : SUID .
    vars INPUT OUTPUT : PortId .
-   vars SUTIME TIME TIME1 TIME2 : Nat .
+   vars SUTIME INPUTTIME TIME : Nat .
    var VALUE : FMIValue .
    vars INPUTS OUTPUTS CONF STARTCONF : Configuration . 
    var STATE : fmiState .
@@ -74,12 +74,23 @@ load Scenario
 
   *** Simulation Procedure
   *** Perform the global simulation step
-  *** Set input                     
-  ceq performGlobalStep(CONF < ID1 : SU | time : SUTIME, inputs : (< INPUT : Input | > INPUTS) > 
+  *** Set input          
+  *** Reactive           
+  ceq performGlobalStep(CONF < ID1 : SU | time : SUTIME, inputs : (< INPUT : Input | time : INPUTTIME, contract : r > INPUTS) > 
                         Algorithm: ALGO valuesToSet: (((ID1 ! INPUT) |-> < TIME ; VALUE >) , PORTVALUES)) = 
       performGlobalStep(CONF SUINSTANCE Algorithm: (ALGO ; EVENT) valuesToSet: PORTVALUES)
-                        if SUINSTANCE := < ID1 : SU | inputs : (< INPUT : Input | value : VALUE > INPUTS) >
+                        if TIME > SUTIME and INPUTTIME == TIME   
+                        /\ SUINSTANCE := < ID1 : SU | inputs : (< INPUT : Input | value : VALUE, time : TIME > INPUTS) >
                         /\ EVENT := portEvent: Set SU: ID1 PId: INPUT .
+
+  *** Delayed           
+  ceq performGlobalStep(CONF < ID1 : SU | time : SUTIME, inputs : (< INPUT : Input | time : INPUTTIME, contract : d > INPUTS) > 
+                        Algorithm: ALGO valuesToSet: (((ID1 ! INPUT) |-> < TIME ; VALUE >) , PORTVALUES)) = 
+      performGlobalStep(CONF SUINSTANCE Algorithm: (ALGO ; EVENT) valuesToSet: PORTVALUES)
+                        if TIME == SUTIME and INPUTTIME < TIME   
+                        /\ SUINSTANCE := < ID1 : SU | inputs : (< INPUT : Input | value : VALUE, time : TIME > INPUTS) >
+                        /\ EVENT := portEvent: Set SU: ID1 PId: INPUT .
+
   *** Step
   ceq performGlobalStep(CONF < ID1 : SU | time : TIME, inputs : INPUTS, outputs : OUTPUTS > actualStepSize: STEPSIZE endTime: ENDTIME Algorithm: ALGO)  = 
       performGlobalStep(CONF SUINSTANCE actualStepSize: STEPSIZE endTime: ENDTIME Algorithm: (ALGO ; EVENT))

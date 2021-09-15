@@ -3,22 +3,30 @@ load cosim
 (omod AlgorithmVerifier is 
     protecting COSIMULATION .
 
-    var RESTALGORITHM : ActionList .
-    vars OUTPUTS INPUTS : Configuration .
+    vars RESTALGORITHM ALGO STEPNEGOALGO : ActionList .
+    vars OUTPUTS INPUTS CONF : Configuration .
     vars OUTPUT INPUT : PortId .
     vars ID1 ID2 : SUID . 
-    vars STEPSIZE FUTURETIME : NzNat .
+    vars STEPSIZE FUTURETIME NEGOTIATEDSTEPSIZE : NzNat .
     vars TIME SUTIME INPUTTIME : Nat .
     var VALUE : FMIValue .
     var PORTVALUES : PortValueMap .
-    var FEEDTHROUGH : OidSet .
+    vars FEEDTHROUGH SUIDs : OidSet .
+    var SUIDsNE : NeOidSet . 
     var CONTRACT : Contract .
     var SUINSTANCE : Object .
 
-    ***
+*** How should this work?
+***  op verifyAlgo : Configuration -> Bool .
+***  eq verifyAlgo()
+
+ op run_on_ : Configuration GlobalState -> GlobalState . 
+ eq run ALGO on CONF = 
+    
 
   *** FMI-standard fmistate transition:
-  rl [setExp] : < ID1 : SU | fmistate : Instantiated > Initialization: ((fmiEvent: CreateExp SU: ID1) ; RESTALGORITHM) 
+  rl [setExp] : < ID1 : SU | fmistate : Instantiated > 
+                    Initialization: ((fmiEvent: CreateExp SU: ID1) ; RESTALGORITHM) 
                  => < ID1 : SU | fmistate : ExperimentSetup > Initialization: RESTALGORITHM .
 
   rl [init] : < ID1 : SU | inputs : INPUTS , outputs : OUTPUTS, fmistate : ExperimentSetup >  
@@ -64,8 +72,6 @@ load cosim
                         valuesToSet: PORTVALUES
             if SUINSTANCE := < ID1 : SU | inputs : (< INPUT : Input | time : TIME, status : Def, value : VALUE > INPUTS ) > .
 
-
-
     *** Simulation
     crl [get] : Algorithm: ((portEvent: Get SU: ID1 PId: OUTPUT) ; RESTALGORITHM)
                 < ID1 : SU | outputs : (< OUTPUT : Output | time : TIME, status : Undef, value : VALUE, dependsOn : FEEDTHROUGH > OUTPUTS), inputs : INPUTS > 
@@ -83,8 +89,7 @@ load cosim
                 => Algorithm: RESTALGORITHM
                     < ID1 : SU | inputs : (< INPUT : Input | time : TIME, value : VALUE > INPUTS) >
                     valuesToSet: PORTVALUES 
-        if (CONTRACT == r and (TIME > INPUTTIME) and INPUTTIME == SUTIME) 
-                or (CONTRACT == d and TIME == SUTIME) .
+        if (CONTRACT == r and (TIME > INPUTTIME) and INPUTTIME == SUTIME) or (CONTRACT == d and TIME == SUTIME) .
 
     crl [step-action] : Algorithm: ((stepEvent: ID1 StepSize: STEPSIZE) ; RESTALGORITHM)
                     < ID1 : SU | time : TIME, inputs : INPUTS, outputs : OUTPUTS, fmistate : Simulation > 
@@ -92,18 +97,11 @@ load cosim
                     stepAction(< ID1 : SU | >, STEPSIZE)
                 if canStep(TIME, TIME + STEPSIZE, INPUTS, OUTPUTS) .
 
-    
-***(
-    rl [step-negotiation] : Algorithm: ((complexEvent: Get SU: ID1 PId: OUTPUT) ; RESTALGORITHM)
-                < ID1 : SU | outputs : (< OUTPUT : Output | status : Undef, value : VALUE > OUTPUTS) > 
-                => Algorithm: RESTALGORITHM
-                < ID1 : SU | outputs : (< OUTPUT : Output | status : Def, value : VALUE > OUTPUTS) > .
-                
-    rl [loop-solving] : Algorithm: ((portEvent: Set SU: ID1 PId: INPUT) ; RESTALGORITHM)
-                    < ID1 : SU | inputs : (< INPUT : Input | status : Undef > INPUTS) > 
-                => Algorithm: RESTALGORITHM
-                    < ID1 : SU | inputs : (< INPUT : Input | status : Undef > INPUTS) >  .
-
-)
+    *** Next step look at Complex scenarios
+    crl [step-negotiation] : 
+                Algorithm: (
+                    (complexEvent: StepNegotiation SaveSUs: SUIDsNE RestoreSUs: SUIDsNE Actions: ALGO) ; RESTALGORITHM)
+                => Algorithm: RESTALGORITHM  .
+     
 
 endom)

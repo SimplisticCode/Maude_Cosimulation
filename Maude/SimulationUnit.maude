@@ -7,9 +7,6 @@ load Algorithm
    *** The different states of the FMI standard
    ops Instantiated ExperimentSetup Initialize Simulation Terminated InstanceFreed Unloaded : -> fmiState [ctor] . 
 
-  *** SU -> Values of the input ports -> 
-   op doStep : Object NzNat -> Object .
-
    ***Classes
    class SU |
      path : String, 
@@ -36,7 +33,8 @@ load Algorithm
    op stepAction : Object NzNat -> Object .
    op getAllPorts : Configuration PortSet -> PortSet .
    op getAllReactivePorts : Configuration PortSet -> PortSet .
-   op setActionPortMap : Object PortValueMap -> Object .
+  *** SU -> Values of the input ports -> 
+   op doStep : Object NzNat -> Object .
 
    vars ID ID1 ID2 : SUID .
    vars PId INPUT OUTPUT : PortId .
@@ -60,7 +58,6 @@ load Algorithm
 
   ceq getAllReactivePorts(< ID1 : SU | inputs : (< INPUT : Input | contract : r > INPUTS) > CONF, PORTSET) = getAllReactivePorts(< ID1 : SU | > CONF, ((ID1 ! INPUT) , PORTSET))
     if not (ID1 ! INPUT) in PORTSET .
-
   eq getAllReactivePorts(CONF, PORTSET) = PORTSET [owise] . 
 
    *** Checks if all feedthrough constraints are satisfied
@@ -99,14 +96,14 @@ load Algorithm
   eq setAction(< ID : SU | inputs : (< INPUT : Input | > INPUTS) > , (INPUT , PORTS), VALUE, TIME) = 
             setAction(< ID : SU | inputs : (< INPUT : Input | time : TIME, status : Def > INPUTS) >, PORTS, VALUE, TIME) .
 
-***(
-  eq setActionPortMap(< ID : SU | > , empty) =  < ID : SU | > .
-  eq setActionPortMap(< ID : SU | inputs : (< INPUT : Input | > INPUTS) > , (((ID ! INPUT) |-> < TIME ; VALUE >) , VALUEMAP)) 
-  = setActionPortMap(< ID : SU | inputs : (< INPUT : Input | value : VALUE, time : TIME, status : Def > INPUTS) >, VALUEMAP).
-)
   *** Updates the time and the status of the outputs
   ceq stepAction(< ID : SU | time : TIME, outputs : OUTPUTS >, STEP) 
     = < ID : SU | time : FUTURETIME, outputs : undefPorts(OUTPUTS, FUTURETIME) > 
     if FUTURETIME := TIME + STEP .
+
+
+  *** Todo make Dostep for the different SUs
+  *** eq doStep(<"ctrl" | > ,)
+
 
 endom)

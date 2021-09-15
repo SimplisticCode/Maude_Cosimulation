@@ -7,19 +7,20 @@ load Scenario
    op performGlobalStep : Configuration -> Configuration .
    op allSUinSimulation : Configuration -> Bool .
    op simulationStepDone : Configuration -> Bool .
+   op simulationDone : Configuration -> Bool .
 
    vars ID1 ID2 : SUID .
    vars INPUT OUTPUT : PortId .
    vars SUTIME INPUTTIME TIME : Nat .
    var VALUE : FMIValue .
-   vars INPUTS OUTPUTS CONF STARTCONF : Configuration . 
+   vars INPUTS OUTPUTS CONF STARTCONF SCENARIOMODEL CONF1 : Configuration . 
    var STATE : fmiState .
-   vars ALGO STEPNEGOALGO : ActionList .
+   vars ALGO STEPNEGOALGO INIT TERM : ActionList .
    vars FEEDTHROUGH : OidSet .
    var SUIDsNE : NeOidSet . 
    vars STEPSIZE NEGOTIATEDSTEPSIZE FUTURETIME ENDTIME : NzNat .
    var LOOP : AlgebraicLoop .  
-   vars LOOPS SOLVEDLOOPS LOOPTOSOLVE : AlgebraicLoopSet .  
+   vars LOOPS SOLVEDLOOPS LOOPTOSOLVE SCCs : AlgebraicLoopSet .  
    vars PORTVALUES : PortValueMap .
    var SUINSTANCE : Object .
    var EVENT : Action .
@@ -40,6 +41,10 @@ load Scenario
   eq allSUinSimulation(< ID1 : SU | fmistate : STATE > CONF) = STATE == Simulation and allSUinSimulation(CONF) . 
   eq allSUinSimulation(CONF) = true [owise] .
 
+  *** All SUs unloaded
+  eq simulationDone(< ID1 : SU | fmistate : STATE > CONF) = STATE == Unloaded and simulationDone(CONF) . 
+  eq simulationDone(CONF) = true [owise] .
+
   *** FMI-standard fmistate transition:
   rl [setExp] : < ID1 : SU | fmistate : Instantiated > Initialization: ALGO 
                  => < ID1 : SU | fmistate : ExperimentSetup > Initialization: (ALGO ; (fmiEvent: CreateExp SU: ID1)) .
@@ -59,7 +64,7 @@ load Scenario
 
   rl [free] : < ID1 : SU | fmistate : Terminated > Termination: ALGO 
            => < ID1 : SU | fmistate : InstanceFreed > Termination: (ALGO ; (fmiEvent: FreeInstance SU: ID1)) .
-
+qu
   rl [unload] : < ID1 : SU | fmistate : InstanceFreed > Termination: ALGO
               => < ID1 : SU | fmistate : Unloaded > Termination: (ALGO ; (fmiEvent: Unload SU: ID1)) .
 
@@ -106,16 +111,25 @@ load Scenario
     performGlobalStep(solveLoop(CONF UnsolvedSCC: LOOPS SolvedSCC: (LOOP , SOLVEDLOOPS), LOOP)) [owise] .
 
   *** Return the configuration is the simulation is done
-  ceq performGlobalStep(CONF) = CONF if simulationStepDone(CONF) .
+  ceq performGlobalStep(CONF) = CONF
+    if simulationStepDone(CONF) .
+  
+  *** Reset and start over if the endtime is not reached, reset loopsSolver and StepNegotiation
+  ***ceq performGlobalStep(CONF endTime: ENDTIME) = CONF endTime: ENDTIME
+  ***  if simulationStepDone(CONF) and endTime: ENDTIME .
+
+  *** Extract the algortihm and call verify to verify it
+ *** crl [get-algortihm]: CONF Algorithm: ALGO Initialization: INIT Termination: TERM => 
+ ***                      Algorithm: ALGO Initialization: INIT Termination: TERM
+  ***            if simulationDone(CONF) .
 
   *** Initialization Procedure 
-  
   crl [get-init] :
-              < ID1 : SU | fmistate : Initialize, 
-                outputs : (< OUTPUT : Output | status : Undef, value : VALUE, dependsOn : FEEDTHROUGH > OUTPUTS), 
-                      inputs : INPUTS > 
-                      (ID1 ! OUTPUT ==> ID2 ! INPUT)
-                      Initialization: ALGO valuesToSet: PORTVALUES
+              < ID1 : SU | fmistate : Initialize, inputs : INPUTS, 
+                outputs : (< OUTPUT : Output | status : Undef, value : VALUE, dependsOn : FEEDTHROUGH > OUTPUTS) > 
+                      (ID1 ! OUTPUT ==> ID2 ! INPUT) 
+                      Initialization: ALGO 
+                      valuesToSet: PORTVALUES
                   => SUINSTANCE Initialization: (ALGO ; EVENT) 
                       (ID1 ! OUTPUT ==> ID2 ! INPUT)
                       valuesToSet: insert((ID2 ! INPUT), < 0 ; VALUE >, PORTVALUES)
@@ -144,6 +158,22 @@ load Scenario
   crl [simulationStep]: { CONF } => 
           { performGlobalStep(CONF) }
         if allSUinSimulation(CONF) .
+
+  crl [getAlgortihm]: { SCENARIOMODEL } => 
+                 { Algorithm: ALGO Termination: TERM Initialization: INIT }
+      if initialState(SCENARIOMODEL)
+      /\ SCCs := tarjan(SCENARIOMODEL)
+      /\ CONF := calculateSNSet(SCENARIOMODEL actualStepSize: 1 defaultStepSize: 1 endTime: 1 Algorithm: emptyList Termination: emptyList Initialization: emptyList SNSet: empty guessOn: empty SolvedSCC: empty UnsolvedSCC: SCCs valuesToSet: empty) 
+      /\ {CONF} => { CONF1 Algorithm: ALGO Termination: TERM Initialization: INIT } 
+      /\ simulationDone(CONF1) .
+    
+  op init : -> GlobalState .
+  eq init = { scenario(externalConnection, simulationUnits) } .
+
+  op initialState : Configuration -> Bool .
+  eq initialState(CONF actualStepSize: STEPSIZE) = false .
+  eq initialState(CONF) = true [owise] .
+
 
 endom)
 

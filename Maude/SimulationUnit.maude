@@ -17,8 +17,8 @@ load Algorithm
      inputs : Configuration, ***Input ports
      outputs : Configuration, ***Output ports
      canReject : Bool, 
-     fmistate : fmiState .
-     ***parameter : Configuration,
+     fmistate : fmiState ,
+     parameters : Configuration .
      ***localState : FMIValueMap .
      *** Parameters
      *** Local State Map<String, FMIValue >

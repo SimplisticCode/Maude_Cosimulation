@@ -47,9 +47,10 @@ load ScenarioAnalyser
   *** Coupling or connections
 eq externalConnection = ("tank" ! "waterlevel" ==> "ctrl" ! "waterlevel") ("ctrl" ! "valveState" ==> "tank" ! "valveState") .
 
-eq simulationUnits = (< "tank" : SU | path : "" , time : 0, inputs : (< "valveState" : Input | value : < 0 >, type : integer, time : 0, contract : d, status : Undef  >), outputs : (< "waterlevel" : Output | value : < 0 >, type : integer, time : 0, status : Undef, dependsOn : empty >), fmistate : Instantiated, canReject : false >)
+eq simulationUnits = (< "tank" : SU | path : "", parameters : none , time : 0, inputs : (< "valveState" : Input | value : < 0 >, type : integer, time : 0, contract : d, status : Undef  >), outputs : (< "waterlevel" : Output | value : < 0 >, type : integer, time : 0, status : Undef, dependsOn : empty >), fmistate : Instantiated, canReject : false >)
 
-(< "ctrl" : SU | path : "" , time : 0, inputs : (< "waterlevel" : Input | value : < 0 >, type : integer, time : 0, contract : d, status : Undef >), outputs : (< "valveState" : Output | value : < 0 >, type : integer, time : 0, status : Undef, dependsOn : empty >), fmistate : Instantiated, canReject : false >) .
+ 	 (< "ctrl" : SU | path : "", parameters : none , time : 0, inputs : (< "waterlevel" : Input | value : < 0 >, type : integer, time : 0, contract : d, status : Undef  >), outputs : (< "valveState" : Output | value : < 0 >, type : integer, time : 0, status : Undef, dependsOn : empty >), fmistate : Instantiated, canReject : false >) .
+
 
 
 ceq scenario(CONNECTIONS, SUs) = CONNECTIONS SUs 

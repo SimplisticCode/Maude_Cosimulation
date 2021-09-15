@@ -5,9 +5,9 @@ load Scenario
 
    op performStepNegotiation : Configuration -> Configuration .
    op performGlobalStep : Configuration -> Configuration .
-   op allSUinSimulation : Configuration -> Bool .
+   op allSUsinSimulation : Configuration -> Bool .
    op simulationStepDone : Configuration -> Bool .
-   op simulationDone : Configuration -> Bool .
+   op allSUsinSimulation : Configuration -> Bool .
 
    vars ID1 ID2 : SUID .
    vars INPUT OUTPUT : PortId .
@@ -38,12 +38,12 @@ load Scenario
   eq performStepNegotiation(CONF SNSet: empty) = CONF .  
 
   *** All SUs are in the simulation fmistate
-  eq allSUinSimulation(< ID1 : SU | fmistate : STATE > CONF) = STATE == Simulation and allSUinSimulation(CONF) . 
-  eq allSUinSimulation(CONF) = true [owise] .
+  eq allSUsinSimulation(< ID1 : SU | fmistate : STATE > CONF) = STATE == Simulation and allSUsinSimulation(CONF) . 
+  eq allSUsinSimulation(CONF) = true [owise] .
 
   *** All SUs unloaded
-  eq simulationDone(< ID1 : SU | fmistate : STATE > CONF) = STATE == Unloaded and simulationDone(CONF) . 
-  eq simulationDone(CONF) = true [owise] .
+  eq allSUsinSimulation(< ID1 : SU | fmistate : STATE > CONF) = STATE == Unloaded and allSUsinSimulation(CONF) . 
+  eq allSUsinSimulation(CONF) = true [owise] .
 
   *** FMI-standard fmistate transition:
   rl [setExp] : < ID1 : SU | fmistate : Instantiated > Initialization: ALGO 
@@ -64,7 +64,7 @@ load Scenario
 
   rl [free] : < ID1 : SU | fmistate : Terminated > Termination: ALGO 
            => < ID1 : SU | fmistate : InstanceFreed > Termination: (ALGO ; (fmiEvent: FreeInstance SU: ID1)) .
-qu
+
   rl [unload] : < ID1 : SU | fmistate : InstanceFreed > Termination: ALGO
               => < ID1 : SU | fmistate : Unloaded > Termination: (ALGO ; (fmiEvent: Unload SU: ID1)) .
 
@@ -152,12 +152,13 @@ qu
   ***The step negotiation
   crl [stepNego] : { CONF SNSet: SUIDsNE } => 
           { performStepNegotiation(CONF SNSet: SUIDsNE)}
-          if allSUinSimulation(CONF) .
+          if allSUsinSimulation(CONF) .
 
 
   crl [simulationStep]: { CONF } => 
           { performGlobalStep(CONF) }
-        if allSUinSimulation(CONF) .
+        if allSUsinSimulation(CONF) .
+
 
   crl [getAlgortihm]: { SCENARIOMODEL } => 
                  { Algorithm: ALGO Termination: TERM Initialization: INIT }
@@ -165,8 +166,18 @@ qu
       /\ SCCs := tarjan(SCENARIOMODEL)
       /\ CONF := calculateSNSet(SCENARIOMODEL actualStepSize: 1 defaultStepSize: 1 endTime: 1 Algorithm: emptyList Termination: emptyList Initialization: emptyList SNSet: empty guessOn: empty SolvedSCC: empty UnsolvedSCC: SCCs valuesToSet: empty) 
       /\ {CONF} => { CONF1 Algorithm: ALGO Termination: TERM Initialization: INIT } 
-      /\ simulationDone(CONF1) .
+      /\ allSUsinSimulation(CONF1) .
     
+***(
+  op getAlgortihm : Configuration -> Configuration .
+  ceq getAlgortihm(SCENARIOMODEL) = Algorithm: ALGO Termination: TERM Initialization: INIT 
+  if SCCs := tarjan(SCENARIOMODEL)
+      /\ CONF := calculateSNSet(SCENARIOMODEL actualStepSize: 1 defaultStepSize: 1 endTime: 1 Algorithm: emptyList Termination: emptyList Initialization: emptyList SNSet: empty guessOn: empty SolvedSCC: empty UnsolvedSCC: SCCs valuesToSet: empty) 
+      /\ {CONF} => { CONF1 Algorithm: ALGO Termination: TERM Initialization: INIT } 
+      /\ simulationDone(CONF1) .
+      )
+
+
   op init : -> GlobalState .
   eq init = { scenario(externalConnection, simulationUnits) } .
 
@@ -192,7 +203,7 @@ show search graph .
 
 (red validScenario(externalConnection, simulationUnits) . )
 
-( red allSUinSimulation(setup) . )
+( red allSUsinSimulation(setup) . )
 
 ( red breakLoop(('msd1 ! 'x1) ;; ('msd2 ! 'x1) ;; ('msd2 ! 'v1) ;; ('msd1 ! 'v1), (simulationUnits externalConnection actualStepSize: 1 endTime: 1 Algorithm: emptyList SNSet: empty guessOn: emptyLoop) , R) . )
 
@@ -201,3 +212,10 @@ show search graph .
 
 set trace on .
 trace exclude FULL-MAUDE . set trace substitution off . set trace eq off . 
+
+(red allSUsinSimulation(("ctrl" ! "valveState" ==> "tank" ! "valveState")(
+"tank" ! "waterlevel" ==> "ctrl" ! "waterlevel")< "ctrl" : SU | canReject : false,fmistate : Unloaded,inputs : < "waterlevel" : Input |
+    contract : d,status : Undef,time : 0,type : integer,value : < 0 > >,outputs : < "valveState" : Output | dependsOn : empty,status :
+    Undef,time : 0,type : integer,value : < 0 > >,parameters : none,path : "",time : 0 > < "tank" : SU | canReject : false,fmistate :
+    Unloaded,inputs : < "valveState" : Input | contract : d,status : Undef,time : 0,type : integer,value : < 0 > >,outputs : <
+    "waterlevel" : Output | dependsOn : empty,status : Undef,time : 0,type : integer,value : < 0 > >,parameters : none,path : "",time : 0 > ) . )

@@ -23,8 +23,8 @@ load Environment
 
     eq loopsInStepNegotiation(empty, SUIDs, CONF, LOOPSet) = LOOPSet .
     eq loopsInStepNegotiation(LOOPS, empty, CONF, LOOPSet) = LOOPSet .
-    ceq loopsInStepNegotiation(((AlgebraicLoop: PORTSET Type: R) , LOOPS), (SU , SUIDs), CONF, LOOPSet) = 
-            loopsInStepNegotiation(LOOPS, (SU , SUIDs), CONF, ((AlgebraicLoop: PORTSET Type: R) , LOOPSet))
+    ceq loopsInStepNegotiation(((AlgebraicLoop: PORTSET Type: reactive) , LOOPS), (SU , SUIDs), CONF, LOOPSet) = 
+            loopsInStepNegotiation(LOOPS, (SU , SUIDs), CONF, ((AlgebraicLoop: PORTSET Type: reactive) , LOOPSet))
         if REACTIVEPORTS := getAllReactivePorts(CONF, empty)
         /\ REACTIVESUs := getSUs(REACTIVEPORTS, empty)
         /\ SU in REACTIVESUs .

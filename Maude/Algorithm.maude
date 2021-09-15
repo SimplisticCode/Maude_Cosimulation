@@ -3,7 +3,7 @@ load Port
 (fmod ALGEBRAICLOOP is
     protecting Ports .
     sort AlgebraicLoop LoopType .
-    ops F R : -> LoopType [ctor] . 
+    ops feedthrough reactive : -> LoopType [ctor] . 
     op AlgebraicLoop:_Type:_ : PortSet LoopType -> AlgebraicLoop [ctor] . 
 endfm )
 
@@ -16,6 +16,8 @@ endv)
   protecting SET{ALGEBRAICLOOPAsTRIV} * (sort NeSet{ALGEBRAICLOOPAsTRIV} to NeALSet, sort Set{ALGEBRAICLOOPAsTRIV} to AlgebraicLoopSet) .
 endfm)
 
+
+
 *** TODO look at action list to make it to a proper list
 (omod Algorithm is 
  protecting Ports + ALGEBRAICLOOPSET .
@@ -26,32 +28,29 @@ endfm)
  ops CreateExp EnterInitialization ExitInitialization Terminate FreeInstance Unload : -> FMIActionType [ctor] . 
  ops Set Get Step Save : -> ActionType [ctor] . 
  ops StepNegotiation Loop : -> ComplexActionType [ctor] . 
- *** Rename loop type
  op fmiEvent:_SU:_ : FMIActionType PortId -> Action [ctor format(nir! d d d d)] .
  op portEvent:_SU:_PId:_ : ActionType SUID OidSet -> Action [ctor format(nib! d d d d d d)] .
  op stepEvent:_StepSize:_ : SUID NzNat -> Action [ctor format(nig! d d d d)] .
  op complexEvent:_SaveSUs:_RestoreSUs:_Actions:_ : ComplexActionType OidSet OidSet ActionList -> Action [ctor format(niy! d d d d d d ni! niy!)] .
  
- *** Configuration fields
- op Algorithm:_ : ActionList -> Configuration [ctor format(nib! d d)] . 
- op Initialization:_ : ActionList -> Configuration [ctor format(nib! d d)] . 
- op Termination:_ : ActionList -> Configuration [ctor format(nib! d d)] . 
-
- op SNSet:_ : OidSet -> Configuration [ctor format(ni d d)] .
- op defaultStepSize:_ : NzNat -> Configuration [ctor format(nig! d d)] . 
- op actualStepSize:_ : NzNat -> Configuration [ctor format(nig! d d)] . 
-
- op endTime:_ : NzNat -> Configuration [ctor format(nim! d d)] . 
- op UnsolvedSCC:_ : AlgebraicLoopSet -> Configuration [ctor format(nim! d d)] . 
- op SolvedSCC:_ : AlgebraicLoopSet -> Configuration [ctor format(nim! d d)] . 
- op guessOn:_ : PortSet -> Configuration [ctor format(nip! d d)] .
- op valuesToSet:_ : PortValueMap -> Configuration .
-
  *** Operations
  op _memberOf_ : EPortId AlgebraicLoopSet -> Bool . 
  op getSUs : PortSet OidSet -> OidSet .
  op emptyList : -> ActionList [ctor] .
  op _;_ : ActionList ActionList -> ActionList [ctor assoc id: emptyList] .
+
+class OrchestrationData | 
+    Algorithm : ActionList, 
+    Initialization : ActionList,
+    Termination : ActionList,
+    SNSet : OidSet,
+    defaultStepSize : NzNat,
+    actualStepSize : NzNat,
+    endTime : NzNat,
+    unsolvedSCC : AlgebraicLoopSet,
+    solvedSCC : AlgebraicLoopSet,
+    guessOn : PortSet,
+    valuesToSet : PortValueMap .
 
  var ID : SUID .
  var SUSet : OidSet .
@@ -60,6 +59,7 @@ endfm)
  var LOOPTYPE : LoopType .
  var PORTSET : PortSet .
  var PORTID : PortId .
+ vars ENDTIME STEPSIZE : NzNat .
 
  eq PORT memberOf ((AlgebraicLoop: (PORT , PORTSET)  Type: LOOPTYPE) , LOOPS) = true .
  eq PORT memberOf LOOPS = false [owise] .
@@ -68,4 +68,20 @@ endfm)
  ceq getSUs(((ID ! PORTID), PORTSET), SUSet) = getSUs(PORTSET, SUSet) if ID in SUSet .
  eq getSUs(((ID ! PORTID), PORTSET), SUSet) = getSUs(PORTSET, (ID , SUSet)) [owise] .
 
+ op initialOrchestrationData : NzNat NzNat AlgebraicLoopSet -> Object .
+  eq initialOrchestrationData(STEPSIZE, ENDTIME, LOOPS) =
+    < "Orchestrator" : OrchestrationData | 
+      Algorithm : emptyList, 
+      Initialization : emptyList,
+      Termination : emptyList,
+      SNSet : empty,
+      defaultStepSize : STEPSIZE,
+      actualStepSize : STEPSIZE,
+      endTime : ENDTIME,
+      unsolvedSCC : LOOPS,
+      solvedSCC : empty,
+      guessOn : empty,
+      valuesToSet : empty > .
+
 endom)
+

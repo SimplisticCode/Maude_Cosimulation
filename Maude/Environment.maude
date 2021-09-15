@@ -78,11 +78,11 @@ endfm)
     ***Encode everything as algebraic loops:
     *** No more SCC to look at
     eq createAlgebraic(empty, CONF, LOOPS) = LOOPS .
-    ceq createAlgebraic(((INDEX |-> STACK), SCCs), CONF, LOOPS) = createAlgebraic(SCCs, CONF, ((AlgebraicLoop: PORTSET Type: R), LOOPS))  
+    ceq createAlgebraic(((INDEX |-> STACK), SCCs), CONF, LOOPS) = createAlgebraic(SCCs, CONF, ((AlgebraicLoop: PORTSET Type: reactive), LOOPS))  
         if PORTSET := elems(STACK, empty)
         /\ size(STACK) > 1 and isReactiveLoop(PORTSET, CONF) .
 
-    ceq createAlgebraic(((INDEX |-> STACK), SCCs), CONF, LOOPS) = createAlgebraic(SCCs, CONF, ((AlgebraicLoop: PORTSET Type: F), LOOPS))  
+    ceq createAlgebraic(((INDEX |-> STACK), SCCs), CONF, LOOPS) = createAlgebraic(SCCs, CONF, ((AlgebraicLoop: PORTSET Type: feedthrough), LOOPS))  
         if PORTSET := elems(STACK, empty)
         /\ size(STACK) > 1 and not(isReactiveLoop(PORTSET, CONF)) .
     

@@ -1,13 +1,13 @@
 load full-maude
 
 (fmod PORTID is
- protecting QID .
+ protecting STRING .
  sort PortId .
  subsorts String < PortId < Oid .
 endfm)
 
 (fmod SUID is
- protecting QID + PORTID .
+ protecting PORTID .
  sort SUID .
  subsorts String < SUID < Oid .
 endfm)

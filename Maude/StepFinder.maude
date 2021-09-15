@@ -1,5 +1,6 @@
 load LOOPSolver 
 
+*** Use valuesToSet
 (omod StepFinder is
   protecting LOOPSolver .
   sorts findStepPair .
@@ -16,7 +17,7 @@ load LOOPSolver
    vars TIME INPUTTIME OUTPUTTIME : Nat .
    var VALUE : FMIValue .
    vars STEPSIZE FUTURETIME FUTURETIME1 MINSTEP : NzNat .
-   vars INPUTS OUTPUTS INPUTS1 CONF SAVEDCONF : Configuration . 
+   vars INPUTS OUTPUTS INPUTS1 CONF SAVEDCONF CONF1 : Configuration . 
    var ALGO : ActionList .
    var LOOP : AlgebraicLoop .  
    var LOOPS SOLVEDLOOPS : AlgebraicLoopSet .  
@@ -46,8 +47,9 @@ load LOOPSolver
               /\ EVENT := portEvent: Set SU: ID1 PId: INPUT .
 
   ***Stepping case
-  ceq findStep((ID1 , SUIDs), < ID1 : SU | time : TIME, outputs : OUTPUTS, inputs : INPUTS > actualStepSize: STEPSIZE CONF, SAVEDCONF, ALGO) 
-                    = findStep((ID1 , SUIDs), SUINSTANCE actualStepSize: FUTURETIME CONF, SAVEDCONF, ALGO ; EVENT)
+  ceq findStep((ID1 , SUIDs), < ID1 : SU | time : TIME, outputs : OUTPUTS, inputs : INPUTS > 
+      < "Orchestrator" : OrchestrationData | actualStepSize : STEPSIZE > CONF, SAVEDCONF, ALGO) 
+                    = findStep((ID1 , SUIDs), SUINSTANCE < "Orchestrator" : OrchestrationData | actualStepSize : FUTURETIME >  CONF, SAVEDCONF, ALGO ; EVENT)
                     if FUTURETIME := askStepSize(< ID1 : SU | >, STEPSIZE) 
                     /\ SUINSTANCE := stepAction(< ID1 : SU | >, FUTURETIME) 
                     /\ EVENT := stepEvent: ID1 StepSize: STEPSIZE 
@@ -55,17 +57,22 @@ load LOOPSolver
 
   *** Restart search and and update step size for next iteration of search
   ceq findStep((ID1 , ID2 , SUIDs),  < ID1 : SU | time : FUTURETIME > 
-                        < ID2 : SU | time : FUTURETIME1 > CONF, SAVEDCONF actualStepSize: STEPSIZE, ALGO) = 
-              findStep((ID1 , ID2 , SUIDs), SAVEDCONF actualStepSize: MINSTEP, SAVEDCONF actualStepSize: MINSTEP, ALGO)   
+                        < ID2 : SU | time : FUTURETIME1 > CONF, SAVEDCONF 
+                        < "Orchestrator" : OrchestrationData | actualStepSize : STEPSIZE >, ALGO) = 
+              findStep((ID1 , ID2 , SUIDs), CONF1, CONF1, ALGO)   
                     if FUTURETIME =/= FUTURETIME1 
-                    /\ MINSTEP := min(FUTURETIME, FUTURETIME1) . 
+                    /\ MINSTEP := min(FUTURETIME, FUTURETIME1) 
+                    /\ CONF1 :=  SAVEDCONF < "Orchestrator" : OrchestrationData | actualStepSize : MINSTEP > . 
                     *** The simulations should both have stepped, but not to the same time
 
   *** Solve Algebraic Loops *** Information should be carried over!
-  eq findStep(SUIDs, CONF UnsolvedSCC: (LOOP , LOOPS), SAVEDCONF UnsolvedSCC: (LOOP , LOOPS) SolvedSCC: SOLVEDLOOPS, ALGO) = 
-  findStep(SUIDs, solveLoopConf(CONF UnsolvedSCC: LOOPS SolvedSCC: (LOOP , SOLVEDLOOPS), LOOP), SAVEDCONF UnsolvedSCC: LOOPS SolvedSCC: (LOOP , SOLVEDLOOPS), ALGO ; solveLoopAlgorithm(CONF UnsolvedSCC: LOOPS, LOOP)) [owise] . 
+  ***(
+  ***eq findStep(SUIDs, CONF UnsolvedSCC: (LOOP , LOOPS), SAVEDCONF UnsolvedSCC: (LOOP , LOOPS) SolvedSCC: SOLVEDLOOPS, ALGO) = 
+  ***findStep(SUIDs, solveLoopConf(CONF UnsolvedSCC: LOOPS SolvedSCC: (LOOP , SOLVEDLOOPS), LOOP), SAVEDCONF UnsolvedSCC: LOOPS SolvedSCC: (LOOP , SOLVEDLOOPS), ALGO ; solveLoopAlgorithm(CONF UnsolvedSCC: LOOPS, LOOP)) [owise] . 
+  )
 
-  ceq findStep(SUIDs, CONF actualStepSize: STEPSIZE, SAVEDCONF, ALGO) = < STEPSIZE ++ ALGO > if stepFindingDone(SUIDs, CONF, STEPSIZE) . 
+  ceq findStep(SUIDs, CONF < "Orchestrator" : OrchestrationData | actualStepSize : STEPSIZE >, SAVEDCONF, ALGO) = < STEPSIZE ++ ALGO > 
+    if stepFindingDone(SUIDs, CONF, STEPSIZE) . 
 
 endom)
 

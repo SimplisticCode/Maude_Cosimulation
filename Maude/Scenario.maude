@@ -13,13 +13,17 @@ load ScenarioAnalyser
   op setup : -> GlobalState .
   op `{_`} : Configuration -> GlobalState .
   op calculateSNSet : Configuration -> Configuration .
+  op getSUsOfScenario : Configuration -> Configuration .
 
   vars ID1 ID2 : SUID .
   vars INPUT OUTPUT : PortId .
   vars SUs CONNECTIONS INPUTS OUTPUTS CONF SCENARIOMODEL : Configuration .
   var SUIDs : OidSet .
   var TYPE : PortType .
-  var SCCs : AlgebraicLoopSet .
+  var LOOPS : AlgebraicLoopSet .
+
+  eq getSUsOfScenario(< ID1 : SU | > CONF) = < ID1 : SU | > getSUsOfScenario(CONF) .
+  eq getSUsOfScenario(CONF) = none [owise] .
 
   *** One to one check - change into different input types
   eq validScenario((ID1 ! OUTPUT ==> ID2 ! INPUT ) CONNECTIONS,  
@@ -33,13 +37,17 @@ load ScenarioAnalyser
   *** Calculation of the members of the set of SUs that should be backtracked in the step negotiation
   ceq calculateSNSet(< ID1 : SU | inputs : (< INPUT : Input | contract : r > INPUTS) > 
                      < ID2 : SU | outputs : (< OUTPUT : Output | > OUTPUTS) > 
-                      (ID2 ! OUTPUT ==> ID1 ! INPUT) (SNSet: (ID1 , SUIDs))  CONF) = 
+                      (ID2 ! OUTPUT ==> ID1 ! INPUT) 
+                      < "Orchestrator" : OrchestrationData | SNSet : (ID1 , SUIDs) > 
+                      CONF) = 
                       calculateSNSet(< ID1 : SU | > < ID2 : SU | > (ID2 ! OUTPUT ==> ID1 ! INPUT) 
-                      (SNSet: (ID1 , ID2 , SUIDs)) CONF) 
+                      < "Orchestrator" : OrchestrationData | SNSet : (ID1 , ID2 , SUIDs) > 
+                      CONF) 
                       if not ID2 in SUIDs .
   
-  ceq calculateSNSet(< ID1 : SU | canReject : true > (SNSet: SUIDs) CONF ) = 
-        calculateSNSet(< ID1 : SU | > (SNSet: (ID1 , SUIDs)) CONF )
+  ceq calculateSNSet(< ID1 : SU | canReject : true > 
+                      < "Orchestrator" : OrchestrationData | SNSet : SUIDs > CONF ) = 
+        calculateSNSet(< ID1 : SU | > < "Orchestrator" : OrchestrationData | SNSet : (ID1 , SUIDs) > CONF )
                                          if not ID1 in SUIDs .                             
   eq calculateSNSet(CONF) = CONF [owise] .
 
@@ -60,8 +68,8 @@ ceq scenario(CONNECTIONS, SUs) = CONNECTIONS SUs
 
   ceq setup = { CONF }
     if SCENARIOMODEL := scenario(externalConnection, simulationUnits)
-    /\ SCCs := tarjan(SCENARIOMODEL)
-    /\ CONF := calculateSNSet(SCENARIOMODEL actualStepSize: 1 defaultStepSize: 1 endTime: 1 Algorithm: emptyList Termination: emptyList Initialization: emptyList SNSet: empty guessOn: empty SolvedSCC: empty UnsolvedSCC: SCCs valuesToSet: empty) .
+    /\ LOOPS := tarjan(SCENARIOMODEL)
+    /\ CONF := calculateSNSet(SCENARIOMODEL initialOrchestrationData(1,1,LOOPS)) .
    
 endom)
 eof

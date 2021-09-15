@@ -46,8 +46,8 @@ load LOOPSolver
               /\ EVENT := portEvent: Set SU: ID1 PId: INPUT .
 
   ***Stepping case
-  ceq findStep((ID1 , SUIDs), < ID1 : SU | time : TIME, outputs : OUTPUTS, inputs : INPUTS > stepSize: STEPSIZE CONF, SAVEDCONF, ALGO) 
-                    = findStep((ID1 , SUIDs), SUINSTANCE stepSize: FUTURETIME CONF, SAVEDCONF, ALGO ; EVENT)
+  ceq findStep((ID1 , SUIDs), < ID1 : SU | time : TIME, outputs : OUTPUTS, inputs : INPUTS > actualStepSize: STEPSIZE CONF, SAVEDCONF, ALGO) 
+                    = findStep((ID1 , SUIDs), SUINSTANCE actualStepSize: FUTURETIME CONF, SAVEDCONF, ALGO ; EVENT)
                     if FUTURETIME := askStepSize(< ID1 : SU | >, STEPSIZE) 
                     /\ SUINSTANCE := stepAction(< ID1 : SU | >, FUTURETIME) 
                     /\ EVENT := stepEvent: ID1 StepSize: STEPSIZE 
@@ -55,8 +55,8 @@ load LOOPSolver
 
   *** Restart search and and update step size for next iteration of search
   ceq findStep((ID1 , ID2 , SUIDs),  < ID1 : SU | time : FUTURETIME > 
-                        < ID2 : SU | time : FUTURETIME1 > CONF, SAVEDCONF stepSize: STEPSIZE, ALGO) = 
-              findStep((ID1 , ID2 , SUIDs), SAVEDCONF stepSize: MINSTEP, SAVEDCONF stepSize: MINSTEP, ALGO)   
+                        < ID2 : SU | time : FUTURETIME1 > CONF, SAVEDCONF actualStepSize: STEPSIZE, ALGO) = 
+              findStep((ID1 , ID2 , SUIDs), SAVEDCONF actualStepSize: MINSTEP, SAVEDCONF actualStepSize: MINSTEP, ALGO)   
                     if FUTURETIME =/= FUTURETIME1 
                     /\ MINSTEP := min(FUTURETIME, FUTURETIME1) . 
                     *** The simulations should both have stepped, but not to the same time
@@ -65,7 +65,7 @@ load LOOPSolver
   eq findStep(SUIDs, CONF UnsolvedSCC: (LOOP , LOOPS), SAVEDCONF UnsolvedSCC: (LOOP , LOOPS) SolvedSCC: SOLVEDLOOPS, ALGO) = 
   findStep(SUIDs, solveLoopConf(CONF UnsolvedSCC: LOOPS SolvedSCC: (LOOP , SOLVEDLOOPS), LOOP), SAVEDCONF UnsolvedSCC: LOOPS SolvedSCC: (LOOP , SOLVEDLOOPS), ALGO ; solveLoopAlgorithm(CONF UnsolvedSCC: LOOPS, LOOP)) [owise] . 
 
-  ceq findStep(SUIDs, CONF stepSize: STEPSIZE, SAVEDCONF, ALGO) = < STEPSIZE ++ ALGO > if stepFindingDone(SUIDs, CONF, STEPSIZE) . 
+  ceq findStep(SUIDs, CONF actualStepSize: STEPSIZE, SAVEDCONF, ALGO) = < STEPSIZE ++ ALGO > if stepFindingDone(SUIDs, CONF, STEPSIZE) . 
 
 endom)
 

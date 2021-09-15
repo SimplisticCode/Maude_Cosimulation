@@ -60,7 +60,7 @@ ceq scenario(CONNECTIONS, SUs) = CONNECTIONS SUs
   ceq setup = { CONF }
     if SCENARIOMODEL := scenario(externalConnection, simulationUnits)
     /\ SCCs := tarjan(SCENARIOMODEL)
-    /\ CONF := calculateSNSet(SCENARIOMODEL stepSize: 1 endTime: 1 Algorithm: emptyList Termination: emptyList Initialization: emptyList SNSet: empty guessOn: empty SolvedSCC: empty UnsolvedSCC: SCCs valuesToSet: empty) .
+    /\ CONF := calculateSNSet(SCENARIOMODEL actualStepSize: 1 defaultStepSize: 1 endTime: 1 Algorithm: emptyList Termination: emptyList Initialization: emptyList SNSet: empty guessOn: empty SolvedSCC: empty UnsolvedSCC: SCCs valuesToSet: empty) .
    
 endom)
 eof

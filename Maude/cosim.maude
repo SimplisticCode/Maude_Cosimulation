@@ -8,24 +8,21 @@ load Scenario
    op allSUinSimulation : Configuration -> Bool .
    op simulationStepDone : Configuration -> Bool .
    op getEnableOutputs : Configuration Configuration Nat OidSet -> OidSet .
-   op ValuesToSet : Configuration SUID Nat PortValueMap PortValueMap -> PortValueMap .
-   op ValuesToSetInit : Configuration SUID PortValueMap PortValueMap -> PortValueMap .
 
    vars ID1 ID2 : SUID .
    vars INPUT OUTPUT : PortId .
-   vars TIME TIME1 TIME2 : Nat .
+   vars SUTIME TIME TIME1 TIME2 : Nat .
    var VALUE : FMIValue .
-   var PORTVALUE : PortValueAndTime .
    vars INPUTS OUTPUTS CONF STARTCONF : Configuration . 
    var STATE : fmiState .
    vars ALGO STEPNEGOALGO : ActionList .
-   vars SUIDs FEEDTHROUGH PORTIDSET : OidSet .
+   vars SUIDs FEEDTHROUGH : OidSet .
    var SUIDsNE : NeOidSet . 
    vars STEPSIZE NEGOTIATEDSTEPSIZE FUTURETIME ENDTIME : NzNat .
    var LOOP : AlgebraicLoop .  
    vars LOOPS SOLVEDLOOPS LOOPTOSOLVE : AlgebraicLoopSet .  
    var INPUTTYPE : Contract .
-   vars PORTVALUES PORTVALUESTOSET : PortValueMap .
+   vars PORTVALUES : PortValueMap .
    var SUINSTANCE : Object .
    var EVENT : Action .
 
@@ -33,12 +30,12 @@ load Scenario
   eq simulationStepDone(CONF) = true [owise] .
 
   *** Step Negotiation
-  ceq performStepNegotiation(CONF stepSize: STEPSIZE UnsolvedSCC: LOOPS SolvedSCC: SOLVEDLOOPS
+  ceq performStepNegotiation(CONF actualStepSize: STEPSIZE UnsolvedSCC: LOOPS SolvedSCC: SOLVEDLOOPS
                                  SNSet: SUIDsNE Algorithm: ALGO) = 
-                              CONF SNSet: empty Algorithm: (ALGO ; EVENT) stepSize: NEGOTIATEDSTEPSIZE
+                              CONF SNSet: empty Algorithm: (ALGO ; EVENT) actualStepSize: NEGOTIATEDSTEPSIZE
                                 UnsolvedSCC: LOOPS SolvedSCC: SOLVEDLOOPS
                                 ***UnsolvedSCC: (LOOPS - LOOPTOSOLVE)  SolvedSCC: (SOLVEDLOOPS ;; LOOPTOSOLVE)
-                              if STARTCONF := CONF stepSize: STEPSIZE UnsolvedSCC: LOOPS SolvedSCC: SOLVEDLOOPS
+                              if STARTCONF := CONF actualStepSize: STEPSIZE UnsolvedSCC: LOOPS SolvedSCC: SOLVEDLOOPS
                               /\ < NEGOTIATEDSTEPSIZE ++ STEPNEGOALGO > := findStep(SUIDsNE, STARTCONF, STARTCONF, emptyList)
                               ***/\ LOOPTOSOLVE := loopsInStepNegotiation(LOOPS, SUIDs, CONF) 
                               *** I need to break the loop (by removing the reactive connections) here to avoid it
@@ -49,58 +46,6 @@ load Scenario
   *** All SUs are in the simulation fmistate
   eq allSUinSimulation(< ID1 : SU | fmistate : STATE > CONF) = STATE == Simulation and allSUinSimulation(CONF) . 
   eq allSUinSimulation(CONF) = true [owise] .
-
-  eq getEnableOutputs(none, INPUTS, TIME, PORTIDSET) = PORTIDSET . 
-  ceq getEnableOutputs(< OUTPUT : Output | status : Undef, dependsOn : FEEDTHROUGH > OUTPUTS, INPUTS, TIME, PORTIDSET) = getEnableOutputs(OUTPUTS, INPUTS, TIME, (OUTPUT , PORTIDSET))
-        if feedthroughSatisfied(FEEDTHROUGH, INPUTS, TIME) .
-
-  eq getEnableOutputs(< OUTPUT : Output | > OUTPUTS, INPUTS, TIME, PORTIDSET) = getEnableOutputs(OUTPUTS, INPUTS, TIME, PORTIDSET) [owise] .
-
-  eq ValuesToSet(none, ID1, TIME, PORTVALUES, PORTVALUESTOSET) = PORTVALUESTOSET .
-  ceq ValuesToSet(< INPUT : Input | time : TIME1, contract : INPUTTYPE > INPUTS, ID1, TIME, ((INPUT |-> < TIME2 ; VALUE >), PORTVALUES), PORTVALUESTOSET) 
-                        = ValuesToSet(INPUTS, ID1, TIME, PORTVALUES, insert(INPUT, < TIME2 ; VALUE >, PORTVALUESTOSET)) 
-                        if TIME1 < TIME2 and ((INPUTTYPE == d and TIME1 < TIME) or (INPUTTYPE == r and TIME == TIME1)) .
-
-  eq ValuesToSet(< INPUT : Input | > INPUTS, ID1, TIME, PORTVALUES, PORTVALUESTOSET) = ValuesToSet(INPUTS, ID1, TIME, PORTVALUES, PORTVALUESTOSET) [owise] .
-
-  eq ValuesToSetInit(none, ID1, PORTVALUES, PORTVALUESTOSET) = PORTVALUESTOSET .
-  eq ValuesToSetInit(< INPUT : Input | status : Undef > INPUTS, ID1, ((INPUT |-> < 0 ; VALUE >), PORTVALUES), PORTVALUESTOSET) 
-                        = ValuesToSetInit(INPUTS, ID1, PORTVALUES, insert(INPUT, < 0 ; VALUE >, PORTVALUESTOSET)) .
-  eq ValuesToSetInit(< INPUT : Input | > INPUTS, ID1, PORTVALUES, PORTVALUESTOSET) 
-            = ValuesToSetInit(INPUTS, ID1, PORTVALUES, PORTVALUESTOSET) [owise] .
-
-  *** How can I make it faster?
-  *** Perform the global simulation step
-  *** Set input                     
-  ceq performGlobalStep(CONF < ID1 : SU | time : TIME, inputs : (< INPUT : Input | > INPUTS) > Algorithm: ALGO valuesToSet: ((INPUT |-> PORTVALUE) , PORTVALUES)) = 
-      performGlobalStep(CONF SUINSTANCE Algorithm: (ALGO ; EVENT) valuesToSet: (((INPUT |-> PORTVALUE) , PORTVALUES) \ PORTVALUESTOSET))
-                        if PORTVALUESTOSET := ValuesToSet((< INPUT : Input | > INPUTS), ID1, TIME, ((INPUT |-> PORTVALUE) , PORTVALUES), empty) 
-                        /\ PORTIDSET := getPortFromMap(PORTVALUESTOSET,empty) 
-                        /\ SUINSTANCE := setActionPortMap( < ID1 : SU | >, PORTVALUESTOSET) 
-                        /\ EVENT := portEvent: Set SU: ID1 PId: PORTIDSET .
-  *** Step
-  ceq performGlobalStep(CONF < ID1 : SU | time : TIME, inputs : INPUTS, outputs : OUTPUTS > stepSize: STEPSIZE endTime: ENDTIME Algorithm: ALGO)  = 
-      performGlobalStep(CONF SUINSTANCE stepSize: STEPSIZE endTime: ENDTIME Algorithm: (ALGO ; EVENT))
-                        if FUTURETIME := TIME + STEPSIZE 
-                        /\ canStep(TIME, FUTURETIME, INPUTS, OUTPUTS) and FUTURETIME <= ENDTIME 
-                        /\ SUINSTANCE := stepAction(< ID1 : SU | >, STEPSIZE)
-                        /\ EVENT := stepEvent: ID1 StepSize: STEPSIZE . 
-
-  *** Get
-  ceq performGlobalStep(CONF < ID1 : SU | time : TIME, inputs : INPUTS, outputs : OUTPUTS >  Algorithm: ALGO valuesToSet: PORTVALUES) =
-      performGlobalStep(CONF SUINSTANCE Algorithm: (ALGO ; EVENT) valuesToSet: (PORTVALUES , PORTVALUESTOSET)) 
-                      if PORTIDSET := getEnableOutputs(OUTPUTS, INPUTS, TIME, empty)
-                      /\ PORTIDSET =/= empty 
-                      /\ SUINSTANCE := getAction(< ID1 : SU | >, PORTIDSET)
-                      /\ PORTVALUESTOSET := getActionValues(SUINSTANCE, PORTIDSET, CONF, empty)
-                      /\ EVENT := portEvent: Get SU: ID1 PId: PORTIDSET . 
-                      
-  *** Algebraic Loop - solve and remove loop
-  eq performGlobalStep(CONF UnsolvedSCC: (LOOP , LOOPS) SolvedSCC: SOLVEDLOOPS) = 
-    performGlobalStep(solveLoop(CONF UnsolvedSCC: LOOPS SolvedSCC: (LOOP , SOLVEDLOOPS), LOOP)) [owise] .
-
-  *** Return the configuration is the simulation is done
-  ceq performGlobalStep(CONF) = CONF if simulationStepDone(CONF) .
 
   *** FMI-standard fmistate transition:
   rl [setExp] : < ID1 : SU | fmistate : Instantiated > Initialization: ALGO 
@@ -127,22 +72,61 @@ load Scenario
 
   *** Error handling in Maude
 
+  *** Simulation Procedure
+  *** Perform the global simulation step
+  *** Set input                     
+  ceq performGlobalStep(CONF < ID1 : SU | time : SUTIME, inputs : (< INPUT : Input | > INPUTS) > 
+                        Algorithm: ALGO valuesToSet: (((ID1 ! INPUT) |-> < TIME ; VALUE >) , PORTVALUES)) = 
+      performGlobalStep(CONF SUINSTANCE Algorithm: (ALGO ; EVENT) valuesToSet: PORTVALUES)
+                        if SUINSTANCE := < ID1 : SU | inputs : (< INPUT : Input | value : VALUE > INPUTS) >
+                        /\ EVENT := portEvent: Set SU: ID1 PId: INPUT .
+  *** Step
+  ceq performGlobalStep(CONF < ID1 : SU | time : TIME, inputs : INPUTS, outputs : OUTPUTS > actualStepSize: STEPSIZE endTime: ENDTIME Algorithm: ALGO)  = 
+      performGlobalStep(CONF SUINSTANCE actualStepSize: STEPSIZE endTime: ENDTIME Algorithm: (ALGO ; EVENT))
+                        if FUTURETIME := TIME + STEPSIZE 
+                        /\ canStep(TIME, FUTURETIME, INPUTS, OUTPUTS) and FUTURETIME <= ENDTIME 
+                        /\ SUINSTANCE := stepAction(< ID1 : SU | >, STEPSIZE)
+                        /\ EVENT := stepEvent: ID1 StepSize: STEPSIZE . 
+
+  *** Get
+  ceq performGlobalStep(CONF < ID1 : SU | outputs : (< OUTPUT : Output | time : TIME, status : Undef, value : VALUE, dependsOn : FEEDTHROUGH > OUTPUTS), inputs : INPUTS >  Algorithm: ALGO valuesToSet: PORTVALUES
+                                    (ID1 ! OUTPUT ==> ID2 ! INPUT)) =
+                      performGlobalStep(CONF SUINSTANCE Algorithm: (ALGO ; EVENT) 
+                      valuesToSet: insert((ID2 ! INPUT), < TIME ; VALUE >, PORTVALUES))
+                      if SUINSTANCE := getAction(< ID1 : SU | >, OUTPUT)
+                      /\ EVENT := portEvent: Get SU: ID1 PId: OUTPUT . 
+                      
+  
+  *** Algebraic Loop - solve and remove loop
+  eq performGlobalStep(CONF UnsolvedSCC: (LOOP , LOOPS) SolvedSCC: SOLVEDLOOPS) = 
+    performGlobalStep(solveLoop(CONF UnsolvedSCC: LOOPS SolvedSCC: (LOOP , SOLVEDLOOPS), LOOP)) [owise] .
+
+  *** Return the configuration is the simulation is done
+  ceq performGlobalStep(CONF) = CONF if simulationStepDone(CONF) .
+
   *** Initialization Procedure 
-  crl [get-init] : {< ID1 : SU | outputs : OUTPUTS, inputs : INPUTS, fmistate : Initialize > Initialization: ALGO valuesToSet: PORTVALUES CONF}
-                  => {SUINSTANCE Initialization: (ALGO ; EVENT) valuesToSet: (PORTVALUES , PORTVALUESTOSET) CONF}
-                if PORTIDSET := getEnableOutputs(OUTPUTS, INPUTS, 0, empty)
-                  /\ PORTIDSET =/= empty 
-                  /\ SUINSTANCE := getAction(< ID1 : SU | >, PORTIDSET)
-                  /\ PORTVALUESTOSET := getActionValues(SUINSTANCE, PORTIDSET, CONF, empty)
-                  /\ EVENT := portEvent: Get SU: ID1 PId: PORTIDSET . 
+  
+  crl [get-init] :
+              < ID1 : SU | fmistate : Initialize, 
+                outputs : (< OUTPUT : Output | status : Undef, value : VALUE, dependsOn : FEEDTHROUGH > OUTPUTS), 
+                      inputs : INPUTS > 
+                      (ID1 ! OUTPUT ==> ID2 ! INPUT)
+                      Initialization: ALGO valuesToSet: PORTVALUES CONF
+                  => SUINSTANCE Initialization: (ALGO ; EVENT) 
+                      (ID1 ! OUTPUT ==> ID2 ! INPUT)
+                      valuesToSet: insert((ID2 ! INPUT), < 0 ; VALUE >, PORTVALUES) CONF
+                if SUINSTANCE := < ID1 : SU | outputs : (< OUTPUT : Output | status : Def > OUTPUTS) > 
+                  /\ feedthroughSatisfied(FEEDTHROUGH, INPUTS, 0)
+                  /\ EVENT := portEvent: Get SU: ID1 PId: OUTPUT . 
+
 
    *** Inputs can only rely on one connection 
-   crl [set-init] : < ID1 : SU | inputs : (< INPUT : Input | status : Undef > INPUTS), fmistate : Initialize > Initialization: ALGO CONF valuesToSet: ((INPUT |-> PORTVALUE) , PORTVALUES)
-                        => SUINSTANCE Initialization: (ALGO ; EVENT) valuesToSet: (((INPUT |-> PORTVALUE) , PORTVALUES) \ PORTVALUESTOSET)
-                    if PORTVALUESTOSET := ValuesToSetInit((< INPUT : Input | status : Undef > INPUTS), ID1, ((INPUT |-> PORTVALUE) , PORTVALUES), empty) 
-                      /\ PORTIDSET := getPortFromMap(PORTVALUESTOSET, empty) 
-                      /\ SUINSTANCE := setActionPortMap( < ID1 : SU | >, PORTVALUESTOSET) 
-                      /\ EVENT := portEvent: Set SU: ID1 PId: PORTIDSET .
+  crl [set-init] : < ID1 : SU | inputs : (< INPUT : Input | status : Undef > INPUTS), fmistate : Initialize > 
+          Initialization: ALGO CONF 
+          valuesToSet: (((ID1 ! INPUT) |-> < TIME ; VALUE >), PORTVALUES)
+              => SUINSTANCE Initialization: (ALGO ; EVENT) valuesToSet: PORTVALUES CONF
+                      if SUINSTANCE := < ID1 : SU | inputs : (< INPUT : Input | status : Def, value : VALUE > INPUTS ) >
+                      /\ EVENT := portEvent: Set SU: ID1 PId: INPUT .
 
   ***rl [init-loop] : CONF UnsolvedSCC: (L ;; LOOPS) => solveLoop(CONF UnsolvedSCC: LOOPS, L) .                 
 
@@ -176,7 +160,7 @@ show search graph .
 
 ( red allSUinSimulation(setup) . )
 
-( red breakLoop(('msd1 ! 'x1) ;; ('msd2 ! 'x1) ;; ('msd2 ! 'v1) ;; ('msd1 ! 'v1), (simulationUnits externalConnection stepSize: 1 endTime: 1 Algorithm: emptyList SNSet: empty guessOn: emptyLoop) , R) . )
+( red breakLoop(('msd1 ! 'x1) ;; ('msd2 ! 'x1) ;; ('msd2 ! 'v1) ;; ('msd1 ! 'v1), (simulationUnits externalConnection actualStepSize: 1 endTime: 1 Algorithm: emptyList SNSet: empty guessOn: emptyLoop) , R) . )
 
 ( red findStep(setup,setup) . )
 ( red getAllPorts(simulationUnits, empty) . )

@@ -1,7 +1,7 @@
 load GenericDT
 
 (omod Ports is 
- protecting PORT-LIST + OID-SET + PORT-SET + FMIVALUE + PORTVALUEMAP .
+ protecting PORT-LIST + OID-SET + PORT-SET + PORTVALUEMAP .
  sorts Contract PortStatus Connection PortType .
  op _==>_ : EPortId EPortId -> Connection [ctor format(niy! d d d)] .
  subsort Connection < Configuration .
@@ -17,35 +17,33 @@ load GenericDT
 
  op _in_ : Connection Configuration -> Bool . 
  op elems : PortList PortSet -> PortSet .
- op getPortFromMap : PortValueMap OidSet -> OidSet .
+ ***op getPortFromMap : PortValueMap PortSet -> PortSet .
 
- var PID : PortId .
  var PORT  : EPortId .
  var CONF : Configuration .
  var CON : Connection .
  var STACK : PortList .
  var VALUE : PortValueAndTime .
- vars PORTMAP, PORTMAP1, PORTMAP2 : PortValueMap .
- var PORTIDSET : OidSet .
+ ***vars PORTMAP PORTMAP1 PORTMAP2 : PortValueMap .
  var PORTSET : PortSet .
 
  eq elems(nil, PORTSET) = PORTSET .
- eq elems(PORT STACK, PORTSET) = elems(STACK, (PORT , PORTSET)) .
+ eq elems(PORT STACK, PORTSET) = elems(STACK, (PORT, PORTSET)) .
 
  eq CON in CON CONF = true .
  eq CON in CONF = false [owise] .
 
- eq getPortFromMap(empty, PORTIDSET) = PORTIDSET .
- eq getPortFromMap(((PID |-> VALUE) , PORTMAP), PORTIDSET) = getPortFromMap(PORTMAP, (PID , PORTIDSET)) .
+*** eq getPortFromMap(empty, PORTSET) = PORTSET .
+ ***eq getPortFromMap(((PORT |-> VALUE), PORTMAP), PORTSET) = getPortFromMap(PORTMAP, (PORT , PORTSET)) .
 
-    op _\_ : PortValueMap PortValueMap -> PortValueMap .
-    eq PORTMAP \ empty = PORTMAP .
-    eq PORTMAP1 \ PORTMAP2 = diffMap(PORTMAP1, PORTMAP2, empty) .
+***op _\_ : FMIValueMap FMIValueMap -> FMIValueMap .
+***eq PORTMAP \ empty = PORTMAP .
+***eq PORTMAP1 \ PORTMAP2 = diffMap(PORTMAP1, PORTMAP2, empty) .
 
-    op diffMap : PortValueMap PortValueMap PortValueMap -> PortValueMap .
-    eq diffMap(empty, PORTMAP1, PORTMAP) = PORTMAP .
-    eq diffMap(((PID |-> VALUE), PORTMAP1), PORTMAP2, PORTMAP) = 
-        diffMap(PORTMAP1, PORTMAP2, if $hasMapping(PORTMAP2, PID) then PORTMAP else insert(PID, VALUE, PORTMAP) fi) .
+   *** op diffMap : FMIValueMap FMIValueMap FMIValueMap -> FMIValueMap .
+    ***eq diffMap(empty, PORTMAP1, PORTMAP) = PORTMAP .
+    ***eq diffMap(((PORT |-> VALUE), PORTMAP1), PORTMAP2, PORTMAP) = 
+        ***diffMap(PORTMAP1, PORTMAP2, if $hasMapping(PORTMAP2, PORT) then PORTMAP else insert(PORT, VALUE, PORTMAP) fi) .
 
 endom)
 
@@ -65,7 +63,7 @@ eof
 (red ('SU1 ! 'R) :: (('SU1 ! 'S) :: (('SU1 ! 'T) :: emptyList)) . )
 (red ('SU1 ! 'R) ;; ('SU1 ! 'Q) ;; ('SU1 ! 'S) . )
 
-(red getPortIDSet(< 'A : Output | > none ) . )
+(red getPORTSET(< 'A : Output | > none ) . )
 (red elems(('SU1 ! 'R) :: (('SU1 ! 'S) :: (('SU1 ! 'T) :: emptyList)) ) .)
 
 

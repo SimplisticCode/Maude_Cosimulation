@@ -75,8 +75,7 @@ endfm)
 endv)
 
 (fmod PORTVALUEMAP is
-    *** PortId -> PortValue(Time, Value)
-    protecting MAP{OIdAsTRIV, PortValueAndTimeAsTRIV} * (sort Map{OIdAsTRIV, PortValueAndTimeAsTRIV} to PortValueMap) .
+    protecting MAP{EPortIdAsTRIV, PortValueAndTimeAsTRIV} * (sort Map{EPortIdAsTRIV, PortValueAndTimeAsTRIV} to PortValueMap) .
 endfm) 
 
 (fmod INDEX-MAP is
@@ -84,9 +83,6 @@ endfm)
     protecting MAP{EPortIdAsTRIV, Nat} * (sort Map{EPortIdAsTRIV, Nat} to IndexMap) .
 endfm) 
 
-(fmod FMIVALUE-MAP is
-    protecting MAP{EPortIdAsTRIV, FMIVALUEAsTRIV} * (sort Map{EPortIdAsTRIV, FMIVALUEAsTRIV} to FMIValueMap) .
-endfm) 
 
 (view PortListAsTRIV from TRIV to PORT-LIST is
   protecting PORT-LIST .

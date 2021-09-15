@@ -1,7 +1,7 @@
 load Algorithm
 
 (omod SimulationUnit is
-   protecting Algorithm + RANDOM + STRING + FMIVALUE-MAP .
+   protecting Algorithm + RANDOM + STRING .
    sort fmiState .
    
    *** The different states of the FMI standard
@@ -32,7 +32,6 @@ load Algorithm
    op allInputsSet : Configuration -> Bool .
    op canStep : Nat NzNat Configuration Configuration -> Bool .
    op getAction : Object OidSet -> Object .
-   op getActionValues : Object OidSet Configuration PortValueMap -> PortValueMap .
    op setAction : Object OidSet FMIValue Nat -> Object .
    op stepAction : Object NzNat -> Object .
    op getAllPorts : Configuration PortSet -> PortSet .
@@ -47,9 +46,8 @@ load Algorithm
    var PORTSTATUS : PortStatus .
    vars FEEDTHROUGH PORTS : OidSet .
    vars FUTURETIME STEP : NzNat .
-   var PORTMAP : PortValueMap .
    var PORTSET : PortSet .
-   var VALUEMAP : FMIValueMap .
+   var VALUEMAP : PortValueMap .
 
    *** Get All ports in the scenario:
   ceq getAllPorts(< ID1 : SU | inputs : (< INPUT : Input | > INPUTS) > CONF, PORTSET) = getAllPorts(< ID1 : SU | > CONF,  ((ID1 ! INPUT) , PORTSET))
@@ -96,18 +94,16 @@ load Algorithm
   eq getAction(< ID : SU | time : TIME, outputs : (< OUTPUT : Output | > OUTPUTS) >, (OUTPUT , PORTS)) = 
     getAction(< ID : SU | outputs : (< OUTPUT : Output | time : TIME, status : Def > OUTPUTS) >, PORTS) .
 
-  eq getActionValues(< ID : SU | >, empty, CONF, PORTMAP) = PORTMAP .
-  eq getActionValues(< ID : SU | outputs : (< OUTPUT : Output | value : VALUE, time : TIME > OUTPUTS) >, (OUTPUT , PORTS), (ID ! OUTPUT ==> ID1 ! INPUT) CONF, PORTMAP) 
-    = getActionValues(< ID : SU | >, PORTS, CONF, ((INPUT |-> < TIME ; VALUE >) , PORTMAP)) . 
 
   eq setAction(< ID : SU | > , empty, VALUE, TIME) =  < ID : SU | > .
   eq setAction(< ID : SU | inputs : (< INPUT : Input | > INPUTS) > , (INPUT , PORTS), VALUE, TIME) = 
             setAction(< ID : SU | inputs : (< INPUT : Input | time : TIME, status : Def > INPUTS) >, PORTS, VALUE, TIME) .
 
+***(
   eq setActionPortMap(< ID : SU | > , empty) =  < ID : SU | > .
-  eq setActionPortMap(< ID : SU | inputs : (< INPUT : Input | > INPUTS) > , ((INPUT |-> < TIME ; VALUE >) , PORTMAP)) 
-  = setActionPortMap(< ID : SU | inputs : (< INPUT : Input | value : VALUE, time : TIME, status : Def > INPUTS) >, PORTMAP).
-
+  eq setActionPortMap(< ID : SU | inputs : (< INPUT : Input | > INPUTS) > , (((ID ! INPUT) |-> < TIME ; VALUE >) , VALUEMAP)) 
+  = setActionPortMap(< ID : SU | inputs : (< INPUT : Input | value : VALUE, time : TIME, status : Def > INPUTS) >, VALUEMAP).
+)
   *** Updates the time and the status of the outputs
   ceq stepAction(< ID : SU | time : TIME, outputs : OUTPUTS >, STEP) 
     = < ID : SU | time : FUTURETIME, outputs : undefPorts(OUTPUTS, FUTURETIME) > 

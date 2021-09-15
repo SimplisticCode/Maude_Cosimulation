@@ -38,7 +38,9 @@ endfm)
  op Termination:_ : ActionList -> Configuration [ctor format(nib! d d)] . 
 
  op SNSet:_ : OidSet -> Configuration [ctor format(ni d d)] .
- op stepSize:_ : NzNat -> Configuration [ctor format(nig! d d)] . 
+ op defaultStepSize:_ : NzNat -> Configuration [ctor format(nig! d d)] . 
+ op actualStepSize:_ : NzNat -> Configuration [ctor format(nig! d d)] . 
+
  op endTime:_ : NzNat -> Configuration [ctor format(nim! d d)] . 
  op UnsolvedSCC:_ : AlgebraicLoopSet -> Configuration [ctor format(nim! d d)] . 
  op SolvedSCC:_ : AlgebraicLoopSet -> Configuration [ctor format(nim! d d)] . 

@@ -42,6 +42,7 @@ load SimulationUnit
    ceq solveLoop(CONF Algorithm: ALGO, AlgebraicLoop: PSet Type: LOOPTYPE) = 
         CONF1 Algorithm: (ALGO ; EVENT)
         if < LOOPSOLVINGALGO ; CONF1 > := loopStep(PSet, breakLoop(PSet, CONF, LOOPTYPE), emptyList)
+        /\ SUIDS := getSUs(PSet, empty) 
         /\ EVENT := complexEvent: Loop SaveSUs: SUIDS RestoreSUs: SUIDS Actions: LOOPSOLVINGALGO .
 
   eq solveLoopConf(CONF, AlgebraicLoop: PSet Type: LOOPTYPE) = snd(loopStep(PSet, breakLoop(PSet, CONF, LOOPTYPE), emptyList)) .

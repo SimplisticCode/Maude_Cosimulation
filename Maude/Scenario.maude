@@ -67,7 +67,7 @@ eq simulationUnits = (< "tank" : SU | path : "", parameters : none , time : 0, i
 
 eq simulationUnitsNotInstrumented = (< "tank" : SU | path : "", parameters : none , time : 0, inputs : (< "valveState" : Input | value : < 0 >, type : integer, time : 0, contract : noContract, status : Undef  >), outputs : (< "waterlevel" : Output | value : < 0 >, type : integer, time : 0, status : Undef, dependsOn : empty >), fmistate : Instantiated, canReject : false >)
 
-  (< "ctrl" : SU | path : "", parameters : none , time : 0, inputs : (< "waterlevel" : Input | value : < 0 >, type : integer, time : 0, contract : delayed, status : Undef  >), outputs : (< "valveState" : Output | value : < 0 >, type : integer, time : 0, status : Undef, dependsOn : empty >), fmistate : Instantiated, canReject : false >) .
+  (< "ctrl" : SU | path : "", parameters : none , time : 0, inputs : (< "waterlevel" : Input | value : < 0 >, type : integer, time : 0, contract : noContract, status : Undef  >), outputs : (< "valveState" : Output | value : < 0 >, type : integer, time : 0, status : Undef, dependsOn : empty >), fmistate : Instantiated, canReject : false >) .
 
 ceq scenario(CONNECTIONS, SUs) = CONNECTIONS SUs 
     if validScenario(CONNECTIONS, SUs) .

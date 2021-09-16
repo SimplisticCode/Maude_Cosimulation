@@ -54,11 +54,12 @@ load cosim
     ***op synthesizeInstrumentation : 
     crl [findInstrumentation]: findConst(INITSTATE) => CONF
         if findInstr(INITSTATE) => CONF
+        /\ empty == tarjan(CONF)
         /\ runAnyAlgorithm CONF => run: ORCHESTRATOR on: CONF1
         /\ positive(CONF1) .
 
     op positive : Configuration -> Bool .
-    eq positive(CONF < "ctrl" : SU | inputs : (< "waterlevel" : Input | value : < NATVALUE > > INPUTS) >) = NATVALUE < 0 .
+    eq positive(CONF < "ctrl" : SU | inputs : (< "waterlevel" : Input | value : < NATVALUE > > INPUTS) >) = NATVALUE > 0 .
         
   *** FMI-standard fmistate transition:
   rl [setExp] : run: < OCH : OrchestrationData | Initialization : ((fmiEvent: CreateExp SUs: SUIDsNE) ; RESTALGORITHM) > on: < ID1 : SU | fmistate : Instantiated > CONF  

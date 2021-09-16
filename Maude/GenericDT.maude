@@ -54,6 +54,10 @@ endfm)
   protecting SET{EPortIdAsTRIV} * (sort NeSet{EPortIdAsTRIV} to NePortSet, sort Set{EPortIdAsTRIV} to PortSet) .
 endfm)
 
+(fmod FMIVALUESET is
+  protecting SET{FMIVALUEAsTRIV} * (sort NeSet{FMIVALUEAsTRIV} to NeFMIValueSet, sort Set{FMIVALUEAsTRIV} to FMIValueSet) .
+endfm)
+
 (fmod PAIR{X :: TRIV, Y :: TRIV} is 
     sort Pair{X, Y} . 
     op <_;_> : X$Elt Y$Elt -> Pair{X, Y} . 
@@ -67,6 +71,10 @@ endfm)
 
 (fmod PORTVALUE is
     protecting PAIR{Nat, FMIVALUEAsTRIV} * (sort Pair{Nat, FMIVALUEAsTRIV} to PortValueAndTime) .
+endfm) 
+
+(fmod LOCALSTATE is
+    protecting MAP{String, FMIVALUEAsTRIV} * (sort Map{String, FMIVALUEAsTRIV} to LocalState) .
 endfm) 
 
 (view PortValueAndTimeAsTRIV from TRIV to PORTVALUE is

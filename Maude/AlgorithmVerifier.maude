@@ -17,6 +17,8 @@ load cosim
     var CONTRACT : Contract .
     vars SUINSTANCE ORCHESTRATOR : Object .
     var LOOPS : AlgebraicLoopSet .
+    var UNITIALIZEDCONF : [Configuration] .
+
 
     op run:_on:_ : Object Configuration -> SimulationState [ctor]. 
     op runAnyAlgorithm_ : Configuration -> SimulationState [ctor] .
@@ -60,6 +62,19 @@ load cosim
 
     op positive : Configuration -> Bool .
     eq positive(CONF < "ctrl" : SU | inputs : (< "waterlevel" : Input | value : < NATVALUE > > INPUTS) >) = NATVALUE > 0 .
+
+    op selectParams : [Configuration] -> [Configuration] .
+
+    crl [dse] : selectParams(UNITIALIZEDCONF) => CONF 
+    if UNITIALIZEDCONF => CONF
+    /\ runAnyAlgorithm CONF => 
+        run: < OCH : OrchestrationData | Initialization : emptyList, Algorithm : emptyList, Termination : emptyList, ATTS:AttributeSet > 
+        on: CONF1
+    /\ above10(CONF1) .
+
+  op above10 : Configuration -> Bool .
+  eq above10(CONF < "tank" : SU | localState : ( "waterlevel" |-> < NATVALUE >) >) = NATVALUE > 100 .
+
         
   *** FMI-standard fmistate transition:
   rl [setExp] : run: < OCH : OrchestrationData | Initialization : ((fmiEvent: CreateExp SUs: SUIDsNE) ; RESTALGORITHM) > on: < ID1 : SU | fmistate : Instantiated > CONF  
@@ -140,14 +155,16 @@ load cosim
             on: CONF < ID1 : SU | time : TIME, inputs : INPUTS, outputs : OUTPUTS, fmistate : Simulation >
             => 
             run: < OCH : OrchestrationData | Algorithm : RESTALGORITHM >
-            on: CONF stepAction(< ID1 : SU | >, STEPSIZE)
+            on: CONF O:Object
                 if FUTURETIME := TIME + STEPSIZE
-                /\ canStep(TIME, FUTURETIME, INPUTS, OUTPUTS) .
-                *** /\ step(ID1, LOCALSTATE, INPUTS, STEPSIZE) => S':State .
+                /\ canStep(TIME, FUTURETIME, INPUTS, OUTPUTS) 
+                /\ step(< ID1 : SU | >, STEPSIZE) => O:Object .
 
 endom)
     eof
 
+*** Design Space Exploration
+(frew runAnyAlgorithm initConfDSE .)
 
 (frew runAnyAlgorithm initConfiguration .)
 
@@ -183,11 +200,15 @@ on: (("ctrl" ! "valveState" ==> "tank" ! "valveState")(
 ( frew findConst(initConfigurationUninstrumented) . )
 
 ( search findConst(initConfigurationUninstrumented) =>! C:Configuration . )
+*** Find correct Parameters:
+( search selectParams(initConfDSE)  =>! C:Configuration . )
+
 
 *** Deterministic
 *** Go from an initial configuration to search for  
 ***Run any algorithm - show determinism
 ( search (runAnyAlgorithm initConfiguration)  =>! S:SimulationState . )
+( search (runAnyAlgorithm initConfDSE)  =>! S:SimulationState . )
 
 *** Search for bad states - safety properties
 ( search (runAnyAlgorithm initConfiguration) =>* run: O:Object on: (C:Configuration 

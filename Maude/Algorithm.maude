@@ -84,6 +84,7 @@ class OrchestrationData |
       guessOn : empty,
       valuesToSet : empty,
       simulationTime : 0 > .
+      *** SUNames
 
 endom)
 

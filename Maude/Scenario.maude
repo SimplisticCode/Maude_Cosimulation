@@ -1,13 +1,14 @@
 load ScenarioAnalyser
 
 (omod SCENARIO is 
-   protecting ScenarioAnalyser .
-    sort GlobalState .
+   protecting ScenarioAnalyser + FMIVALUESET .
+    sorts GlobalState ChooseValue .
 
   *** Definition of the scenario
   *** External Connections - all ports have unique name
   op externalConnection : ->  Configuration .    
   ops simulationUnitsNotInstrumented simulationUnits : -> Configuration .      *** SUs - ID * input ports * and outputs
+  op simulationUnitsNotInitialized : -> [Configuration] .
   op scenario : Configuration Configuration -> Configuration . 
   op validScenario : Configuration Configuration -> Bool .
   op setup : -> GlobalState .
@@ -23,6 +24,11 @@ load ScenarioAnalyser
   var SUIDs : OidSet .
   var TYPE : PortType .
   var LOOPS : AlgebraicLoopSet .
+  vars NATVALUE HIGH LOW WATERLEVEL WATERLEVELOUT VALVESTATE TIME : Nat .
+  var BOOLVALUE : Bool .
+  var STEPSIZE : NzNat .
+  var VALUE : FMIValue .
+  var FMIVALUESET : FMIValueSet .
 
   eq getSUsOfScenario(< ID1 : SU | > CONF) = < ID1 : SU | > getSUsOfScenario(CONF) .
   eq getSUsOfScenario(CONF) = none [owise] .
@@ -56,18 +62,65 @@ load ScenarioAnalyser
                                          if not ID1 in SUIDs .                             
   eq calculateSNSet(CONF) = CONF [owise] .
 
+  op choose : FMIValueSet -> ChooseValue [ctor] .
+  rl [choose-value] : choose((VALUE, FMIVALUESET)) => VALUE .
+  subsort FMIValue < ChooseValue .
+
+
+
   ***Encoding of the Scenario 
   *** Coupling or connections
 eq externalConnection = ("tank" ! "waterlevel" ==> "ctrl" ! "waterlevel") ("ctrl" ! "valveState" ==> "tank" ! "valveState") .
 
-eq simulationUnits = (< "tank" : SU | path : "", parameters : none , time : 0, inputs : (< "valveState" : Input | value : < 0 >, type : integer, time : 0, contract : delayed, status : Undef  >), outputs : (< "waterlevel" : Output | value : < 0 >, type : integer, time : 0, status : Undef, dependsOn : empty >), fmistate : Instantiated, canReject : false >)
+eq simulationUnits =   (< "tank" : SU | path : "", parameters : ("flow" |-> < 100 >), localState : ( "waterlevel" |-> < 0 > ) , time : 0, inputs : (< "valveState" : Input | value : < 0 >, type : integer, time : 0, contract : delayed, status : Undef  >), outputs : (< "waterlevel" : Output | value : < 0 >, type : integer, time : 0, status : Undef, dependsOn : empty >), fmistate : Instantiated, canReject : false >)
 
-  (< "ctrl" : SU | path : "", parameters : none , time : 0, inputs : (< "waterlevel" : Input | value : < 0 >, type : integer, time : 0, contract : delayed, status : Undef  >), outputs : (< "valveState" : Output | value : < 0 >, type : integer, time : 0, status : Undef, dependsOn : empty >), fmistate : Instantiated, canReject : false >) .
+  (< "ctrl" : SU | path : "", parameters : (("high" |-> < 5 >) , ("low" |-> < 0 >)), localState : ( "valve" |-> < false >), time : 0, inputs : (< "waterlevel" : Input | value : < 0 >, type : integer, time : 0, contract : delayed, status : Undef  >), outputs : (< "valveState" : Output | value : < 0 >, type : integer, time : 0, status : Undef, dependsOn : empty >), fmistate : Instantiated, canReject : false >) .
+
+eq simulationUnitsNotInstrumented = 
+  (< "tank" : SU | path : "", parameters : ("flow" |-> < 100 >), localState : ( "waterlevel" |-> < 0 > ) , time : 0, inputs : (< "valveState" : Input | value : < 0 >, type : integer, time : 0, contract : noContract, status : Undef  >), outputs : (< "waterlevel" : Output | value : < 0 >, type : integer, time : 0, status : Undef, dependsOn : empty >), fmistate : Instantiated, canReject : false >)
+
+  (< "ctrl" : SU | path : "", parameters : (("high" |-> < 5 >) , ("low" |-> < 0 >)), localState : ( "valve" |-> < false > ), time : 0, inputs : (< "waterlevel" : Input | value : < 0 >, type : integer, time : 0, contract : noContract, status : Undef  >), outputs : (< "valveState" : Output | value : < 0 >, type : integer, time : 0, status : Undef, dependsOn : empty >), fmistate : Instantiated, canReject : false >) .
 
 
-eq simulationUnitsNotInstrumented = (< "tank" : SU | path : "", parameters : none , time : 0, inputs : (< "valveState" : Input | value : < 0 >, type : integer, time : 0, contract : noContract, status : Undef  >), outputs : (< "waterlevel" : Output | value : < 0 >, type : integer, time : 0, status : Undef, dependsOn : empty >), fmistate : Instantiated, canReject : false >)
+eq simulationUnitsNotInitialized =  
+(< "tank" : SU | path : "", parameters : ("flow" |-> choose((< 1 >,< 2 >,< 30 >))), localState : ( "waterlevel" |-> < 0 > ) , time : 0, inputs : (< "valveState" : Input | value : < 0 >, type : integer, time : 0, contract : delayed, status : Undef  >), outputs : (< "waterlevel" : Output | value : < 0 >, type : integer, time : 0, status : Undef, dependsOn : empty >), fmistate : Instantiated, canReject : false >)
 
-  (< "ctrl" : SU | path : "", parameters : none , time : 0, inputs : (< "waterlevel" : Input | value : < 0 >, type : integer, time : 0, contract : noContract, status : Undef  >), outputs : (< "valveState" : Output | value : < 0 >, type : integer, time : 0, status : Undef, dependsOn : empty >), fmistate : Instantiated, canReject : false >) .
+(< "ctrl" : SU | path : "", parameters : (("high" |-> choose((< 100 >,< 5 >))) , ("low" |-> < 0 >)), localState : ( "valve" |-> < false >), time : 0, inputs : (< "waterlevel" : Input | value : < 0 >, type : integer, time : 0, contract : delayed, status : Undef  >), outputs : (< "valveState" : Output | value : < 0 >, type : integer, time : 0, status : Undef, dependsOn : empty >), fmistate : Instantiated, canReject : false >) .
+
+
+*** COULD be Stream lined
+*** Todo make Dostep for the different SUs
+eq step(< "ctrl" : SU | time : TIME, parameters : (("high" |-> < HIGH >) , ("low" |-> < LOW >)), 
+                      inputs : < "waterlevel" : Input | value : < NATVALUE > >, 
+                      outputs : < "valveState" : Output | value : < VALVESTATE >, time : TIME, status : Def >,
+                      localState : ( "valve" |-> < false > ) >,
+                      STEPSIZE) = 
+  if NATVALUE > HIGH then
+    < "ctrl" : SU | time : (TIME + STEPSIZE), localState : ( "valve" |-> < true > ), 
+          outputs : < "valveState" : Output | value : < 1 >, time : (TIME + STEPSIZE), status : Undef > >
+    else 
+    if NATVALUE < LOW then
+      < "ctrl" : SU | time : (TIME + STEPSIZE), localState : ( "valve" |-> < false > ), 
+          outputs : < "valveState" : Output | value : < 0 >, time : (TIME + STEPSIZE), status : Undef > >
+    else
+      < "ctrl" : SU | time : (TIME + STEPSIZE), 
+                outputs : < "valveState" : Output | time : (TIME + STEPSIZE), status : Undef > >
+  fi
+fi .
+
+eq step(< "tank" : SU | time : TIME, parameters : ("flow" |-> < NATVALUE >), 
+                      inputs : < "valveState" : Input | value : < VALVESTATE > >, 
+                      outputs : < "waterlevel" : Output | value : < WATERLEVELOUT >, time : TIME, status : Def >,
+                      localState : ( "waterlevel" |-> < WATERLEVEL > ) >,
+                      STEPSIZE) = 
+  if VALVESTATE == 1 then 
+    *** Open goes to zero
+      < "tank" : SU | time : (TIME + STEPSIZE), localState : ( "waterlevel" |-> < 0 > ),
+          outputs : < "waterlevel" : Output | value : < 0 >, time : (TIME + STEPSIZE), status : Undef > >
+    else 
+      < "tank" : SU | time : (TIME + STEPSIZE), localState : ( "waterlevel" |-> < WATERLEVEL + (STEPSIZE * NATVALUE) > ), outputs : < "waterlevel" : Output | value : < WATERLEVEL + (STEPSIZE * NATVALUE) >, time : (TIME + STEPSIZE), status : Undef > > 
+  fi .
+
 
 ceq scenario(CONNECTIONS, SUs) = CONNECTIONS SUs 
     if validScenario(CONNECTIONS, SUs) .

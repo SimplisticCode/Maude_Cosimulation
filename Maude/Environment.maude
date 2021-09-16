@@ -78,7 +78,7 @@ endfm)
     ***Encode everything as algebraic loops:
     *** No more SCC to look at
     eq createAlgebraic(empty, CONF, LOOPS) = LOOPS .
-    ceq createAlgebraic(((INDEX |-> STACK), SCCs), CONF, LOOPS) = createAlgebraic(SCCs, CONF, ((AlgebraicLoop: PORTSET Type: reactive), LOOPS))  
+    ceq createAlgebraic(((INDEX |-> STACK), SCCs), CONF, LOOPS) = createAlgebraic(SCCs, CONF, ((AlgebraicLoop: PORTSET Type: reactivity), LOOPS))  
         if PORTSET := elems(STACK, empty)
         /\ size(STACK) > 1 and isReactiveLoop(PORTSET, CONF) .
 
@@ -89,8 +89,8 @@ endfm)
     *** Trivial SCC should be forgotten
     eq createAlgebraic(((INDEX |-> PORTSET) , SCCs), CONF, LOOPS) = createAlgebraic(SCCs, CONF, LOOPS) [owise] .
 
-    *** Check type of SCC - one reactive input makes it Reactive
-    eq isReactiveLoop(((ID1 ! INPUT) , PORTSET), < ID1 : SU | inputs : (< INPUT : Input | contract : r > INPUTS) > CONF) = true .
+    *** Check type of SCC - one reactivity input makes it Reactive
+    eq isReactiveLoop(((ID1 ! INPUT) , PORTSET), < ID1 : SU | inputs : (< INPUT : Input | contract : reactive > INPUTS) > CONF) = true .
     eq isReactiveLoop(PORTSET, CONF) = false [owise] .
 
     *** Sets all nodes in the stack to infinity - to ensure they do not interfere with the future calculations
@@ -126,9 +126,9 @@ endfm)
                     succesors((ID1 ! INPUT), < ID1 : SU | > CONF, ((ID1 ! OUTPUT) , PORTSET)) 
                     if not (ID1 ! OUTPUT) in PORTSET .
 
-    *** Input - reactive
+    *** Input - reactivity
     ceq succesors((ID1 ! INPUT),
-                < ID1 : SU | inputs : (< INPUT : Input | contract : r > INPUTS), outputs : (< OUTPUT : Output | > OUTPUTS) > CONF, PORTSET) 
+                < ID1 : SU | inputs : (< INPUT : Input | contract : reactive > INPUTS), outputs : (< OUTPUT : Output | > OUTPUTS) > CONF, PORTSET) 
                 = succesors((ID1 ! INPUT), < ID1 : SU | > CONF, ((ID1 ! OUTPUT) , PORTSET)) if not (ID1 ! OUTPUT) in PORTSET .
 
     eq succesors(PORT, CONF, PORTSET) = PORTSET [owise] .

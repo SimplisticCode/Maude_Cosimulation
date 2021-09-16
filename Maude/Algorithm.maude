@@ -3,7 +3,7 @@ load Port
 (fmod ALGEBRAICLOOP is
     protecting Ports .
     sort AlgebraicLoop LoopType .
-    ops feedthrough reactive : -> LoopType [ctor] . 
+    ops feedthrough reactivity : -> LoopType [ctor] . 
     op AlgebraicLoop:_Type:_ : PortSet LoopType -> AlgebraicLoop [ctor] . 
 endfm )
 

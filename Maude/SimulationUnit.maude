@@ -59,7 +59,7 @@ load Algorithm
 
   eq getAllPorts(CONF, PORTSET) = PORTSET [owise] . 
 
-  ceq getAllReactivePorts(< ID1 : SU | inputs : (< INPUT : Input | contract : r > INPUTS) > CONF, PORTSET) = getAllReactivePorts(< ID1 : SU | inputs : INPUTS > CONF, ((ID1 ! INPUT) , PORTSET))
+  ceq getAllReactivePorts(< ID1 : SU | inputs : (< INPUT : Input | contract : reactive > INPUTS) > CONF, PORTSET) = getAllReactivePorts(< ID1 : SU | inputs : INPUTS > CONF, ((ID1 ! INPUT) , PORTSET))
     if not (ID1 ! INPUT) in PORTSET .
   eq getAllReactivePorts(CONF, PORTSET) = PORTSET [owise] . 
 
@@ -75,7 +75,7 @@ load Algorithm
 
 *** Are not defined for all cases - need to be redefined
    eq allInputsDef(none, SUTIME, FUTURETIME) = true .
-   eq allInputsDef(< PORTID : Input | time : TIME, contract : CONTRACT, status : PORTSTATUS > CONF, SUTIME, FUTURETIME) = PORTSTATUS == Def and ((CONTRACT == r and TIME == FUTURETIME) or (CONTRACT == d and TIME == SUTIME))
+   eq allInputsDef(< PORTID : Input | time : TIME, contract : CONTRACT, status : PORTSTATUS > CONF, SUTIME, FUTURETIME) = PORTSTATUS == Def and ((CONTRACT == reactive and TIME == FUTURETIME) or (CONTRACT == delayed and TIME == SUTIME))
         and allInputsDef(CONF, SUTIME, FUTURETIME) .
 
    eq undefPorts(none, TIME) = none .

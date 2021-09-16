@@ -113,7 +113,7 @@ load Scenario
   *** Perform the global simulation step
   *** Set input          
   *** Reactive           
-  ceq performGlobalStep(CONF < ID1 : SU | time : SUTIME, inputs : (< INPUT : Input | time : INPUTTIME, contract : r > INPUTS) > 
+  ceq performGlobalStep(CONF < ID1 : SU | time : SUTIME, inputs : (< INPUT : Input | time : INPUTTIME, contract : reactive > INPUTS) > 
           < "Orchestrator" : OrchestrationData | Algorithm : ALGO, valuesToSet : (((ID1 ! INPUT) |-> < TIME ; VALUE >), PORTVALUES) >) = 
       performGlobalStep(CONF SUINSTANCE 
             < "Orchestrator" : OrchestrationData | Algorithm : (ALGO ; EVENT), valuesToSet : PORTVALUES >)
@@ -122,7 +122,7 @@ load Scenario
             /\ EVENT := portEvent: Set SU: ID1 PId: INPUT .
 
   *** Delayed           
-  ceq performGlobalStep(CONF < ID1 : SU | time : SUTIME, inputs : (< INPUT : Input | time : INPUTTIME, contract : d > INPUTS) > 
+  ceq performGlobalStep(CONF < ID1 : SU | time : SUTIME, inputs : (< INPUT : Input | time : INPUTTIME, contract : delayed > INPUTS) > 
       < "Orchestrator" : OrchestrationData | Algorithm : ALGO, valuesToSet : (((ID1 ! INPUT) |-> < TIME ; VALUE >), PORTVALUES) >) = 
       performGlobalStep(CONF SUINSTANCE 
             < "Orchestrator" : OrchestrationData | Algorithm : (ALGO ; EVENT), valuesToSet : PORTVALUES >)
@@ -202,25 +202,6 @@ load Scenario
           { performGlobalStep(CONF < "Orchestrator" : OrchestrationData | > ) }
         if allSUsinSimulation(CONF) .
 
-
-  crl [getAlgortihm]: { SCENARIOMODEL } => 
-                 { < "Orchestrator" : OrchestrationData | > }
-      if initialState(SCENARIOMODEL)
-      /\ LOOPS := tarjan(SCENARIOMODEL)
-      /\ CONF := calculateSNSet(SCENARIOMODEL initialOrchestrationData(1,1,LOOPS)) 
-      /\ {CONF} => { CONF1 < "Orchestrator" : OrchestrationData | > } 
-      /\ allSUsinUnloaded(CONF1) .
-    
-***(
-  op getAlgortihm : Configuration -> Configuration .
-  ceq getAlgortihm(SCENARIOMODEL) = Algorithm: ALGO Termination: TERM Initialization: INIT 
-  if SCCs := tarjan(SCENARIOMODEL)
-      /\ CONF := calculateSNSet(SCENARIOMODEL actualStepSize: 1 defaultStepSize: 1 endTime: 1 Algorithm: emptyList Termination: emptyList Initialization: emptyList SNSet: empty guessOn: empty solvedSCC: empty unsolvedSCC: SCCs valuesToSet: empty) 
-      /\ {CONF} => { CONF1 Algorithm: ALGO Termination: TERM Initialization: INIT } 
-      /\ simulationDone(CONF1) .
-      )
-
-
   op init : -> GlobalState .
   eq init = { scenario(externalConnection, simulationUnits) } .
 
@@ -228,6 +209,12 @@ load Scenario
   eq initialState(CONF < "Orchestrator" : OrchestrationData | >) = false .
   eq initialState(CONF) = true [owise] .
 
+  crl [getAlgortihm]: { SCENARIOMODEL } => { CONF1 }
+      if initialState(SCENARIOMODEL)
+      /\ LOOPS := tarjan(SCENARIOMODEL)
+      /\ CONF := calculateSNSet(SCENARIOMODEL initialOrchestrationData(1,1,LOOPS)) 
+      /\ {CONF} => { CONF1 } 
+      /\ allSUsinUnloaded(CONF1) .
 
 endom)
 
@@ -236,9 +223,18 @@ eof
 (show all .)
 q 
 
+( red initialState(("ctrl" ! "valveState" ==> "tank" ! "valveState")(
+"tank" ! "waterlevel" ==> "ctrl" ! "waterlevel")< "ctrl" : SU | canReject : false,fmistate : Instantiated,inputs : < "waterlevel" : Input | contract :
+    delayed,status : Undef,time : 0,type : integer,value : < 0 > >,outputs : < "valveState" : Output | dependsOn : empty,status : Undef,time : 0,type :
+    integer,value : < 0 > >,parameters : none,path : "",time : 0 > < "tank" : SU | canReject : false,fmistate : Instantiated,inputs : < "valveState" :
+    Input | contract : delayed,status : Undef,time : 0,type : integer,value : < 0 > >,outputs : < "waterlevel" : Output | dependsOn : empty,status :
+    Undef,time : 0,type : integer,value : < 0 > >,parameters : none,path : "",time : 0 >) .)
+
 ( frew [100] setup . )
 
 ( red moveState(setup, Instantiated, ExperimentSetup) . )
+
+(red allSUsinUnloaded(< "ctrl" : SU | canReject : false,fmistate : Unloaded,inputs : < "waterlevel" : Input | contract : delayed,status : Def,time : 1,type : integer,value : < 2546248239 > >,outputs : < "valveState" : Output | dependsOn : empty,status : Def,time : 1,type : integer,value : < 2546248239 > >,parameters : none,path : "",time : 1 > < "tank" : SU | canReject : false,fmistate : Unloaded,inputs : < "valveState" : Input | contract : delayed,status : Def,time : 1,type : integer,value : < 2546248239 > >,outputs : < "waterlevel" : Output | dependsOn : empty,status : Def, time : 1,type : integer,value : < 2546248239 > >,parameters : none,path : "",time : 1 >) . )
 
 
 (search setup. )
@@ -261,8 +257,8 @@ trace exclude FULL-MAUDE . set trace substitution off . set trace eq off .
 
 (red moveState(("ctrl" ! "valveState" ==> "tank" ! "valveState")(
 "tank" ! "waterlevel" ==> "ctrl" ! "waterlevel")< "ctrl" : SU | canReject : false,fmistate : Instantiated,inputs : < "waterlevel" : Input |
-    contract : d,status : Undef,time : 0,type : integer,value : < 0 > >,outputs : < "valveState" : Output | dependsOn : empty,status :
+    contract : delayed,status : Undef,time : 0,type : integer,value : < 0 > >,outputs : < "valveState" : Output | dependsOn : empty,status :
     Undef,time : 0,type : integer,value : < 0 > >,parameters : none,path : "",time : 0 > < "tank" : SU | canReject : false,fmistate :
-    Instantiated,inputs : < "valveState" : Input | contract : d,status : Undef,time : 0,type : integer,value : < 0 > >,outputs : <
+    Instantiated,inputs : < "valveState" : Input | contract : delayed,status : Undef,time : 0,type : integer,value : < 0 > >,outputs : <
     "waterlevel" : Output | dependsOn : empty,status : Undef,time : 0,type : integer,value : < 0 > >,parameters : none,path : "",time : 0 >,
     Instantiated, ExperimentSetup ) . )

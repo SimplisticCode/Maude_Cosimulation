@@ -40,7 +40,7 @@ load ScenarioAnalyser
   *** Only one output per input
 
   *** Calculation of the members of the set of SUs that should be backtracked in the step negotiation
-  ceq calculateSNSet(< ID1 : SU | inputs : (< INPUT : Input | contract : r > INPUTS) > 
+  ceq calculateSNSet(< ID1 : SU | inputs : (< INPUT : Input | contract : reactive > INPUTS) > 
                      < ID2 : SU | outputs : (< OUTPUT : Output | > OUTPUTS) > 
                       (ID2 ! OUTPUT ==> ID1 ! INPUT) 
                       < "Orchestrator" : OrchestrationData | SNSet : (ID1 , SUIDs) > 
@@ -60,9 +60,9 @@ load ScenarioAnalyser
   *** Coupling or connections
 eq externalConnection = ("tank" ! "waterlevel" ==> "ctrl" ! "waterlevel") ("ctrl" ! "valveState" ==> "tank" ! "valveState") .
 
-eq simulationUnits = (< "tank" : SU | path : "", parameters : none , time : 0, inputs : (< "valveState" : Input | value : < 0 >, type : integer, time : 0, contract : d, status : Undef  >), outputs : (< "waterlevel" : Output | value : < 0 >, type : integer, time : 0, status : Undef, dependsOn : empty >), fmistate : Instantiated, canReject : false >)
+eq simulationUnits = (< "tank" : SU | path : "", parameters : none , time : 0, inputs : (< "valveState" : Input | value : < 0 >, type : integer, time : 0, contract : delayed, status : Undef  >), outputs : (< "waterlevel" : Output | value : < 0 >, type : integer, time : 0, status : Undef, dependsOn : empty >), fmistate : Instantiated, canReject : false >)
 
- 	 (< "ctrl" : SU | path : "", parameters : none , time : 0, inputs : (< "waterlevel" : Input | value : < 0 >, type : integer, time : 0, contract : d, status : Undef  >), outputs : (< "valveState" : Output | value : < 0 >, type : integer, time : 0, status : Undef, dependsOn : empty >), fmistate : Instantiated, canReject : false >) .
+ 	 (< "ctrl" : SU | path : "", parameters : none , time : 0, inputs : (< "waterlevel" : Input | value : < 0 >, type : integer, time : 0, contract : delayed, status : Undef  >), outputs : (< "valveState" : Output | value : < 0 >, type : integer, time : 0, status : Undef, dependsOn : empty >), fmistate : Instantiated, canReject : false >) .
 
 
 

@@ -89,7 +89,7 @@ load cosim
                 => Algorithm: RESTALGORITHM
                     < ID1 : SU | inputs : (< INPUT : Input | time : TIME, value : VALUE > INPUTS) >
                     valuesToSet: PORTVALUES 
-        if (CONTRACT == r and (TIME > INPUTTIME) and INPUTTIME == SUTIME) or (CONTRACT == d and TIME == SUTIME) .
+        if (CONTRACT == reactive and (TIME > INPUTTIME) and INPUTTIME == SUTIME) or (CONTRACT == delayed and TIME == SUTIME) .
 
     crl [step-action] : Algorithm: ((stepEvent: ID1 StepSize: STEPSIZE) ; RESTALGORITHM)
                     < ID1 : SU | time : TIME, inputs : INPUTS, outputs : OUTPUTS, fmistate : Simulation > 

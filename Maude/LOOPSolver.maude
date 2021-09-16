@@ -60,7 +60,7 @@ load SimulationUnit
                      < "Orchestrator" : OrchestrationData | guessOn : GSet > CONF, LOOPTYPE) = 
                         breakLoop(((ID1 ! INPUT) , PSet), < ID1 : SU | > < ID2 : SU | > 
                         < "Orchestrator" : OrchestrationData | guessOn : ((ID1 ! INPUT) , GSet) > CONF, LOOPTYPE) 
-                        if (LOOPTYPE == reactive and CONTRACT == r) or (LOOPTYPE == feedthrough and CONTRACT == d) .
+                        if (LOOPTYPE == reactivity and CONTRACT == reactive) or (LOOPTYPE == feedthrough and CONTRACT == delayed) .
 
     eq breakLoop(PSet, CONF, LOOPTYPE) = CONF [owise] .
 
@@ -75,7 +75,7 @@ load SimulationUnit
                     /\ FUTURETIME := T1 + STEP
                     /\ SUINSTANCE := < ID1 : SU | time : TIME, inputs : (< INPUT : Input | time : FUTURETIME, value : VALUE > INPUTS) >  
                     /\ EVENT :=  portEvent: Set SU: ID1 PId: INPUT
-                    /\ (CONTRACT == r and T1 == TIME) or (CONTRACT == d and TIME == FUTURETIME) .
+                    /\ (CONTRACT == reactive and T1 == TIME) or (CONTRACT == delayed and TIME == FUTURETIME) .
 
     *** Set value on input
     ceq loopStep(((ID1 ! INPUT) , PSet), 

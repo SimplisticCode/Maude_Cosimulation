@@ -12,7 +12,7 @@ load GenericDT
  class Parameter | value : FMIValue .
  subclasses Input Output < Port . 
  *** Make longer name here
- ops d r : -> Contract [ctor] .   *** d = delayed, r = Reactive.
+ ops delayed reactive : -> Contract [ctor] .   *** d = delayed, r = Reactive.
  ops integer string real boolean : -> PortType [ctor] . 
  ops Def Undef : -> PortStatus [ctor] .
 

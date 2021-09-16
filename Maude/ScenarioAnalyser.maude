@@ -23,8 +23,8 @@ load Environment
 
     eq loopsInStepNegotiation(empty, SUIDs, CONF, LOOPSet) = LOOPSet .
     eq loopsInStepNegotiation(LOOPS, empty, CONF, LOOPSet) = LOOPSet .
-    ceq loopsInStepNegotiation(((AlgebraicLoop: PORTSET Type: reactive) , LOOPS), (SU , SUIDs), CONF, LOOPSet) = 
-            loopsInStepNegotiation(LOOPS, (SU , SUIDs), CONF, ((AlgebraicLoop: PORTSET Type: reactive) , LOOPSet))
+    ceq loopsInStepNegotiation(((AlgebraicLoop: PORTSET Type: reactivity) , LOOPS), (SU , SUIDs), CONF, LOOPSet) = 
+            loopsInStepNegotiation(LOOPS, (SU , SUIDs), CONF, ((AlgebraicLoop: PORTSET Type: reactivity) , LOOPSet))
         if REACTIVEPORTS := getAllReactivePorts(CONF, empty)
         /\ REACTIVESUs := getSUs(REACTIVEPORTS, empty)
         /\ SU in REACTIVESUs .
@@ -92,10 +92,10 @@ q
 'msd1 ! 'v1 ==> 'msd2 ! 'v1)(
 'msd1 ! 'x1 ==> 'msd2 ! 'x1)(
 'msd1 ! 'z ==> 'msd2 ! 'z)(
-'msd2 ! 'fk ==> 'msd1 ! 'fk)< 'msd1 : SU | canReject : false,inputs : < 'fk : Input | status : Undef,time : 0,contract : r >,outputs :(< 'v1 :
+'msd2 ! 'fk ==> 'msd1 ! 'fk)< 'msd1 : SU | canReject : false,inputs : < 'fk : Input | status : Undef,time : 0,contract : reactive >,outputs :(< 'v1 :
     Output | dependsOn : empty,status : Undef,time : 0 > < 'x1 : Output | dependsOn : empty,status : Undef,time : 0 > < 'z : Output | dependsOn
     : empty,status : Undef,time : 0 >),state : Instantiated,time : 0 > < 'msd2 : SU | canReject : false,inputs :(< 'v1 : Input | status : Undef,
-    time : 0,contract : r > < 'x1 : Input | status : Undef,time : 0,contract : r > < 'z : Input | status : Undef,time : 0,contract : d >),outputs : < 'fk :
+    time : 0,contract : reactive > < 'x1 : Input | status : Undef,time : 0,contract : reactive > < 'z : Input | status : Undef,time : 0,contract : delayed >),outputs : < 'fk :
     Output | dependsOn :('v1 , 'x1),status : Undef,time : 0 >,state : Instantiated,time : 0 >) . )
 
 
@@ -103,27 +103,27 @@ q
 'msd1 ! 'v1 ==> 'msd2 ! 'v1)(
 'msd1 ! 'x1 ==> 'msd2 ! 'x1)(
 'msd1 ! 'z ==> 'msd2 ! 'z)(
-'msd2 ! 'fk ==> 'msd1 ! 'fk)< 'msd1 : SU | canReject : false,inputs : < 'fk : Input | status : Undef,time : 0,contract : r >,outputs :(< 'v1 :
+'msd2 ! 'fk ==> 'msd1 ! 'fk)< 'msd1 : SU | canReject : false,inputs : < 'fk : Input | status : Undef,time : 0,contract : reactive >,outputs :(< 'v1 :
     Output | dependsOn : empty,status : Undef,time : 0 > < 'x1 : Output | dependsOn : empty,status : Undef,time : 0 > < 'z : Output | dependsOn
     : empty,status : Undef,time : 0 >),state : Instantiated,time : 0 > < 'msd2 : SU | canReject : false,inputs :(< 'v1 : Input | status : Undef,
-    time : 0,contract : r > < 'x1 : Input | status : Undef,time : 0,contract : r > < 'z : Input | status : Undef,time : 0,contract : d >),outputs : < 'fk :
+    time : 0,contract : reactive > < 'x1 : Input | status : Undef,time : 0,contract : reactive > < 'z : Input | status : Undef,time : 0,contract : delayed >),outputs : < 'fk :
     Output | dependsOn :('v1 , 'x1),status : Undef,time : 0 >,state : Instantiated,time : 0 >) . )
 
 (red dfs(('msd1 ! 'fk, 'msd1 ! 'v1, 'msd1 ! 'x1, 'msd1 ! 'z, 'msd2 ! 'fk, 'msd2 ! 'v1, 'msd2 ! 'x1, 'msd2 ! 'z),env(nil,empty,1,('msd1 ! 'fk |-> 0, 'msd1 ! 'v1 |-> 0, 'msd1 ! 'x1 |-> 0, 'msd1 ! 'z |-> 0, 'msd2 ! 'fk |-> 0, 'msd2 ! 'v1 |-> 0, 'msd2 ! 'x1 |-> 0, 'msd2 ! 'z |-> 0)),(
 'msd1 ! 'v1 ==> 'msd2 ! 'v1)(
 'msd1 ! 'x1 ==> 'msd2 ! 'x1)(
 'msd1 ! 'z ==> 'msd2 ! 'z)(
-'msd2 ! 'fk ==> 'msd1 ! 'fk)< 'msd1 : SU | canReject : false,inputs : < 'fk : Input | contract : r,status : Undef,time : 0,value : 0 >,outputs :(< 'v1 : Output | dependsOn : empty,status : Undef,time : 0,value : 0 > < 'x1 : Output | dependsOn : empty,status : Undef,time : 0,value : 0 > < 'z : Output | dependsOn : empty,status : Undef,time : 0,value : 0 >),path : "A", state : Instantiated,time : 0 > < 'msd2 : SU | canReject : false,inputs :(< 'v1 : Input | contract : r,status : Undef,time : 0,value : 0 > < 'x1 : Input | contract : r, status : Undef,time : 0,value : 0 > < 'z : Input | contract : d,status : Undef,time : 0,value : 0 >),outputs : < 'fk : Output | dependsOn :('v1, 'x1),status : Undef,time : 0,value : 0 >,path : "A",  state : Instantiated,time : 0 >) .)
+'msd2 ! 'fk ==> 'msd1 ! 'fk)< 'msd1 : SU | canReject : false,inputs : < 'fk : Input | contract : reactive,status : Undef,time : 0,value : 0 >,outputs :(< 'v1 : Output | dependsOn : empty,status : Undef,time : 0,value : 0 > < 'x1 : Output | dependsOn : empty,status : Undef,time : 0,value : 0 > < 'z : Output | dependsOn : empty,status : Undef,time : 0,value : 0 >),path : "A", state : Instantiated,time : 0 > < 'msd2 : SU | canReject : false,inputs :(< 'v1 : Input | contract : reactive,status : Undef,time : 0,value : 0 > < 'x1 : Input | contract : reactive, status : Undef,time : 0,value : 0 > < 'z : Input | contract : delayed,status : Undef,time : 0,value : 0 >),outputs : < 'fk : Output | dependsOn :('v1, 'x1),status : Undef,time : 0,value : 0 >,path : "A",  state : Instantiated,time : 0 >) .)
 
 
 (red dfs(('msd1 ! 'fk, 'msd1 ! 'v1, 'msd1 ! 'x1, 'msd1 ! 'z, 'msd2 ! 'fk, 'msd2 ! 'v1, 'msd2 ! 'x1, 'msd2 ! 'z),env(nil,empty,1, 0, ('msd1 ! 'fk |-> 0, 'msd1 ! 'v1 |-> 0, 'msd1 ! 'x1 |-> 0, 'msd1 ! 'z |-> 0, 'msd2 ! 'fk |-> 0, 'msd2 ! 'v1 |-> 0, 'msd2 ! 'x1 |-> 0, 'msd2 ! 'z |-> 0)),(
 'msd1 ! 'v1 ==> 'msd2 ! 'v1)(
 'msd1 ! 'x1 ==> 'msd2 ! 'x1)(
 'msd1 ! 'z ==> 'msd2 ! 'z)(
-'msd2 ! 'fk ==> 'msd1 ! 'fk)< 'msd1 : SU | canReject : false,inputs : < 'fk : Input | contract : r,status : Undef,time : 0, value : 0 >,outputs :(< 'v1 : Output | dependsOn : empty,status : Undef,time :
+'msd2 ! 'fk ==> 'msd1 ! 'fk)< 'msd1 : SU | canReject : false,inputs : < 'fk : Input | contract : reactive,status : Undef,time : 0, value : 0 >,outputs :(< 'v1 : Output | dependsOn : empty,status : Undef,time :
     0,value : 0 > < 'x1 : Output | dependsOn : empty,status : Undef,time : 0,value : 0 > < 'z : Output | dependsOn : empty,status : Undef,time : 0,value : 0 >),path : "A",
-    state : Instantiated,time : 0 > < 'msd2 : SU | canReject : false,inputs :(< 'v1 : Input | contract : r,status : Undef,time : 0,value : 0 > < 'x1 : Input | contract : r,status : Undef,time : 0,type :
-    integer,value : 0 > < 'z : Input | contract : d,status : Undef,time : 0,value : 0 >),outputs : < 'fk : Output | dependsOn :('v1, 'x1),status : Undef,time : 0,value : 0 >,path : "A",
+    state : Instantiated,time : 0 > < 'msd2 : SU | canReject : false,inputs :(< 'v1 : Input | contract : reactive,status : Undef,time : 0,value : 0 > < 'x1 : Input | contract : reactive,status : Undef,time : 0,type :
+    integer,value : 0 > < 'z : Input | contract : delayed,status : Undef,time : 0,value : 0 >),outputs : < 'fk : Output | dependsOn :('v1, 'x1),status : Undef,time : 0,value : 0 >,path : "A",
     state : Instantiated,time : 0 >) .)
 
 
@@ -132,12 +132,12 @@ q
 'msd1 ! 'x1 ==> 'msd2 ! 'x1)(
 'msd2 ! 'fk ==> 'msd1 ! 'fk)(
 'msd2 ! 'z ==> 'msd3 ! 'z)(
-'msd3 ! 'G ==> 'msd2 ! 'G)< 'msd1 : SU | canReject : true,inputs : < 'fk : Input | contract : r,status : Undef,time : 0,value : 0 >,
+'msd3 ! 'G ==> 'msd2 ! 'G)< 'msd1 : SU | canReject : true,inputs : < 'fk : Input | contract : reactive,status : Undef,time : 0,value : 0 >,
     outputs :(< 'v1 : Output | dependsOn : empty,status : Undef,time : 0,value : 0 > < 'x1 : Output | dependsOn : empty,status : Undef,
-    time : 0,value : 0 >),path : "A",state : Instantiated,time : 0 > < 'msd2 : SU | canReject : true,inputs :(< 'G : Input | contract : r,
-    status : Undef,time : 0,value : 0 > < 'v1 : Input | contract : r,status : Undef,time : 0,value : 0 > < 'x1 : Input |
-    contract : d,status : Undef,time : 0,value : 0 >),outputs :(< 'fk : Output | dependsOn :('v1, 'x1),status : Undef,time : 0,value : 0 > < 'z : Output | dependsOn : empty,status : Undef,time : 0,value : 0 >),path : "A",state : Instantiated,time : 0 >
-    < 'msd3 : SU | canReject : true,inputs : < 'z : Input | contract : d,status : Undef,time : 0,value : 0 >,outputs : < 'G : Output |
+    time : 0,value : 0 >),path : "A",state : Instantiated,time : 0 > < 'msd2 : SU | canReject : true,inputs :(< 'G : Input | contract : reactive,
+    status : Undef,time : 0,value : 0 > < 'v1 : Input | contract : reactive,status : Undef,time : 0,value : 0 > < 'x1 : Input |
+    contract : delayed,status : Undef,time : 0,value : 0 >),outputs :(< 'fk : Output | dependsOn :('v1, 'x1),status : Undef,time : 0,value : 0 > < 'z : Output | dependsOn : empty,status : Undef,time : 0,value : 0 >),path : "A",state : Instantiated,time : 0 >
+    < 'msd3 : SU | canReject : true,inputs : < 'z : Input | contract : delayed,status : Undef,time : 0,value : 0 >,outputs : < 'G : Output |
     dependsOn : 'z,status : Undef,time : 0,value : 0 >,path : "A",state : Instantiated,time : 0 >) . )
 
 
@@ -148,10 +148,10 @@ q
 'msd1 ! 'x1 ==> 'msd2 ! 'x1)(
 'msd2 ! 'fk ==> 'msd1 ! 'fk)(
 'msd2 ! 'z ==> 'msd3 ! 'z)(
-'msd3 ! 'G ==> 'msd2 ! 'G)< 'msd1 : SU | canReject : true,inputs : < 'fk : Input | contract : r,status : Undef,time : 0,value : 0 >,
+'msd3 ! 'G ==> 'msd2 ! 'G)< 'msd1 : SU | canReject : true,inputs : < 'fk : Input | contract : reactive,status : Undef,time : 0,value : 0 >,
     outputs :(< 'v1 : Output | dependsOn : empty,status : Undef,time : 0,value : 0 > < 'x1 : Output | dependsOn : empty,status : Undef,
-    time : 0,value : 0 >),path : "A",state : Instantiated,time : 0 > < 'msd2 : SU | canReject : true,inputs :(< 'G : Input | contract : r,
-    status : Undef,time : 0,value : 0 > < 'v1 : Input | contract : r,status : Undef,time : 0,value : 0 > < 'x1 : Input |
-    contract : d,status : Undef,time : 0,value : 0 >),outputs :(< 'fk : Output | dependsOn :('v1, 'x1),status : Undef,time : 0,value : 0 > < 'z : Output | dependsOn : empty,status : Undef,time : 0,value : 0 >),path : "A",state : Instantiated,time : 0 >
-    < 'msd3 : SU | canReject : true,inputs : < 'z : Input | contract : d,status : Undef,time : 0,value : 0 >,outputs : < 'G : Output |
+    time : 0,value : 0 >),path : "A",state : Instantiated,time : 0 > < 'msd2 : SU | canReject : true,inputs :(< 'G : Input | contract : reactive,
+    status : Undef,time : 0,value : 0 > < 'v1 : Input | contract : reactive,status : Undef,time : 0,value : 0 > < 'x1 : Input |
+    contract : delayed,status : Undef,time : 0,value : 0 >),outputs :(< 'fk : Output | dependsOn :('v1, 'x1),status : Undef,time : 0,value : 0 > < 'z : Output | dependsOn : empty,status : Undef,time : 0,value : 0 >),path : "A",state : Instantiated,time : 0 >
+    < 'msd3 : SU | canReject : true,inputs : < 'z : Input | contract : delayed,status : Undef,time : 0,value : 0 >,outputs : < 'G : Output |
     dependsOn : 'z,status : Undef,time : 0,value : 0 >,path : "A",state : Instantiated,time : 0 >) .)

@@ -30,7 +30,7 @@ load LOOPSolver
   *** Get case (only on reactive outputs)
   ceq findStep((ID1 , ID2 , SUIDs), 
                     < ID2 : SU | time : TIME, outputs : (< OUTPUT : Output | status : Undef, dependsOn : FEEDTHROUGH > OUTPUTS), inputs : INPUTS1 >
-                    < ID1 : SU | inputs : (< INPUT : Input | contract : r > INPUTS) > (ID2 ! OUTPUT ==> ID1 ! INPUT) CONF, SAVEDCONF, ALGO) = 
+                    < ID1 : SU | inputs : (< INPUT : Input | contract : reactive > INPUTS) > (ID2 ! OUTPUT ==> ID1 ! INPUT) CONF, SAVEDCONF, ALGO) = 
                     findStep((ID1 , ID2 , SUIDs), SUINSTANCE  < ID1 : SU | > (ID2 ! OUTPUT ==> ID1 ! INPUT) CONF, SAVEDCONF, ALGO ; EVENT) 
                     if feedthroughSatisfied(FEEDTHROUGH, INPUTS1, TIME) 
                     /\ SUINSTANCE := getAction(< ID2 : SU | >, OUTPUT)
@@ -38,7 +38,7 @@ load LOOPSolver
 
   *** Set case (only on reactive Inputs)
   ceq findStep((ID1 , ID2 , SUIDs), 
-                      < ID1 : SU | inputs : (< INPUT : Input | time : INPUTTIME, contract : r > INPUTS) > 
+                      < ID1 : SU | inputs : (< INPUT : Input | time : INPUTTIME, contract : reactive > INPUTS) > 
                       < ID2 : SU | outputs : (< OUTPUT : Output | value : VALUE, time : OUTPUTTIME, status : Def > OUTPUTS) > 
                         (ID2 ! OUTPUT ==> ID1 ! INPUT) CONF, SAVEDCONF, ALGO) = 
               findStep((ID1 , ID2 , SUIDs), SUINSTANCE < ID2 : SU | > (ID2 ! OUTPUT ==> ID1 ! INPUT) CONF, SAVEDCONF, ALGO ; EVENT) 

@@ -6,11 +6,12 @@ load Scenario
    op performStepNegotiation : Configuration -> Configuration .
    op performGlobalStep : Configuration -> Configuration .
    op allSUsinSimulation : OidSet Configuration -> Bool .
-   op simulationStepDone : OidSet Configuration -> Bool .
+   op simulationStepDone : OidSet Configuration Nat -> Bool .
    op allSUsinUnloaded : OidSet Configuration -> Bool .
    op initializationDone : OidSet Configuration -> Bool .
   
    vars ID1 ID2 : SUID .
+   var OCH : Oid .
    vars INPUT OUTPUT : PortId .
    vars SUTIME INPUTTIME TIME : Nat .
    var VALUE : FMIValue .
@@ -27,23 +28,22 @@ load Scenario
    var EVENT : Action .
    vars STATE1 STATE2 : fmiState .
 
-  eq simulationStepDone((ID1, SUIDs), < ID1 : SU | time : TIME, inputs : INPUTS, outputs : OUTPUTS > CONF) = TIME > 0 and allDef(INPUTS, TIME) and allDef(OUTPUTS, TIME) and simulationStepDone(SUIDs, CONF) .
-  eq simulationStepDone(empty, CONF) = true .
+  eq simulationStepDone((ID1, SUIDs), < ID1 : SU | time : TIME, inputs : INPUTS, outputs : OUTPUTS > CONF, TIME) = TIME > 0 and allDef(INPUTS, TIME) and allDef(OUTPUTS, TIME) and simulationStepDone(SUIDs, CONF, TIME) .
+  eq simulationStepDone(empty, CONF, TIME) = true .
 
   eq initializationDone((ID1, SUIDs), < ID1 : SU | inputs : INPUTS, outputs : OUTPUTS > CONF) = allDef(INPUTS, 0) and allDef(OUTPUTS, 0) and initializationDone(SUIDs, CONF) .
   eq initializationDone(empty, CONF) = true .
 
-
   *** Step Negotiation
   ceq performStepNegotiation(CONF 
-                        < "Orchestrator" : OrchestrationData | actualStepSize : STEPSIZE, SNSet : SUIDsNE, Algorithm : ALGO > ) = 
-                        < "Orchestrator" : OrchestrationData | actualStepSize : NEGOTIATEDSTEPSIZE, SNSet : empty, Algorithm : (ALGO ; EVENT) > CONF
-                              if STARTCONF := CONF < "Orchestrator" : OrchestrationData | >
+                        < OCH : OrchestrationData | actualStepSize : STEPSIZE, SNSet : SUIDsNE, Algorithm : ALGO > ) = 
+                        < OCH : OrchestrationData | actualStepSize : NEGOTIATEDSTEPSIZE, SNSet : empty, Algorithm : (ALGO ; EVENT) > CONF
+                              if STARTCONF := CONF < OCH : OrchestrationData | >
                               /\ < NEGOTIATEDSTEPSIZE ++ STEPNEGOALGO > := findStep(SUIDsNE, STARTCONF, STARTCONF, emptyList)
                               /\ EVENT := complexEvent: StepNegotiation SaveSUs: SUIDsNE RestoreSUs: SUIDsNE Actions: STEPNEGOALGO .
 
-  eq performStepNegotiation(CONF < "Orchestrator" : OrchestrationData | SNSet : empty > ) 
-                              = CONF < "Orchestrator" : OrchestrationData | > .  
+  eq performStepNegotiation(CONF < OCH : OrchestrationData | SNSet : empty > ) 
+                              = CONF < OCH : OrchestrationData | > .  
 
   *** All SUS are in the simulation fmistate
   eq allSUsinSimulation((ID1, SUIDs), < ID1 : SU | fmistate : STATE > SUS) = STATE == Simulation and allSUsinSimulation(SUIDs, SUS) . 
@@ -67,45 +67,45 @@ load Scenario
   *** FMI-standard fmistate transition:
   *** Initialize all - to have fewer states
   crl [setExp] : { < ID1 : SU | fmistate : Instantiated > CONF
-                  < "Orchestrator" : OrchestrationData | Initialization : ALGO > }
+                   < OCH : OrchestrationData | Initialization : ALGO > }
                  => { moveState(SUIDsNE, < ID1 : SU | > CONF, Instantiated, ExperimentSetup)
-                    < "Orchestrator" : OrchestrationData | Initialization : (ALGO ; (fmiEvent: CreateExp SUs: SUIDsNE)) > }
+                    < OCH : OrchestrationData | Initialization : (ALGO ; (fmiEvent: CreateExp SUs: SUIDsNE)) > }
                 if SUIDsNE := getSUIDsOfScenario(< ID1 : SU | > CONF) .
 
 
   crl [init] : { < ID1 : SU | fmistate : ExperimentSetup > CONF
-                  < "Orchestrator" : OrchestrationData | Initialization : ALGO > } 
+                  < OCH : OrchestrationData | Initialization : ALGO > } 
            => { moveToInitialize(SUIDsNE, < ID1 : SU | > CONF)
-                    < "Orchestrator" : OrchestrationData | Initialization : (ALGO ; EVENT) > } 
+                    < OCH : OrchestrationData | Initialization : (ALGO ; EVENT) > } 
           if SUIDsNE := getSUIDsOfScenario(< ID1 : SU | > CONF)
           /\ EVENT := fmiEvent: EnterInitialization SUs: SUIDsNE .
            
 
   crl [simulate] : { < ID1 : SU | fmistate : Initialize > CONF
-                    < "Orchestrator" : OrchestrationData | Initialization : ALGO, valuesToSet : empty > } 
+                    < OCH : OrchestrationData | Initialization : ALGO, valuesToSet : empty > } 
                 => { moveState(SUIDsNE, < ID1 : SU | > CONF, Initialize, Simulation)
-                    < "Orchestrator" : OrchestrationData | Initialization : (ALGO ; EVENT) > }
+                    < OCH : OrchestrationData | Initialization : (ALGO ; EVENT) > }
                 if SUIDsNE := getSUIDsOfScenario(< ID1 : SU | > CONF)
                 /\ initializationDone(SUIDsNE, < ID1 : SU | fmistate : Initialize > CONF)
                 /\ EVENT := fmiEvent: ExitInitialization SUs: SUIDsNE .
 
-  crl [terminate] : { < ID1 : SU | time : ENDTIME, inputs : INPUTS , outputs : OUTPUTS , fmistate : Simulation > CONF
-                  < "Orchestrator" : OrchestrationData | Termination : ALGO, endTime : ENDTIME > }
+  crl [terminate] : { < ID1 : SU | time : ENDTIME, fmistate : Simulation > CONF
+                  < OCH : OrchestrationData | Termination : ALGO, endTime : ENDTIME > }
                  => { moveState(SUIDsNE, < ID1 : SU | > CONF, Simulation, Terminated)
-                  < "Orchestrator" : OrchestrationData | Termination : (ALGO ; (fmiEvent: Terminate SUs: SUIDsNE)) > } 
-                 if allDef(OUTPUTS, ENDTIME) and allDef(INPUTS, ENDTIME)
-                 /\ SUIDsNE := getSUIDsOfScenario(< ID1 : SU | > CONF) .
+                  < OCH : OrchestrationData | Termination : (ALGO ; (fmiEvent: Terminate SUs: SUIDsNE)) > } 
+                 if SUIDsNE := getSUIDsOfScenario(< ID1 : SU | > CONF)
+                 /\ simulationStepDone(SUIDsNE, < ID1 : SU | > CONF, ENDTIME) .
 
   crl [free] : { < ID1 : SU | fmistate : Terminated > CONF
-                  < "Orchestrator" : OrchestrationData | Termination : ALGO > }
+                  < OCH : OrchestrationData | Termination : ALGO > }
                  => { moveState(SUIDsNE, < ID1 : SU | > CONF, Terminated, InstanceFreed)
-                  < "Orchestrator" : OrchestrationData | Termination : (ALGO ; (fmiEvent: FreeInstance SUs: SUIDsNE)) > } 
+                  < OCH : OrchestrationData | Termination : (ALGO ; (fmiEvent: FreeInstance SUs: SUIDsNE)) > } 
                   if SUIDsNE := getSUIDsOfScenario(< ID1 : SU | > CONF) .
 
   crl [unload] : { < ID1 : SU | fmistate : InstanceFreed > CONF
-                  < "Orchestrator" : OrchestrationData | Termination : ALGO > }
+                  < OCH : OrchestrationData | Termination : ALGO > }
                  => { moveState(SUIDsNE, < ID1 : SU | > CONF, InstanceFreed, Unloaded)
-                  < "Orchestrator" : OrchestrationData | Termination : (ALGO ; (fmiEvent: Unload SUs: SUIDsNE)) > }
+                  < OCH : OrchestrationData | Termination : (ALGO ; (fmiEvent: Unload SUs: SUIDsNE)) > }
                 if SUIDsNE := getSUIDsOfScenario(< ID1 : SU | > CONF) .
 
   *** Error handling in Maude
@@ -115,28 +115,28 @@ load Scenario
   *** Set input          
   *** Reactive           
   ceq performGlobalStep(CONF < ID1 : SU | time : SUTIME, inputs : (< INPUT : Input | time : INPUTTIME, contract : reactive > INPUTS) > 
-          < "Orchestrator" : OrchestrationData | Algorithm : ALGO, valuesToSet : (((ID1 ! INPUT) |-> < TIME ; VALUE >), PORTVALUES) >) = 
+          < OCH : OrchestrationData | Algorithm : ALGO, valuesToSet : (((ID1 ! INPUT) |-> < TIME ; VALUE >), PORTVALUES) >) = 
       performGlobalStep(CONF SUINSTANCE 
-            < "Orchestrator" : OrchestrationData | Algorithm : (ALGO ; EVENT), valuesToSet : PORTVALUES >)
+            < OCH : OrchestrationData | Algorithm : (ALGO ; EVENT), valuesToSet : PORTVALUES >)
             if TIME > INPUTTIME and INPUTTIME == SUTIME   
             /\ SUINSTANCE := < ID1 : SU | inputs : (< INPUT : Input | value : VALUE, time : TIME > INPUTS) >
             /\ EVENT := portEvent: Set SU: ID1 PId: INPUT .
 
   *** Delayed           
   ceq performGlobalStep(CONF < ID1 : SU | time : SUTIME, inputs : (< INPUT : Input | time : INPUTTIME, contract : delayed > INPUTS) > 
-      < "Orchestrator" : OrchestrationData | Algorithm : ALGO, valuesToSet : (((ID1 ! INPUT) |-> < TIME ; VALUE >), PORTVALUES) >) = 
+      < OCH : OrchestrationData | Algorithm : ALGO, valuesToSet : (((ID1 ! INPUT) |-> < TIME ; VALUE >), PORTVALUES) >) = 
       performGlobalStep(CONF SUINSTANCE 
-            < "Orchestrator" : OrchestrationData | Algorithm : (ALGO ; EVENT), valuesToSet : PORTVALUES >)
+            < OCH : OrchestrationData | Algorithm : (ALGO ; EVENT), valuesToSet : PORTVALUES >)
             if TIME == SUTIME and INPUTTIME < SUTIME   
                 /\ SUINSTANCE := < ID1 : SU | inputs : (< INPUT : Input | value : VALUE, time : TIME > INPUTS) >
                 /\ EVENT := portEvent: Set SU: ID1 PId: INPUT .
 
   *** Step
   ceq performGlobalStep(CONF < ID1 : SU | time : TIME, inputs : INPUTS, outputs : OUTPUTS > 
-    < "Orchestrator" : OrchestrationData | Algorithm : ALGO, actualStepSize : STEPSIZE, endTime : ENDTIME >)
+    < OCH : OrchestrationData | Algorithm : ALGO, actualStepSize : STEPSIZE, endTime : ENDTIME >)
       = 
       performGlobalStep(CONF SUINSTANCE 
-              < "Orchestrator" : OrchestrationData | Algorithm : (ALGO ; EVENT) > )
+              < OCH : OrchestrationData | Algorithm : (ALGO ; EVENT) > )
                         if FUTURETIME := TIME + STEPSIZE 
                         /\ canStep(TIME, FUTURETIME, INPUTS, OUTPUTS) and FUTURETIME <= ENDTIME 
                         /\ SUINSTANCE := stepAction(< ID1 : SU | >, STEPSIZE)
@@ -144,10 +144,10 @@ load Scenario
 
   *** Get
   ceq performGlobalStep(CONF < ID1 : SU | outputs : (< OUTPUT : Output | time : TIME, status : Undef, value : VALUE, dependsOn : FEEDTHROUGH > OUTPUTS), inputs : INPUTS >  
-  < "Orchestrator" : OrchestrationData | Algorithm : ALGO, valuesToSet : PORTVALUES > 
+  < OCH : OrchestrationData | Algorithm : ALGO, valuesToSet : PORTVALUES > 
         (ID1 ! OUTPUT ==> ID2 ! INPUT)) =
     performGlobalStep(CONF SUINSTANCE 
-      < "Orchestrator" : OrchestrationData | Algorithm : (ALGO ; EVENT), valuesToSet : insert((ID2 ! INPUT), < TIME ; VALUE >, PORTVALUES) >)
+      < OCH : OrchestrationData | Algorithm : (ALGO ; EVENT), valuesToSet : insert((ID2 ! INPUT), < TIME ; VALUE >, PORTVALUES) >)
               if feedthroughSatisfied(FEEDTHROUGH, INPUTS, TIME)
                 /\ SUINSTANCE := < ID1 : SU | outputs : (< OUTPUT : Output | status : Def > OUTPUTS) >
                 /\ EVENT := portEvent: Get SU: ID1 PId: OUTPUT . 
@@ -155,17 +155,19 @@ load Scenario
 
   *** Algebraic Loop - solve and remove loop
   eq performGlobalStep(CONF 
-      < "Orchestrator" : OrchestrationData | unsolvedSCC : (LOOP , LOOPS), solvedSCC : SOLVEDLOOPS > ) = 
+      < OCH : OrchestrationData | unsolvedSCC : (LOOP , LOOPS), solvedSCC : SOLVEDLOOPS > ) = 
     performGlobalStep(
-      solveLoop(CONF < "Orchestrator" : OrchestrationData | unsolvedSCC : LOOPS, solvedSCC : (LOOP , SOLVEDLOOPS) >, LOOP)) [owise] .
+      solveLoop(CONF < OCH : OrchestrationData | unsolvedSCC : LOOPS, solvedSCC : (LOOP , SOLVEDLOOPS) >, LOOP)) [owise] .
 
-  *** Return the configuration is the simulation is done
-  ceq performGlobalStep(CONF) = CONF
+  *** Return the configuration is the simulation is done and update the simulation time
+  ceq performGlobalStep(CONF
+        < OCH : OrchestrationData | simulationTime : TIME, actualStepSize : STEPSIZE >) = 
+        CONF < OCH : OrchestrationData | simulationTime : FUTURETIME >
     if SUIDsNE := getSUIDsOfScenario(CONF)
-    /\ simulationStepDone(SUIDsNE, CONF) .
+    /\ FUTURETIME := TIME + STEPSIZE
+    /\ simulationStepDone(SUIDsNE, CONF, FUTURETIME) .
 
 
-  
   *** Reset and start over if the endtime is not reached, reset loopsSolver and StepNegotiation
   ***ceq performGlobalStep(CONF endTime: ENDTIME) = CONF endTime: ENDTIME
   ***  if simulationStepDone(CONF) and endTime: ENDTIME .
@@ -180,41 +182,41 @@ load Scenario
               < ID1 : SU | fmistate : Initialize, inputs : INPUTS, 
                 outputs : (< OUTPUT : Output | status : Undef, value : VALUE, dependsOn : FEEDTHROUGH > OUTPUTS) > 
                       (ID1 ! OUTPUT ==> ID2 ! INPUT)
-                      < "Orchestrator" : OrchestrationData | Initialization : ALGO, valuesToSet : PORTVALUES > 
+                      < OCH : OrchestrationData | Initialization : ALGO, valuesToSet : PORTVALUES > 
                   => < ID1 : SU | outputs : (< OUTPUT : Output | status : Def > OUTPUTS) > 
                       (ID1 ! OUTPUT ==> ID2 ! INPUT)
-                      < "Orchestrator" : OrchestrationData | Initialization : (ALGO ; EVENT), valuesToSet : insert((ID2 ! INPUT), < 0 ; VALUE >, PORTVALUES) >  
+                      < OCH : OrchestrationData | Initialization : (ALGO ; EVENT), valuesToSet : insert((ID2 ! INPUT), < 0 ; VALUE >, PORTVALUES) >  
                 if feedthroughSatisfied(FEEDTHROUGH, INPUTS, 0)
                   /\ EVENT := portEvent: Get SU: ID1 PId: OUTPUT . 
 
   crl [set-init] : < ID1 : SU | inputs : (< INPUT : Input | status : Undef > INPUTS), fmistate : Initialize > 
-        < "Orchestrator" : OrchestrationData | Initialization : ALGO, valuesToSet : (((ID1 ! INPUT) |-> < TIME ; VALUE >), PORTVALUES) >
+        < OCH : OrchestrationData | Initialization : ALGO, valuesToSet : (((ID1 ! INPUT) |-> < TIME ; VALUE >), PORTVALUES) >
               => < ID1 : SU | inputs : (< INPUT : Input | status : Def, value : VALUE > INPUTS ) >
-                  < "Orchestrator" : OrchestrationData | Initialization : (ALGO ; EVENT), valuesToSet : PORTVALUES >
+                  < OCH : OrchestrationData | Initialization : (ALGO ; EVENT), valuesToSet : PORTVALUES >
                       if EVENT := portEvent: Set SU: ID1 PId: INPUT .
 
   ***rl [init-loop] : CONF unsolvedSCC: (L ;; LOOPS) => solveLoop(CONF unsolvedSCC: LOOPS, L) .                 
 
   ***If the scenario contains SUS that require step negotiation
   ***The step negotiation
-  crl [stepNego] : { CONF  < "Orchestrator" : OrchestrationData | SNSet : SUIDsNE > } => 
-          { performStepNegotiation(CONF < "Orchestrator" : OrchestrationData | > ) }
+  crl [stepNego] : { CONF  < OCH : OrchestrationData | SNSet : SUIDsNE > } => 
+          { performStepNegotiation(CONF < OCH : OrchestrationData | > ) }
           if allSUsinSimulation(getSUIDsOfScenario(CONF), CONF) .
  
 
-  crl [simulationStep]: { CONF < "Orchestrator" : OrchestrationData | SNSet : empty > } => 
-          { performGlobalStep(CONF < "Orchestrator" : OrchestrationData | > ) }
-          if allSUsinSimulation(getSUIDsOfScenario(CONF), CONF) .
+  crl [simulationStep]: { CONF < OCH : OrchestrationData | SNSet : empty, simulationTime : TIME, endTime : ENDTIME > } => 
+          { performGlobalStep(CONF < OCH : OrchestrationData | > ) }
+          if allSUsinSimulation(getSUIDsOfScenario(CONF), CONF) and TIME < ENDTIME .
 
   op init : -> GlobalState .
   eq init = { scenario(externalConnection, simulationUnits) } .
 
-  op initialState : Configuration -> Bool .
-  eq initialState(CONF < "Orchestrator" : OrchestrationData | >) = false .
-  eq initialState(CONF) = true [owise] .
+  op isInitialState : Configuration -> Bool .
+  eq isInitialState(CONF < OCH : OrchestrationData | >) = false .
+  eq isInitialState(CONF) = true [owise] .
 
   crl [getAlgortihm]: { SCENARIOMODEL } => { CONF1 }
-      if initialState(SCENARIOMODEL)
+      if isInitialState(SCENARIOMODEL)
       /\ LOOPS := tarjan(SCENARIOMODEL)
       /\ CONF := calculateSNSet(SCENARIOMODEL initialOrchestrationData(1,1,LOOPS)) 
       /\ {CONF} => { CONF1 } 
@@ -228,7 +230,7 @@ eof
 (show all .)
 q 
 
-( red initialState(("ctrl" ! "valveState" ==> "tank" ! "valveState")(
+( red isInitialState(("ctrl" ! "valveState" ==> "tank" ! "valveState")(
 "tank" ! "waterlevel" ==> "ctrl" ! "waterlevel")< "ctrl" : SU | canReject : false,fmistate : Instantiated,inputs : < "waterlevel" : Input | contract :
     delayed,status : Undef,time : 0,type : integer,value : < 0 > >,outputs : < "valveState" : Output | dependsOn : empty,status : Undef,time : 0,type :
     integer,value : < 0 > >,parameters : none,path : "",time : 0 > < "tank" : SU | canReject : false,fmistate : Instantiated,inputs : < "valveState" :

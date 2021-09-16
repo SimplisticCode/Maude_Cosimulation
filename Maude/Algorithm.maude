@@ -50,7 +50,8 @@ class OrchestrationData |
     unsolvedSCC : AlgebraicLoopSet,
     solvedSCC : AlgebraicLoopSet,
     guessOn : PortSet,
-    valuesToSet : PortValueMap .
+    valuesToSet : PortValueMap,
+    simulationTime : Nat .
 
  var ID : SUID .
  var SUSet : OidSet .
@@ -81,7 +82,8 @@ class OrchestrationData |
       unsolvedSCC : LOOPS,
       solvedSCC : empty,
       guessOn : empty,
-      valuesToSet : empty > .
+      valuesToSet : empty,
+      simulationTime : 0 > .
 
 endom)
 

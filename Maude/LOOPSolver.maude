@@ -13,6 +13,7 @@ load SimulationUnit
     op solveLoopConf : Configuration AlgebraicLoop -> Configuration .
     op solveLoopAlgorithm : Configuration AlgebraicLoop -> ActionList .
 
+    var OCH : Oid .
     var LOOPS : AlgebraicLoopSet .  
     var LOOPTYPE : LoopType .
     vars CONF OUTPUTS INPUTS CONF1 : Configuration .
@@ -39,9 +40,9 @@ load SimulationUnit
    eq containsCycle(empty) = false .
    eq containsCycle(LOOPS) = true [owise] .
 
-   ceq solveLoop(CONF < "Orchestrator" : OrchestrationData | Algorithm : ALGO > , 
+   ceq solveLoop(CONF < OCH : OrchestrationData | Algorithm : ALGO > , 
           AlgebraicLoop: PSet Type: LOOPTYPE) = 
-        CONF1 < "Orchestrator" : OrchestrationData | Algorithm : (ALGO ; EVENT) >
+        CONF1 < OCH : OrchestrationData | Algorithm : (ALGO ; EVENT) >
         if < LOOPSOLVINGALGO ; CONF1 > := loopStep(PSet, breakLoop(PSet, CONF, LOOPTYPE), emptyList)
         /\ SUIDS := getSUs(PSet, empty) 
         /\ EVENT := complexEvent: Loop SaveSUs: SUIDS RestoreSUs: SUIDS Actions: LOOPSOLVINGALGO .
@@ -57,9 +58,9 @@ load SimulationUnit
                      < ID1 : SU | inputs : (< INPUT : Input | contract : CONTRACT > INPUTS) > 
                      < ID2 : SU | outputs : (< OUTPUT : Output | > OUTPUTS) > 
                      (ID2 ! OUTPUT ==> ID1 ! INPUT) 
-                     < "Orchestrator" : OrchestrationData | guessOn : GSet > CONF, LOOPTYPE) = 
+                     < OCH : OrchestrationData | guessOn : GSet > CONF, LOOPTYPE) = 
                         breakLoop(((ID1 ! INPUT) , PSet), < ID1 : SU | > < ID2 : SU | > 
-                        < "Orchestrator" : OrchestrationData | guessOn : ((ID1 ! INPUT) , GSet) > CONF, LOOPTYPE) 
+                        < OCH : OrchestrationData | guessOn : ((ID1 ! INPUT) , GSet) > CONF, LOOPTYPE) 
                         if (LOOPTYPE == reactivity and CONTRACT == reactive) or (LOOPTYPE == feedthrough and CONTRACT == delayed) .
 
     eq breakLoop(PSet, CONF, LOOPTYPE) = CONF [owise] .
@@ -68,9 +69,9 @@ load SimulationUnit
     *** Set value using Guess
     ceq loopStep(((ID1 ! INPUT) , PSet), 
                     < ID1 : SU | time : TIME, inputs : (< INPUT : Input | time : T1, contract : CONTRACT > INPUTS) >
-                      < "Orchestrator" : OrchestrationData | guessOn : ((ID1 ! INPUT) , GSet), actualStepSize : STEP > 
+                      < OCH : OrchestrationData | guessOn : ((ID1 ! INPUT) , GSet), actualStepSize : STEP > 
                       CONF, ALGO) = 
-            loopStep(PSet, SUINSTANCE < "Orchestrator" : OrchestrationData | guessOn : GSet > CONF, (ALGO ; EVENT)) 
+            loopStep(PSet, SUINSTANCE < OCH : OrchestrationData | guessOn : GSet > CONF, (ALGO ; EVENT)) 
                     if VALUE := < random(TIME) >
                     /\ FUTURETIME := T1 + STEP
                     /\ SUINSTANCE := < ID1 : SU | time : TIME, inputs : (< INPUT : Input | time : FUTURETIME, value : VALUE > INPUTS) >  
@@ -96,9 +97,9 @@ load SimulationUnit
 
     *** Step
     ceq loopStep(((ID1 ! OUTPUT) , PSet), < ID1 : SU | time : TIME, outputs : OUTPUTS, inputs : INPUTS > 
-     < "Orchestrator" : OrchestrationData | actualStepSize : STEP > 
+     < OCH : OrchestrationData | actualStepSize : STEP > 
  CONF, ALGO) = 
-                  loopStep(((ID1 ! OUTPUT) , PSet), SUINSTANCE < "Orchestrator" : OrchestrationData | > CONF, (ALGO ; EVENT))
+                  loopStep(((ID1 ! OUTPUT) , PSet), SUINSTANCE < OCH : OrchestrationData | > CONF, (ALGO ; EVENT))
                   if EVENT := stepEvent: ID1 StepSize: STEP
                   /\ SUINSTANCE := stepAction(< ID1 : SU | >, STEP) 
                   /\ FUTURETIME := TIME + STEP

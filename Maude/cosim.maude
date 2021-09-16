@@ -216,8 +216,9 @@ load Scenario
   op init : -> GlobalState .
   eq init = { scenario(externalConnection, simulationUnits) } .
 
-  op initConfiguration : -> Configuration .
+  ops initConfiguration initConfigurationUninstrumented : -> Configuration .
   eq initConfiguration = scenario(externalConnection, simulationUnits) .
+  eq initConfigurationUninstrumented = scenario(externalConnection, simulationUnitsNotInstrumented) .
 
   op isInitialState : Configuration -> Bool .
   eq isInitialState(CONF < OCH : OrchestrationData | >) = false .

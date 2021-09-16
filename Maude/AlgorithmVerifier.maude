@@ -33,18 +33,22 @@ load cosim
     
     *** Everything that takes something frozen into something static should be frozen
     op allConstraintsDefined : Configuration -> Bool [frozen] .
-    eq allConstraintsDefined(< ID1 : SU | inputs : (< INPUT : Input | contract : noContract > INPUTS) > CONF) = false [owise] .
+    eq allConstraintsDefined(< ID1 : SU | inputs : (< INPUT : Input | contract : noContract > INPUTS) > CONF) = false .
     eq allConstraintsDefined(CONF) = true [owise] .
 
-    rl [insr-delayed]: findInstr(< ID1 : SU | inputs : (< INPUT : Input | contract : noContract > INPUTS) >)  =>
-                       findInstr(< ID1 : SU | inputs : (< INPUT : Input | contract : delayed > INPUTS) >) .
+    rl [insr-delayed]: findInstr(< ID1 : SU | inputs : (< INPUT : Input | contract : noContract > INPUTS) > CONF)
+                     =>
+                       findInstr(< ID1 : SU | inputs : (< INPUT : Input | contract : delayed > INPUTS) > CONF) .
 
-    rl [insr-reactive]: findInstr(< ID1 : SU | inputs : (< INPUT : Input | contract : noContract > INPUTS) >)  =>
-                        findInstr(< ID1 : SU | inputs : (< INPUT : Input | contract : reactive > INPUTS) >) .
+    rl [insr-reactive]: findInstr(< ID1 : SU | inputs : (< INPUT : Input | contract : noContract > INPUTS) > CONF)
+                         =>
+                        findInstr(< ID1 : SU | inputs : (< INPUT : Input | contract : reactive > INPUTS) > CONF) .
 
     crl [remove-findInstr]: findInstr(CONF) => CONF 
         if allConstraintsDefined(CONF) .
 
+    ***op findInst( )
+    ***ceq findInst()
         
     *** Find an implementation such that when it runs the algortihm it satisfies the property X
     ***op synthesizeInstrumentation : 
@@ -54,7 +58,7 @@ load cosim
         /\ positive(CONF1) .
 
     op positive : Configuration -> Bool .
-    eq positive(CONF < "ctrl" : SU | inputs : (< "waterlevel" : Input | value : < NATVALUE > > INPUTS) >) = NATVALUE >= 0 .
+    eq positive(CONF < "ctrl" : SU | inputs : (< "waterlevel" : Input | value : < NATVALUE > > INPUTS) >) = NATVALUE < 0 .
         
   *** FMI-standard fmistate transition:
   rl [setExp] : run: < OCH : OrchestrationData | Initialization : ((fmiEvent: CreateExp SUs: SUIDsNE) ; RESTALGORITHM) > on: < ID1 : SU | fmistate : Instantiated > CONF  
@@ -173,6 +177,12 @@ on: (("ctrl" ! "valveState" ==> "tank" ! "valveState")(
     ) .)
 
 
+*** find Insrumentations
+( search findConst(initConfiguration) =>! C:Configuration . )
+( frew findConst(initConfigurationUninstrumented) . )
+
+( search findConst(initConfigurationUninstrumented) =>! C:Configuration . )
+
 *** Deterministic
 *** Go from an initial configuration to search for  
 ***Run any algorithm - show determinism
@@ -194,4 +204,12 @@ on: (("ctrl" ! "valveState" ==> "tank" ! "valveState")(
                 => Algorithm: RESTALGORITHM  .
      
 
+
+(frew findInstr(< "ctrl" : SU | canReject : false,fmistate : Instantiated,inputs : < "waterlevel" : Input |
+    contract : noContract,status : Undef,time : 0,type : integer,value : < 0 > >,outputs : < "valveState" : Output | dependsOn : empty,
+    status : Undef,time : 0,type : integer,value : < 0 > >,parameters : none,path : "",time : 0 >
+     < "tank" : SU | canReject : false,fmistate
+    : Instantiated,inputs : < "valveState" : Input | contract : noContract,status : Undef,time : 0,type : integer,value : < 0 > >,outputs :
+    < "waterlevel" : Output | dependsOn : empty,status : Undef,time : 0,type : integer,value : < 0 > >,parameters : none,path : "",time : 0
+    >) .)
 endom)

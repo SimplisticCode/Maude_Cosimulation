@@ -7,7 +7,7 @@ load ScenarioAnalyser
   *** Definition of the scenario
   *** External Connections - all ports have unique name
   op externalConnection : ->  Configuration .    
-  op simulationUnits : -> Configuration .      *** SUs - ID * input ports * and outputs
+  ops simulationUnitsNotInstrumented simulationUnits : -> Configuration .      *** SUs - ID * input ports * and outputs
   op scenario : Configuration Configuration -> Configuration . 
   op validScenario : Configuration Configuration -> Bool .
   op setup : -> GlobalState .
@@ -61,6 +61,11 @@ load ScenarioAnalyser
 eq externalConnection = ("tank" ! "waterlevel" ==> "ctrl" ! "waterlevel") ("ctrl" ! "valveState" ==> "tank" ! "valveState") .
 
 eq simulationUnits = (< "tank" : SU | path : "", parameters : none , time : 0, inputs : (< "valveState" : Input | value : < 0 >, type : integer, time : 0, contract : delayed, status : Undef  >), outputs : (< "waterlevel" : Output | value : < 0 >, type : integer, time : 0, status : Undef, dependsOn : empty >), fmistate : Instantiated, canReject : false >)
+
+  (< "ctrl" : SU | path : "", parameters : none , time : 0, inputs : (< "waterlevel" : Input | value : < 0 >, type : integer, time : 0, contract : delayed, status : Undef  >), outputs : (< "valveState" : Output | value : < 0 >, type : integer, time : 0, status : Undef, dependsOn : empty >), fmistate : Instantiated, canReject : false >) .
+
+
+eq simulationUnitsNotInstrumented = (< "tank" : SU | path : "", parameters : none , time : 0, inputs : (< "valveState" : Input | value : < 0 >, type : integer, time : 0, contract : noContract, status : Undef  >), outputs : (< "waterlevel" : Output | value : < 0 >, type : integer, time : 0, status : Undef, dependsOn : empty >), fmistate : Instantiated, canReject : false >)
 
   (< "ctrl" : SU | path : "", parameters : none , time : 0, inputs : (< "waterlevel" : Input | value : < 0 >, type : integer, time : 0, contract : delayed, status : Undef  >), outputs : (< "valveState" : Output | value : < 0 >, type : integer, time : 0, status : Undef, dependsOn : empty >), fmistate : Instantiated, canReject : false >) .
 

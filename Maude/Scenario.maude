@@ -29,6 +29,7 @@ load ScenarioAnalyser
   var STEPSIZE : NzNat .
   var VALUE : FMIValue .
   var FMIVALUESET : FMIValueSet .
+  var PORTSTATUS : PortStatus .
 
   eq getSUsOfScenario(< ID1 : SU | > CONF) = < ID1 : SU | > getSUsOfScenario(CONF) .
   eq getSUsOfScenario(CONF) = none [owise] .
@@ -87,12 +88,11 @@ eq simulationUnitsNotInitialized =
 
 (< "ctrl" : SU | path : "", parameters : (("high" |-> choose((< 100 >,< 5 >))) , ("low" |-> < 0 >)), localState : ( "valve" |-> < false >), time : 0, inputs : (< "waterlevel" : Input | value : < 0 >, type : integer, time : 0, contract : delayed, status : Undef  >), outputs : (< "valveState" : Output | value : < 0 >, type : integer, time : 0, status : Undef, dependsOn : empty >), fmistate : Instantiated, canReject : false >) .
 
-
 *** COULD be Stream lined
 *** Todo make Dostep for the different SUs
 eq step(< "ctrl" : SU | time : TIME, parameters : (("high" |-> < HIGH >) , ("low" |-> < LOW >)), 
                       inputs : < "waterlevel" : Input | value : < NATVALUE > >, 
-                      outputs : < "valveState" : Output | value : < VALVESTATE >, time : TIME, status : Def >,
+                      outputs : < "valveState" : Output | value : < VALVESTATE >, time : TIME, status : PORTSTATUS >,
                       localState : ( "valve" |-> < false > ) >,
                       STEPSIZE) = 
   if NATVALUE > HIGH then
@@ -110,7 +110,7 @@ fi .
 
 eq step(< "tank" : SU | time : TIME, parameters : ("flow" |-> < NATVALUE >), 
                       inputs : < "valveState" : Input | value : < VALVESTATE > >, 
-                      outputs : < "waterlevel" : Output | value : < WATERLEVELOUT >, time : TIME, status : Def >,
+                      outputs : < "waterlevel" : Output | value : < WATERLEVELOUT >, time : TIME, status : PORTSTATUS >,
                       localState : ( "waterlevel" |-> < WATERLEVEL > ) >,
                       STEPSIZE) = 
   if VALVESTATE == 1 then 

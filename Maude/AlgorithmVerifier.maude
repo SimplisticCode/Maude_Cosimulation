@@ -5,11 +5,11 @@ load cosim
     sorts SimulationState InstrumentationState .
     var OCH : Oid .
     vars RESTALGORITHM ALGO STEPNEGOALGO : ActionList .
-    vars OUTPUTS INPUTS CONF CONF1 INITSTATE STATE : Configuration .
+    vars OUTPUTS INPUTS CONF CONF1 INITSTATE STATE FINALSTATE : Configuration .
     vars OUTPUT INPUT : PortId .
     vars ID1 ID2 : SUID . 
     vars STEPSIZE FUTURETIME NEGOTIATEDSTEPSIZE ENDTIME : NzNat .
-    vars TIME SUTIME INPUTTIME NATVALUE : Nat .
+    vars TIME SUTIME INPUTTIME NATVALUE ITERATION : Nat .
     var VALUE : FMIValue .
     var PORTVALUES : PortValueMap .
     vars FEEDTHROUGH SUIDs : OidSet .
@@ -19,7 +19,16 @@ load cosim
     var LOOPS : AlgebraicLoopSet .
     var UNITIALIZEDCONF : [Configuration] .
 
+    ***
+    op runs_on_ : Nat Configuration -> SimulationState [ctor] . 
 
+    crl [run-iteration]: runs s ITERATION on INITSTATE =>
+        runs ITERATION on FINALSTATE 
+        if runAnyAlgorithm INITSTATE => 
+            run: < OCH : OrchestrationData | Initialization : emptyList, Algorithm : emptyList, Termination : emptyList, ATTS:AttributeSet > 
+            on: FINALSTATE .
+
+    *** Not to be touched!
     op run:_on:_ : Object Configuration -> SimulationState [ctor]. 
     op runAnyAlgorithm_ : Configuration -> SimulationState [ctor] .
     crl [runAnyAlg] : runAnyAlgorithm INITSTATE => run: ORCHESTRATOR on: INITSTATE 
@@ -73,7 +82,7 @@ load cosim
     /\ above10(CONF1) .
 
   op above10 : Configuration -> Bool .
-  eq above10(CONF < "tank" : SU | localState : ( "waterlevel" |-> < NATVALUE >) >) = NATVALUE > 100 .
+  eq above10(CONF < "tank" : SU | localState : ( "waterlevel" |-> < NATVALUE >) >) = NATVALUE > 10 .
 
         
   *** FMI-standard fmistate transition:
@@ -134,7 +143,7 @@ load cosim
     crl [get] : 
     run: < OCH : OrchestrationData | Algorithm : ((portEvent: Get SU: ID1 PId: OUTPUT) ; RESTALGORITHM), valuesToSet : PORTVALUES >
     on: CONF
-     < ID1 : SU | outputs : (< OUTPUT : Output | time : TIME, status : Undef, value : VALUE, dependsOn : FEEDTHROUGH > OUTPUTS), inputs : INPUTS > 
+     < ID1 : SU | outputs : (< OUTPUT : Output | time : TIME, value : VALUE, dependsOn : FEEDTHROUGH > OUTPUTS), inputs : INPUTS > 
                 ( ID1 ! OUTPUT ==> ID2 ! INPUT)  
                 => 
     run: < OCH : OrchestrationData | Algorithm : RESTALGORITHM, valuesToSet : (((ID2 ! INPUT) |-> < TIME ; VALUE >), PORTVALUES) >
@@ -162,6 +171,9 @@ load cosim
 
 endom)
     eof
+
+
+    (frew runs 3 on initConfiguration .)
 
 *** Design Space Exploration
 (frew runAnyAlgorithm initConfDSE .)
@@ -235,3 +247,24 @@ on: (("ctrl" ! "valveState" ==> "tank" ! "valveState")(
     < "waterlevel" : Output | dependsOn : empty,status : Undef,time : 0,type : integer,value : < 0 > >,parameters : none,path : "",time : 0
     >) .)
 endom)
+
+
+(frew run: < "Orchestrator" : OrchestrationData | Algorithm :((
+stepEvent: "ctrl" StepSize: 1);(
+portEvent: Get SU: "ctrl" PId: "valveState");(
+stepEvent: "tank" StepSize: 1);(
+portEvent: Get SU: "tank" PId: "waterlevel");(
+portEvent: Set SU: "ctrl" PId: "waterlevel");
+portEvent: Set SU: "tank" PId: "valveState"),Initialization : emptyList,SNSet : empty,Termination :((
+fmiEvent: Terminate SUs:("ctrl", "tank"));(
+fmiEvent: FreeInstance SUs:("ctrl", "tank"));
+fmiEvent: Unload SUs:("ctrl", "tank")),actualStepSize : 1,defaultStepSize : 1,endTime : 2,guessOn : empty,simulationTime : 2,
+    solvedSCC : empty,unsolvedSCC : empty,valuesToSet : empty > on:(
+"ctrl" ! "valveState" ==> "tank" ! "valveState")(
+"tank" ! "waterlevel" ==> "ctrl" ! "waterlevel")< "ctrl" : SU | canReject : false,fmistate : Simulation,inputs : < "waterlevel" :
+    Input | contract : delayed,status : Def,time : 1,type : integer,value : < 100 > >,localState : "valve" |-> < true >,outputs :
+    < "valveState" : Output | dependsOn : empty,status : Def,time : 1,type : integer,value : < 1 > >,parameters :("high" |-> < 5
+    >, "low" |-> < 0 >),path : "",time : 1 > < "tank" : SU | canReject : false,fmistate : Simulation,inputs : < "valveState" :
+    Input | contract : delayed,status : Def,time : 1,type : integer,value : < 1 > >,localState : "waterlevel" |-> < 100 >,outputs
+    : < "waterlevel" : Output | dependsOn : empty,status : Def,time : 1,type : integer,value : < 100 > >,parameters : "flow" |-> <
+    100 >,path : "",time : 1 > . )

@@ -28,7 +28,7 @@ endfm)
  ops CreateExp EnterInitialization ExitInitialization Terminate FreeInstance Unload : -> FMIActionType [ctor] . 
  ops Set Get Step Save : -> ActionType [ctor] . 
  ops StepNegotiation Loop : -> ComplexActionType [ctor] . 
- op fmiEvent:_SU:_ : FMIActionType PortId -> Action [ctor format(nir! d d d d)] .
+ op fmiEvent:_SUs:_ : FMIActionType NeOidSet -> Action [ctor format(nir! d d d d)] .
  op portEvent:_SU:_PId:_ : ActionType SUID OidSet -> Action [ctor format(nib! d d d d d d)] .
  op stepEvent:_StepSize:_ : SUID NzNat -> Action [ctor format(nig! d d d d)] .
  op complexEvent:_SaveSUs:_RestoreSUs:_Actions:_ : ComplexActionType OidSet OidSet ActionList -> Action [ctor format(niy! d d d d d d ni! niy!)] .

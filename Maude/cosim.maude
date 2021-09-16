@@ -8,7 +8,7 @@ load Scenario
    op allSUsinSimulation : Configuration -> Bool .
    op simulationStepDone : Configuration -> Bool .
    op allSUsinUnloaded : Configuration -> Bool .
-
+   op initializationDone : Configuration -> Bool .
   
    vars ID1 ID2 : SUID .
    vars INPUT OUTPUT : PortId .
@@ -29,6 +29,10 @@ load Scenario
 
   eq simulationStepDone(< ID1 : SU | time : TIME, inputs : INPUTS, outputs : OUTPUTS > CONF) = TIME > 0 and allDef(INPUTS, TIME) and allDef(OUTPUTS, TIME) and simulationStepDone(CONF) .
   eq simulationStepDone(CONF) = true [owise] .
+
+  eq initializationDone(< ID1 : SU | inputs : INPUTS, outputs : OUTPUTS > CONF) = allDef(INPUTS, 0) and allDef(OUTPUTS, 0) and initializationDone(CONF) .
+  eq initializationDone(CONF) = true [owise] .
+
 
   *** Step Negotiation
   ceq performStepNegotiation(CONF 
@@ -62,40 +66,46 @@ load Scenario
 
   *** FMI-standard fmistate transition:
   *** Initialize all - to have fewer states
-  rl [setExp] : { < ID1 : SU | fmistate : Instantiated > CONF
+  crl [setExp] : { < ID1 : SU | fmistate : Instantiated > CONF
                   < "Orchestrator" : OrchestrationData | Initialization : ALGO > }
                  => { moveState(< ID1 : SU | > CONF, Instantiated, ExperimentSetup)
-                    < "Orchestrator" : OrchestrationData | Initialization : (ALGO ; (fmiEvent: CreateExp SU: ID1)) > } .
+                    < "Orchestrator" : OrchestrationData | Initialization : (ALGO ; (fmiEvent: CreateExp SUs: SUIDsNE)) > }
+                if SUIDsNE := getSUIDsOfScenario(< ID1 : SU | > CONF) .
 
 
-  rl [init] : { < ID1 : SU | fmistate : ExperimentSetup > CONF
+  crl [init] : { < ID1 : SU | fmistate : ExperimentSetup > CONF
                   < "Orchestrator" : OrchestrationData | Initialization : ALGO > } 
            => { moveToInitialize(< ID1 : SU | > CONF)
-                    < "Orchestrator" : OrchestrationData | Initialization : (ALGO ; (fmiEvent: EnterInitialization SU: ID1)) > } .
+                    < "Orchestrator" : OrchestrationData | Initialization : (ALGO ; EVENT) > } 
+          if SUIDsNE := getSUIDsOfScenario(< ID1 : SU | > CONF)
+          /\ EVENT := fmiEvent: EnterInitialization SUs: SUIDsNE .
            
 
-  crl [simulate] : { < ID1 : SU | inputs : INPUTS , outputs : OUTPUTS, fmistate : Initialize > CONF
-                    < "Orchestrator" : OrchestrationData | Initialization : ALGO > } 
+  crl [simulate] : { < ID1 : SU | fmistate : Initialize > CONF
+                    < "Orchestrator" : OrchestrationData | Initialization : ALGO, valuesToSet : empty > } 
                 => { moveState(< ID1 : SU | > CONF, Initialize, Simulation)
                     < "Orchestrator" : OrchestrationData | Initialization : (ALGO ; EVENT) > }
-                if allDef(INPUTS, 0) and allDef(OUTPUTS, 0)
-                /\ EVENT := fmiEvent: ExitInitialization SU: ID1 .
+                if initializationDone(< ID1 : SU | fmistate : Initialize > CONF)
+                /\ SUIDsNE := getSUIDsOfScenario(< ID1 : SU | > CONF)
+                /\ EVENT := fmiEvent: ExitInitialization SUs: SUIDsNE .
 
   crl [terminate] : { < ID1 : SU | time : ENDTIME, inputs : INPUTS , outputs : OUTPUTS , fmistate : Simulation > CONF
                   < "Orchestrator" : OrchestrationData | Termination : ALGO, endTime : ENDTIME > }
                  => { moveState(< ID1 : SU | > CONF, Simulation, Terminated)
-                  < "Orchestrator" : OrchestrationData | Termination : (ALGO ; (fmiEvent: Terminate SU: ID1)) > } 
-                 if allDef(OUTPUTS, ENDTIME) and allDef(INPUTS, ENDTIME) .
+                  < "Orchestrator" : OrchestrationData | Termination : (ALGO ; (fmiEvent: Terminate SUs: SUIDsNE)) > } 
+                 if allDef(OUTPUTS, ENDTIME) and allDef(INPUTS, ENDTIME)
+                 /\ SUIDsNE := getSUIDsOfScenario(< ID1 : SU | > CONF) .
 
   rl [free] : { < ID1 : SU | fmistate : Terminated > CONF
                   < "Orchestrator" : OrchestrationData | Termination : ALGO > }
                  => { moveState(< ID1 : SU | > CONF, Terminated, InstanceFreed)
-                  < "Orchestrator" : OrchestrationData | Termination : (ALGO ; (fmiEvent: FreeInstance SU: ID1)) > } .
+                  < "Orchestrator" : OrchestrationData | Termination : (ALGO ; (fmiEvent: FreeInstance SUs: getSUIDsOfScenario(< ID1 : SU | > CONF))) > } 
+                  .
 
   rl [unload] : { < ID1 : SU | fmistate : InstanceFreed > CONF
                   < "Orchestrator" : OrchestrationData | Termination : ALGO > }
                  => { moveState(< ID1 : SU | > CONF, InstanceFreed, Unloaded)
-                  < "Orchestrator" : OrchestrationData | Termination : (ALGO ; (fmiEvent: Unload SU: ID1)) > } .
+                  < "Orchestrator" : OrchestrationData | Termination : (ALGO ; (fmiEvent: Unload SUs: getSUIDsOfScenario(< ID1 : SU | > CONF))) > } .
 
   *** Error handling in Maude
 
@@ -173,8 +183,6 @@ load Scenario
                 if feedthroughSatisfied(FEEDTHROUGH, INPUTS, 0)
                   /\ EVENT := portEvent: Get SU: ID1 PId: OUTPUT . 
 
-
-   *** Inputs can only rely on one connection 
   crl [set-init] : < ID1 : SU | inputs : (< INPUT : Input | status : Undef > INPUTS), fmistate : Initialize > 
         < "Orchestrator" : OrchestrationData | Initialization : ALGO, valuesToSet : (((ID1 ! INPUT) |-> < TIME ; VALUE >), PORTVALUES) >
               => < ID1 : SU | inputs : (< INPUT : Input | status : Def, value : VALUE > INPUTS ) >

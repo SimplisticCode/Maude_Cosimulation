@@ -14,6 +14,8 @@ load ScenarioAnalyser
   op `{_`} : Configuration -> GlobalState .
   op calculateSNSet : Configuration -> Configuration .
   op getSUsOfScenario : Configuration -> Configuration .
+  op getSUIDsOfScenario : Configuration -> OidSet .
+
 
   vars ID1 ID2 : SUID .
   vars INPUT OUTPUT : PortId .
@@ -24,6 +26,9 @@ load ScenarioAnalyser
 
   eq getSUsOfScenario(< ID1 : SU | > CONF) = < ID1 : SU | > getSUsOfScenario(CONF) .
   eq getSUsOfScenario(CONF) = none [owise] .
+
+  eq getSUIDsOfScenario(< ID1 : SU | > CONF) = (ID1, getSUIDsOfScenario(CONF)) .
+  eq getSUIDsOfScenario(CONF) = empty [owise] .
 
   *** One to one check - change into different input types
   eq validScenario((ID1 ! OUTPUT ==> ID2 ! INPUT ) CONNECTIONS,  

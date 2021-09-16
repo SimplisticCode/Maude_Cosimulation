@@ -5,10 +5,10 @@ load Scenario
 
    op performStepNegotiation : Configuration -> Configuration .
    op performGlobalStep : Configuration -> Configuration .
-   op allSUsinSimulation : Configuration -> Bool .
-   op simulationStepDone : Configuration -> Bool .
-   op allSUsinUnloaded : Configuration -> Bool .
-   op initializationDone : Configuration -> Bool .
+   op allSUsinSimulation : OidSet Configuration -> Bool .
+   op simulationStepDone : OidSet Configuration -> Bool .
+   op allSUsinUnloaded : OidSet Configuration -> Bool .
+   op initializationDone : OidSet Configuration -> Bool .
   
    vars ID1 ID2 : SUID .
    vars INPUT OUTPUT : PortId .
@@ -27,11 +27,11 @@ load Scenario
    var EVENT : Action .
    vars STATE1 STATE2 : fmiState .
 
-  eq simulationStepDone(< ID1 : SU | time : TIME, inputs : INPUTS, outputs : OUTPUTS > CONF) = TIME > 0 and allDef(INPUTS, TIME) and allDef(OUTPUTS, TIME) and simulationStepDone(CONF) .
-  eq simulationStepDone(CONF) = true [owise] .
+  eq simulationStepDone((ID1, SUIDs), < ID1 : SU | time : TIME, inputs : INPUTS, outputs : OUTPUTS > CONF) = TIME > 0 and allDef(INPUTS, TIME) and allDef(OUTPUTS, TIME) and simulationStepDone(SUIDs, CONF) .
+  eq simulationStepDone(empty, CONF) = true .
 
-  eq initializationDone(< ID1 : SU | inputs : INPUTS, outputs : OUTPUTS > CONF) = allDef(INPUTS, 0) and allDef(OUTPUTS, 0) and initializationDone(CONF) .
-  eq initializationDone(CONF) = true [owise] .
+  eq initializationDone((ID1, SUIDs), < ID1 : SU | inputs : INPUTS, outputs : OUTPUTS > CONF) = allDef(INPUTS, 0) and allDef(OUTPUTS, 0) and initializationDone(SUIDs, CONF) .
+  eq initializationDone(empty, CONF) = true .
 
 
   *** Step Negotiation
@@ -46,36 +46,36 @@ load Scenario
                               = CONF < "Orchestrator" : OrchestrationData | > .  
 
   *** All SUS are in the simulation fmistate
-  eq allSUsinSimulation(< ID1 : SU | fmistate : STATE > SUS) = STATE == Simulation and allSUsinSimulation(SUS) . 
-  eq allSUsinSimulation(CONF) = true [owise] .
+  eq allSUsinSimulation((ID1, SUIDs), < ID1 : SU | fmistate : STATE > SUS) = STATE == Simulation and allSUsinSimulation(SUIDs, SUS) . 
+  eq allSUsinSimulation(empty, CONF) = true .
 
   *** All SUS unloaded
-  eq allSUsinUnloaded(< ID1 : SU | fmistate : STATE > SUS) = STATE == Unloaded and allSUsinUnloaded(SUS) . 
-  eq allSUsinUnloaded(CONF) = true [owise] .
+  eq allSUsinUnloaded((ID1, SUIDs), < ID1 : SU | fmistate : STATE > SUS) = STATE == Unloaded and allSUsinUnloaded(SUIDs, SUS) . 
+  eq allSUsinUnloaded(empty, CONF) = true .
 
   ***SUS -> fmiState -> fmiState -> SUS
-  op moveState : Configuration fmiState fmiState -> Configuration .
-  eq moveState(< ID1 : SU | fmistate : STATE1 > SUS, STATE1, STATE2) = 
-     < ID1 : SU | fmistate : STATE2 > moveState(SUS, STATE1, STATE2) .
-  eq moveState(CONF, STATE1, STATE2) = CONF [owise] .
+  op moveState : OidSet Configuration fmiState fmiState -> Configuration .
+  eq moveState((ID1, SUIDs), < ID1 : SU | fmistate : STATE1 > SUS, STATE1, STATE2) = 
+     < ID1 : SU | fmistate : STATE2 > moveState(SUIDs, SUS, STATE1, STATE2) .
+  eq moveState(empty, CONF, STATE1, STATE2) = CONF .
 
-  op moveToInitialize : Configuration -> Configuration .
-  eq moveToInitialize(< ID1 : SU | inputs : INPUTS , outputs : OUTPUTS, fmistate : ExperimentSetup > SUS) = 
-     < ID1 : SU | fmistate : Initialize, inputs : undefPorts(INPUTS, 0), outputs : undefPorts(OUTPUTS, 0) > moveToInitialize(SUS) .
-  eq moveToInitialize(CONF) = CONF [owise] .
+  op moveToInitialize : OidSet Configuration -> Configuration .
+  eq moveToInitialize((ID1, SUIDs), < ID1 : SU | inputs : INPUTS , outputs : OUTPUTS, fmistate : ExperimentSetup > SUS) = 
+     < ID1 : SU | fmistate : Initialize, inputs : undefPorts(INPUTS, 0), outputs : undefPorts(OUTPUTS, 0) > moveToInitialize(SUIDs, SUS) .
+  eq moveToInitialize(empty, CONF) = CONF .
 
   *** FMI-standard fmistate transition:
   *** Initialize all - to have fewer states
   crl [setExp] : { < ID1 : SU | fmistate : Instantiated > CONF
                   < "Orchestrator" : OrchestrationData | Initialization : ALGO > }
-                 => { moveState(< ID1 : SU | > CONF, Instantiated, ExperimentSetup)
+                 => { moveState(SUIDsNE, < ID1 : SU | > CONF, Instantiated, ExperimentSetup)
                     < "Orchestrator" : OrchestrationData | Initialization : (ALGO ; (fmiEvent: CreateExp SUs: SUIDsNE)) > }
                 if SUIDsNE := getSUIDsOfScenario(< ID1 : SU | > CONF) .
 
 
   crl [init] : { < ID1 : SU | fmistate : ExperimentSetup > CONF
                   < "Orchestrator" : OrchestrationData | Initialization : ALGO > } 
-           => { moveToInitialize(< ID1 : SU | > CONF)
+           => { moveToInitialize(SUIDsNE, < ID1 : SU | > CONF)
                     < "Orchestrator" : OrchestrationData | Initialization : (ALGO ; EVENT) > } 
           if SUIDsNE := getSUIDsOfScenario(< ID1 : SU | > CONF)
           /\ EVENT := fmiEvent: EnterInitialization SUs: SUIDsNE .
@@ -83,29 +83,30 @@ load Scenario
 
   crl [simulate] : { < ID1 : SU | fmistate : Initialize > CONF
                     < "Orchestrator" : OrchestrationData | Initialization : ALGO, valuesToSet : empty > } 
-                => { moveState(< ID1 : SU | > CONF, Initialize, Simulation)
+                => { moveState(SUIDsNE, < ID1 : SU | > CONF, Initialize, Simulation)
                     < "Orchestrator" : OrchestrationData | Initialization : (ALGO ; EVENT) > }
-                if initializationDone(< ID1 : SU | fmistate : Initialize > CONF)
-                /\ SUIDsNE := getSUIDsOfScenario(< ID1 : SU | > CONF)
+                if SUIDsNE := getSUIDsOfScenario(< ID1 : SU | > CONF)
+                /\ initializationDone(SUIDsNE, < ID1 : SU | fmistate : Initialize > CONF)
                 /\ EVENT := fmiEvent: ExitInitialization SUs: SUIDsNE .
 
   crl [terminate] : { < ID1 : SU | time : ENDTIME, inputs : INPUTS , outputs : OUTPUTS , fmistate : Simulation > CONF
                   < "Orchestrator" : OrchestrationData | Termination : ALGO, endTime : ENDTIME > }
-                 => { moveState(< ID1 : SU | > CONF, Simulation, Terminated)
+                 => { moveState(SUIDsNE, < ID1 : SU | > CONF, Simulation, Terminated)
                   < "Orchestrator" : OrchestrationData | Termination : (ALGO ; (fmiEvent: Terminate SUs: SUIDsNE)) > } 
                  if allDef(OUTPUTS, ENDTIME) and allDef(INPUTS, ENDTIME)
                  /\ SUIDsNE := getSUIDsOfScenario(< ID1 : SU | > CONF) .
 
-  rl [free] : { < ID1 : SU | fmistate : Terminated > CONF
+  crl [free] : { < ID1 : SU | fmistate : Terminated > CONF
                   < "Orchestrator" : OrchestrationData | Termination : ALGO > }
-                 => { moveState(< ID1 : SU | > CONF, Terminated, InstanceFreed)
-                  < "Orchestrator" : OrchestrationData | Termination : (ALGO ; (fmiEvent: FreeInstance SUs: getSUIDsOfScenario(< ID1 : SU | > CONF))) > } 
-                  .
+                 => { moveState(SUIDsNE, < ID1 : SU | > CONF, Terminated, InstanceFreed)
+                  < "Orchestrator" : OrchestrationData | Termination : (ALGO ; (fmiEvent: FreeInstance SUs: SUIDsNE)) > } 
+                  if SUIDsNE := getSUIDsOfScenario(< ID1 : SU | > CONF) .
 
-  rl [unload] : { < ID1 : SU | fmistate : InstanceFreed > CONF
+  crl [unload] : { < ID1 : SU | fmistate : InstanceFreed > CONF
                   < "Orchestrator" : OrchestrationData | Termination : ALGO > }
-                 => { moveState(< ID1 : SU | > CONF, InstanceFreed, Unloaded)
-                  < "Orchestrator" : OrchestrationData | Termination : (ALGO ; (fmiEvent: Unload SUs: getSUIDsOfScenario(< ID1 : SU | > CONF))) > } .
+                 => { moveState(SUIDsNE, < ID1 : SU | > CONF, InstanceFreed, Unloaded)
+                  < "Orchestrator" : OrchestrationData | Termination : (ALGO ; (fmiEvent: Unload SUs: SUIDsNE)) > }
+                if SUIDsNE := getSUIDsOfScenario(< ID1 : SU | > CONF) .
 
   *** Error handling in Maude
 
@@ -151,7 +152,7 @@ load Scenario
                 /\ SUINSTANCE := < ID1 : SU | outputs : (< OUTPUT : Output | status : Def > OUTPUTS) >
                 /\ EVENT := portEvent: Get SU: ID1 PId: OUTPUT . 
                       
-  
+
   *** Algebraic Loop - solve and remove loop
   eq performGlobalStep(CONF 
       < "Orchestrator" : OrchestrationData | unsolvedSCC : (LOOP , LOOPS), solvedSCC : SOLVEDLOOPS > ) = 
@@ -160,7 +161,10 @@ load Scenario
 
   *** Return the configuration is the simulation is done
   ceq performGlobalStep(CONF) = CONF
-    if simulationStepDone(CONF) .
+    if SUIDsNE := getSUIDsOfScenario(CONF)
+    /\ simulationStepDone(SUIDsNE, CONF) .
+
+
   
   *** Reset and start over if the endtime is not reached, reset loopsSolver and StepNegotiation
   ***ceq performGlobalStep(CONF endTime: ENDTIME) = CONF endTime: ENDTIME
@@ -195,12 +199,12 @@ load Scenario
   ***The step negotiation
   crl [stepNego] : { CONF  < "Orchestrator" : OrchestrationData | SNSet : SUIDsNE > } => 
           { performStepNegotiation(CONF < "Orchestrator" : OrchestrationData | > ) }
-          if allSUsinSimulation(CONF) .
+          if allSUsinSimulation(getSUIDsOfScenario(CONF), CONF) .
  
 
   crl [simulationStep]: { CONF < "Orchestrator" : OrchestrationData | SNSet : empty > } => 
           { performGlobalStep(CONF < "Orchestrator" : OrchestrationData | > ) }
-        if allSUsinSimulation(CONF) .
+          if allSUsinSimulation(getSUIDsOfScenario(CONF), CONF) .
 
   op init : -> GlobalState .
   eq init = { scenario(externalConnection, simulationUnits) } .
@@ -214,7 +218,8 @@ load Scenario
       /\ LOOPS := tarjan(SCENARIOMODEL)
       /\ CONF := calculateSNSet(SCENARIOMODEL initialOrchestrationData(1,1,LOOPS)) 
       /\ {CONF} => { CONF1 } 
-      /\ allSUsinUnloaded(CONF1) .
+      /\ SUIDsNE := getSUIDsOfScenario(CONF)
+      /\ allSUsinUnloaded(SUIDsNE, CONF1) .
 
 endom)
 

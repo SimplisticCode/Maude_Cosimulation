@@ -20,33 +20,44 @@ load cosim
 ***  op verifyAlgo : Configuration -> Bool .
 ***  eq verifyAlgo()
 
- op run_on_ : Configuration GlobalState -> GlobalState . 
- eq run ALGO on CONF = 
+ ***op run_on_ : Configuration GlobalState -> GlobalState . 
+ ***eq run ALGO on CONF = 
     
-
   *** FMI-standard fmistate transition:
-  rl [setExp] : < ID1 : SU | fmistate : Instantiated > 
-                    Initialization: ((fmiEvent: CreateExp SU: ID1) ; RESTALGORITHM) 
-                 => < ID1 : SU | fmistate : ExperimentSetup > Initialization: RESTALGORITHM .
+  rl [setExp] : {< ID1 : SU | fmistate : Instantiated > CONF
+                < "Orchestrator" : OrchestrationData | Initialization : ((fmiEvent: CreateExp SUs: SUIDsNE) ; RESTALGORITHM) > } 
+                => {moveState(SUIDsNE, < ID1 : SU | > CONF, Instantiated, ExperimentSetup)
+                 < "Orchestrator" : OrchestrationData | Initialization : RESTALGORITHM > } .
 
-  rl [init] : < ID1 : SU | inputs : INPUTS , outputs : OUTPUTS, fmistate : ExperimentSetup >  
-                                    Initialization: ((fmiEvent: EnterInitialization SU: ID1) ; RESTALGORITHM) 
-           => < ID1 : SU | inputs : undefPorts(INPUTS, 0), outputs : undefPorts(OUTPUTS, 0), fmistate : Initialize > 
-              Initialization: RESTALGORITHM .
+  rl [init] : {< ID1 : SU | fmistate : ExperimentSetup > CONF
+              < "Orchestrator" : OrchestrationData | Initialization : ((fmiEvent: EnterInitialization SUs: SUIDsNE) ; RESTALGORITHM )> }      
+           => { moveToInitialize(SUIDsNE, < ID1 : SU | > CONF)
+                < "Orchestrator" : OrchestrationData | Initialization : RESTALGORITHM >  } .
 
-  crl [simulate] : < ID1 : SU | inputs : INPUTS , outputs : OUTPUTS, fmistate : Initialize > Initialization: ( (fmiEvent: ExitInitialization SU: ID1) ; RESTALGORITHM)
-                => < ID1 : SU | fmistate : Simulation > Initialization: RESTALGORITHM
-                if allDef(INPUTS, 0) and allDef(OUTPUTS, 0)  .
 
-  crl [terminate] : < ID1 : SU | time : TIME, inputs : INPUTS , outputs : OUTPUTS , fmistate : Simulation > endTime: TIME Termination: ((fmiEvent: Terminate SU: ID1) ; RESTALGORITHM)
-                 => < ID1 : SU | fmistate : Terminated > endTime: TIME Termination: RESTALGORITHM
+  crl [simulate] : { < ID1 : SU | fmistate : Initialize > CONF
+                    < "Orchestrator" : OrchestrationData | Initialization : ((fmiEvent: ExitInitialization SUs: SUIDsNE) ; RESTALGORITHM), valuesToSet : empty > } 
+                => { moveState(SUIDsNE, < ID1 : SU | > CONF, Initialize, Simulation)
+                    < "Orchestrator" : OrchestrationData | Initialization : RESTALGORITHM > }
+                if initializationDone(SUIDsNE, < ID1 : SU | fmistate : Initialize > CONF) .
+
+  crl [terminate] : {< ID1 : SU | time : TIME, inputs : INPUTS , outputs : OUTPUTS , fmistate : Simulation > CONF
+                       < "Orchestrator" : OrchestrationData | endTime : TIME, Termination : ((fmiEvent: Terminate SUs: SUIDsNE) ; RESTALGORITHM) > }
+                 => {
+                     moveState(SUIDsNE, < ID1 : SU | > CONF, Simulation, Terminated)
+                     < "Orchestrator" : OrchestrationData | Termination : RESTALGORITHM >
+                 }
                  if allDef(OUTPUTS, TIME) and allDef(INPUTS, TIME) .
 
-  rl [free] : < ID1 : SU | fmistate : Terminated > Termination: ((fmiEvent: FreeInstance SU: ID1) ; RESTALGORITHM) 
-           => < ID1 : SU | fmistate : InstanceFreed > Termination: RESTALGORITHM .
+  rl [free] : { < ID1 : SU | fmistate : Terminated > CONF
+                < "Orchestrator" : OrchestrationData | Termination : ((fmiEvent: FreeInstance SUs: SUIDsNE) ; RESTALGORITHM) > }
+           => { moveState(SUIDsNE, < ID1 : SU | > CONF, Terminated, InstanceFreed)
+                < "Orchestrator" : OrchestrationData | Termination : RESTALGORITHM > } .
 
-  rl [unload] : < ID1 : SU | fmistate : InstanceFreed > Termination: ((fmiEvent: Unload SU: ID1) ; RESTALGORITHM)
-              => < ID1 : SU | fmistate : Unloaded > Termination: RESTALGORITHM .
+  rl [unload] : { < ID1 : SU | fmistate : InstanceFreed > CONF
+                  < "Orchestrator" : OrchestrationData | Termination : ((fmiEvent: Unload SUs: SUIDsNE) ; RESTALGORITHM) > }
+              => { moveState(SUIDsNE, < ID1 : SU | > CONF, InstanceFreed, Unloaded)
+                 < "Orchestrator" : OrchestrationData | Termination : RESTALGORITHM > } .
 
     *** Initialization
     crl [get-init] :
@@ -54,53 +65,50 @@ load cosim
             outputs : (< OUTPUT : Output | status : Undef, value : VALUE, dependsOn : FEEDTHROUGH > OUTPUTS), 
                     inputs : INPUTS > 
                     (ID1 ! OUTPUT ==> ID2 ! INPUT)
-                    Initialization: ((portEvent: Get SU: ID1 PId: OUTPUT) ; RESTALGORITHM) 
-                    valuesToSet: PORTVALUES
+                    < "Orchestrator" : OrchestrationData | Initialization : ((portEvent: Get SU: ID1 PId: OUTPUT) ; RESTALGORITHM), valuesToSet : PORTVALUES > 
                 => < ID1 : SU | outputs : (< OUTPUT : Output | status : Def > OUTPUTS) > 
-                    Initialization: RESTALGORITHM 
                     (ID1 ! OUTPUT ==> ID2 ! INPUT)
-                    valuesToSet: insert((ID2 ! INPUT), < 0 ; VALUE >, PORTVALUES)
+                    < "Orchestrator" : OrchestrationData | Initialization : RESTALGORITHM, valuesToSet : insert((ID2 ! INPUT), < 0 ; VALUE >, PORTVALUES) > 
             if feedthroughSatisfied(FEEDTHROUGH, INPUTS, 0) .
 
 
    *** Inputs can only rely on one connection 
   crl [set-init] : < ID1 : SU | inputs : (< INPUT : Input | status : Undef > INPUTS), fmistate : Initialize > 
-          Initialization: ((portEvent: Set SU: ID1 PId: INPUT)  ; RESTALGORITHM) 
-          valuesToSet: (((ID1 ! INPUT) |-> < TIME ; VALUE >), PORTVALUES)
-              => SUINSTANCE 
-                     Initialization: RESTALGORITHM 
-                        valuesToSet: PORTVALUES
+        < "Orchestrator" : OrchestrationData | Initialization : ((portEvent: Set SU: ID1 PId: INPUT)  ; RESTALGORITHM), valuesToSet : (((ID1 ! INPUT) |-> < TIME ; VALUE >), PORTVALUES) >
+              => SUINSTANCE  < "Orchestrator" : OrchestrationData | Initialization : RESTALGORITHM, valuesToSet : PORTVALUES >
             if SUINSTANCE := < ID1 : SU | inputs : (< INPUT : Input | time : TIME, status : Def, value : VALUE > INPUTS ) > .
 
+
     *** Simulation
-    crl [get] : Algorithm: ((portEvent: Get SU: ID1 PId: OUTPUT) ; RESTALGORITHM)
-                < ID1 : SU | outputs : (< OUTPUT : Output | time : TIME, status : Undef, value : VALUE, dependsOn : FEEDTHROUGH > OUTPUTS), inputs : INPUTS > 
+    crl [get] : < ID1 : SU | outputs : (< OUTPUT : Output | time : TIME, status : Undef, value : VALUE, dependsOn : FEEDTHROUGH > OUTPUTS), inputs : INPUTS > 
                 ( ID1 ! OUTPUT ==> ID2 ! INPUT)
-                valuesToSet: PORTVALUES 
-                => Algorithm: RESTALGORITHM
-                valuesToSet: (((ID2 ! INPUT) |-> < TIME ; VALUE >), PORTVALUES)
+                < "Orchestrator" : OrchestrationData | Algorithm : ((portEvent: Get SU: ID1 PId: OUTPUT) ; RESTALGORITHM), valuesToSet : PORTVALUES >
+                => 
+                < "Orchestrator" : OrchestrationData | Algorithm : RESTALGORITHM, valuesToSet : (((ID2 ! INPUT) |-> < TIME ; VALUE >), PORTVALUES) >
                 < ID1 : SU | outputs : (< OUTPUT : Output | status : Def > OUTPUTS) > 
                 ( ID1 ! OUTPUT ==> ID2 ! INPUT) 
         if feedthroughSatisfied(FEEDTHROUGH, INPUTS, TIME) .
                 
-    crl [set] : Algorithm: ((portEvent: Set SU: ID1 PId: INPUT) ; RESTALGORITHM)
-                    < ID1 : SU | time : SUTIME, fmistate : Simulation, inputs : (< INPUT : Input | contract : CONTRACT, time : INPUTTIME > INPUTS) > 
-                    valuesToSet: (((ID1 ! INPUT) |-> < TIME ; VALUE >), PORTVALUES)
-                => Algorithm: RESTALGORITHM
-                    < ID1 : SU | inputs : (< INPUT : Input | time : TIME, value : VALUE > INPUTS) >
-                    valuesToSet: PORTVALUES 
+    crl [set] : 
+            < "Orchestrator" : OrchestrationData | Algorithm : ((portEvent: Set SU: ID1 PId: INPUT) ; RESTALGORITHM), valuesToSet : (((ID1 ! INPUT) |-> < TIME ; VALUE >), PORTVALUES) >
+            < ID1 : SU | time : SUTIME, fmistate : Simulation, inputs : (< INPUT : Input | contract : CONTRACT, time : INPUTTIME > INPUTS) > 
+            => 
+            < "Orchestrator" : OrchestrationData | Algorithm : RESTALGORITHM, valuesToSet : PORTVALUES >
+            < ID1 : SU | inputs : (< INPUT : Input | time : TIME, value : VALUE > INPUTS) >
         if (CONTRACT == reactive and (TIME > INPUTTIME) and INPUTTIME == SUTIME) or (CONTRACT == delayed and TIME == SUTIME) .
 
-    crl [step-action] : Algorithm: ((stepEvent: ID1 StepSize: STEPSIZE) ; RESTALGORITHM)
+    crl [step-action] : 
+            < "Orchestrator" : OrchestrationData | Algorithm : ((stepEvent: ID1 StepSize: STEPSIZE) ; RESTALGORITHM) >
                     < ID1 : SU | time : TIME, inputs : INPUTS, outputs : OUTPUTS, fmistate : Simulation > 
-                => Algorithm: RESTALGORITHM
+                => < "Orchestrator" : OrchestrationData | Algorithm : RESTALGORITHM >
                     stepAction(< ID1 : SU | >, STEPSIZE)
                 if canStep(TIME, TIME + STEPSIZE, INPUTS, OUTPUTS) .
-
+endom)
+    eof
     *** Next step look at Complex scenarios
     crl [step-negotiation] : 
                 Algorithm: (
-                    (complexEvent: StepNegotiation SaveSUs: SUIDsNE RestoreSUs: SUIDsNE Actions: ALGO) ; RESTALGORITHM)
+                    (complexEvent: StepNegotiation SaveSUs: SUIDsNENE RestoreSUs: SUIDsNENE Actions: ALGO) ; RESTALGORITHM)
                 => Algorithm: RESTALGORITHM  .
      
 

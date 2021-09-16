@@ -2,7 +2,7 @@ load Algorithm
 
 (omod SimulationUnit is
    protecting Algorithm + RANDOM + STRING .
-   sort fmiState .
+   sort fmiState stepState .
    
    *** The different states of the FMI standard
    ops Instantiated ExperimentSetup Initialize Simulation Terminated InstanceFreed Unloaded : -> fmiState [ctor] . 
@@ -17,6 +17,7 @@ load Algorithm
      canReject : Bool, 
      fmistate : fmiState,
      parameters : Configuration .
+     *** Add local state
      ***localState : FMIValueMap .
      *** Parameters
      *** Local State Map<String, FMIValue >
@@ -34,7 +35,6 @@ load Algorithm
    op getAllPorts : Configuration PortSet -> PortSet .
    op getAllReactivePorts : Configuration PortSet -> PortSet .
   *** SU -> Values of the input ports -> 
-   op doStep : Object NzNat -> Object .
 
    vars ID ID1 ID2 : SUID .
    vars PORTID INPUT OUTPUT : PortId .
@@ -107,7 +107,11 @@ load Algorithm
 
 
   *** Todo make Dostep for the different SUs
-  *** eq doStep(<"ctrl" | > ,)
+  ***op doStep : Object NzNat -> Object .
+  ***eq doStep(, STEPSIZE)  
+
+***
+***step Oid localState Inputs Time -> StepState
 
 
 endom)

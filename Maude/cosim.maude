@@ -28,6 +28,9 @@ load Scenario
    var EVENT : Action .
    vars STATE1 STATE2 : fmiState .
 
+  *** Find instrumentation
+  *** Succedes if there is a contract 
+  ***
   eq simulationStepDone((ID1, SUIDs), < ID1 : SU | time : TIME, inputs : INPUTS, outputs : OUTPUTS > CONF, TIME) = TIME > 0 and allDef(INPUTS, TIME) and allDef(OUTPUTS, TIME) and simulationStepDone(SUIDs, CONF, TIME) .
   eq simulationStepDone(empty, CONF, TIME) = true .
 
@@ -146,7 +149,7 @@ load Scenario
   ceq performGlobalStep(CONF < ID1 : SU | outputs : (< OUTPUT : Output | time : TIME, status : Undef, value : VALUE, dependsOn : FEEDTHROUGH > OUTPUTS), inputs : INPUTS >  
   < OCH : OrchestrationData | Algorithm : ALGO, valuesToSet : PORTVALUES > 
         (ID1 ! OUTPUT ==> ID2 ! INPUT)) =
-    performGlobalStep(CONF SUINSTANCE 
+    performGlobalStep(CONF SUINSTANCE (ID1 ! OUTPUT ==> ID2 ! INPUT)
       < OCH : OrchestrationData | Algorithm : (ALGO ; EVENT), valuesToSet : insert((ID2 ! INPUT), < TIME ; VALUE >, PORTVALUES) >)
               if feedthroughSatisfied(FEEDTHROUGH, INPUTS, TIME)
                 /\ SUINSTANCE := < ID1 : SU | outputs : (< OUTPUT : Output | status : Def > OUTPUTS) >
@@ -205,17 +208,26 @@ load Scenario
  
 
   crl [simulationStep]: { CONF < OCH : OrchestrationData | SNSet : empty, simulationTime : TIME, endTime : ENDTIME > } => 
-          { performGlobalStep(CONF < OCH : OrchestrationData | > ) }
+          { 
+            performGlobalStep(CONF < OCH : OrchestrationData | > ) 
+          }
           if allSUsinSimulation(getSUIDsOfScenario(CONF), CONF) and TIME < ENDTIME .
 
   op init : -> GlobalState .
   eq init = { scenario(externalConnection, simulationUnits) } .
 
+  op initConfiguration : -> Configuration .
+  eq initConfiguration = scenario(externalConnection, simulationUnits) .
+
   op isInitialState : Configuration -> Bool .
   eq isInitialState(CONF < OCH : OrchestrationData | >) = false .
   eq isInitialState(CONF) = true [owise] .
 
-  crl [getAlgortihm]: { SCENARIOMODEL } => { CONF1 }
+  op getOrchestrator : Configuration -> Configuration .
+  eq getOrchestrator(CONF < OCH : OrchestrationData | >) = < OCH : OrchestrationData | > .
+  eq getOrchestrator(CONF) = none [owise] .
+
+  crl [getAlgortihm]: { SCENARIOMODEL } => { getOrchestrator(CONF1) }
       if isInitialState(SCENARIOMODEL)
       /\ LOOPS := tarjan(SCENARIOMODEL)
       /\ CONF := calculateSNSet(SCENARIOMODEL initialOrchestrationData(1,1,LOOPS)) 
@@ -223,12 +235,17 @@ load Scenario
       /\ SUIDsNE := getSUIDsOfScenario(CONF)
       /\ allSUsinUnloaded(SUIDsNE, CONF1) .
 
+
 endom)
 
 eof
 
 (show all .)
 q 
+
+*** Command to get all the configurations
+( search init =>* {C:Configuration} .)
+
 
 ( red isInitialState(("ctrl" ! "valveState" ==> "tank" ! "valveState")(
 "tank" ! "waterlevel" ==> "ctrl" ! "waterlevel")< "ctrl" : SU | canReject : false,fmistate : Instantiated,inputs : < "waterlevel" : Input | contract :

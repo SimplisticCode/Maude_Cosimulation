@@ -51,10 +51,11 @@ class OrchestrationData |
     solvedSCC : AlgebraicLoopSet,
     guessOn : PortSet,
     valuesToSet : PortValueMap,
-    simulationTime : Nat .
+    simulationTime : Nat,
+    suids : NeOidSet .
 
  var ID : SUID .
- var SUSet : OidSet .
+ var SUIDs : OidSet .
  var LOOPS : AlgebraicLoopSet .
  var PORT : EPortId .
  var LOOPTYPE : LoopType .
@@ -65,12 +66,12 @@ class OrchestrationData |
  eq PORT memberOf ((AlgebraicLoop: (PORT , PORTSET)  Type: LOOPTYPE) , LOOPS) = true .
  eq PORT memberOf LOOPS = false [owise] .
 
- eq getSUs(empty, SUSet) = SUSet .
- ceq getSUs(((ID ! PORTID), PORTSET), SUSet) = getSUs(PORTSET, SUSet) if ID in SUSet .
- eq getSUs(((ID ! PORTID), PORTSET), SUSet) = getSUs(PORTSET, (ID , SUSet)) [owise] .
+ eq getSUs(empty, SUIDs) = SUIDs .
+ ceq getSUs(((ID ! PORTID), PORTSET), SUIDs) = getSUs(PORTSET, SUIDs) if ID in SUIDs .
+ eq getSUs(((ID ! PORTID), PORTSET), SUIDs) = getSUs(PORTSET, (ID , SUIDs)) [owise] .
 
- op initialOrchestrationData : NzNat NzNat AlgebraicLoopSet -> Object .
-  eq initialOrchestrationData(STEPSIZE, ENDTIME, LOOPS) =
+ op initialOrchestrationData : NzNat NzNat AlgebraicLoopSet NeOidSet -> Object .
+  eq initialOrchestrationData(STEPSIZE, ENDTIME, LOOPS, SUIDs) =
     < "Orchestrator" : OrchestrationData | 
       Algorithm : emptyList, 
       Initialization : emptyList,
@@ -83,8 +84,8 @@ class OrchestrationData |
       solvedSCC : empty,
       guessOn : empty,
       valuesToSet : empty,
-      simulationTime : 0 > .
-      *** SUNames
+      simulationTime : 0,
+      suids : SUIDs > .
 
 endom)
 

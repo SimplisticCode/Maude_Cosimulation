@@ -6,11 +6,10 @@ load SimulationUnit
     sorts Pair .
 
     op <_;_> : ActionList Configuration -> Pair [ctor] .
-    op solveLoop : Configuration AlgebraicLoop  -> Configuration . 
+    ops solveLoop solveLoopConf : Configuration AlgebraicLoop  -> Configuration . 
     op breakLoop : PortSet Configuration LoopType -> Configuration .
     op containsCycle : AlgebraicLoopSet -> Bool . 
     op loopStep : PortSet  Configuration ActionList -> Pair .
-    op solveLoopConf : Configuration AlgebraicLoop -> Configuration .
     op solveLoopAlgorithm : Configuration AlgebraicLoop -> ActionList .
 
     var OCH : Oid .

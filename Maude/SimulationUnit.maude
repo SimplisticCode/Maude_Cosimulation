@@ -7,7 +7,6 @@ load Algorithm
    *** The different states of the FMI standard
    ops Instantiated ExperimentSetup Initialize Simulation Terminated InstanceFreed Unloaded : -> fmiState [ctor] . 
 
-
    ***Classes
    class SU |
      path : String, 
@@ -18,9 +17,6 @@ load Algorithm
      fmistate : fmiState,
      parameters : LocalState,
      localState : LocalState .
-     *** Add local state
-     *** Parameters
-     *** Local State Map<String, FMIValue >
 
    op askStepSize : Object NzNat -> NzNat .
    op feedthroughSatisfied : OidSet Configuration Nat -> Bool .
@@ -32,8 +28,7 @@ load Algorithm
    op getAction : Object OidSet -> Object .
    op setAction : Object OidSet FMIValue Nat -> Object .
    op stepAction : Object NzNat -> Object .
-   op getAllPorts : Configuration PortSet -> PortSet .
-   op getAllReactivePorts : Configuration PortSet -> PortSet .
+   ops getAllReactivePorts getAllPorts : Configuration PortSet -> PortSet .
   *** SU -> Values of the input ports -> 
 
    vars ID ID1 ID2 : SUID .

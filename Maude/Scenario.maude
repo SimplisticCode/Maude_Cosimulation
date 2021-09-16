@@ -22,6 +22,7 @@ load ScenarioAnalyser
   vars INPUT OUTPUT : PortId .
   vars SUs CONNECTIONS INPUTS OUTPUTS CONF SCENARIOMODEL : Configuration .
   var SUIDs : OidSet .
+  var NeSUIDs : NeOidSet .
   var TYPE : PortType .
   var LOOPS : AlgebraicLoopSet .
   vars NATVALUE HIGH LOW WATERLEVEL WATERLEVELOUT VALVESTATE TIME : Nat .
@@ -67,8 +68,6 @@ load ScenarioAnalyser
   rl [choose-value] : choose((VALUE, FMIVALUESET)) => VALUE .
   subsort FMIValue < ChooseValue .
 
-
-
   ***Encoding of the Scenario 
   *** Coupling or connections
 eq externalConnection = ("tank" ! "waterlevel" ==> "ctrl" ! "waterlevel") ("ctrl" ! "valveState" ==> "tank" ! "valveState") .
@@ -82,11 +81,10 @@ eq simulationUnitsNotInstrumented =
 
   (< "ctrl" : SU | path : "", parameters : (("high" |-> < 5 >) , ("low" |-> < 0 >)), localState : ( "valve" |-> < false > ), time : 0, inputs : (< "waterlevel" : Input | value : < 0 >, type : integer, time : 0, contract : noContract, status : Undef  >), outputs : (< "valveState" : Output | value : < 0 >, type : integer, time : 0, status : Undef, dependsOn : empty >), fmistate : Instantiated, canReject : false >) .
 
-
 eq simulationUnitsNotInitialized =  
-(< "tank" : SU | path : "", parameters : ("flow" |-> choose((< 1 >,< 2 >,< 30 >))), localState : ( "waterlevel" |-> < 0 > ) , time : 0, inputs : (< "valveState" : Input | value : < 0 >, type : integer, time : 0, contract : delayed, status : Undef  >), outputs : (< "waterlevel" : Output | value : < 0 >, type : integer, time : 0, status : Undef, dependsOn : empty >), fmistate : Instantiated, canReject : false >)
+  (< "tank" : SU | path : "", parameters : ("flow" |-> choose((< 1 >,< 2 >,< 30 >))), localState : ( "waterlevel" |-> < 0 > ) , time : 0, inputs : (< "valveState" : Input | value : < 0 >, type : integer, time : 0, contract : delayed, status : Undef  >), outputs : (< "waterlevel" : Output | value : < 0 >, type : integer, time : 0, status : Undef, dependsOn : empty >), fmistate : Instantiated, canReject : false >)
 
-(< "ctrl" : SU | path : "", parameters : (("high" |-> choose((< 100 >,< 5 >))) , ("low" |-> < 0 >)), localState : ( "valve" |-> < false >), time : 0, inputs : (< "waterlevel" : Input | value : < 0 >, type : integer, time : 0, contract : delayed, status : Undef  >), outputs : (< "valveState" : Output | value : < 0 >, type : integer, time : 0, status : Undef, dependsOn : empty >), fmistate : Instantiated, canReject : false >) .
+  (< "ctrl" : SU | path : "", parameters : (("high" |-> choose((< 100 >,< 5 >))) , ("low" |-> < 0 >)), localState : ( "valve" |-> < false >), time : 0, inputs : (< "waterlevel" : Input | value : < 0 >, type : integer, time : 0, contract : delayed, status : Undef  >), outputs : (< "valveState" : Output | value : < 0 >, type : integer, time : 0, status : Undef, dependsOn : empty >), fmistate : Instantiated, canReject : false >) .
 
 *** COULD be Stream lined
 *** Todo make Dostep for the different SUs
@@ -130,7 +128,8 @@ ceq scenario(CONNECTIONS, SUs) = CONNECTIONS SUs
   ceq setup = { CONF }
     if SCENARIOMODEL := scenario(externalConnection, simulationUnits)
     /\ LOOPS := tarjan(SCENARIOMODEL)
-    /\ CONF := calculateSNSet(SCENARIOMODEL initialOrchestrationData(1,1,LOOPS)) .
+    /\ NeSUIDs := getSUIDsOfScenario(SCENARIOMODEL)
+    /\ CONF := calculateSNSet(SCENARIOMODEL initialOrchestrationData(1,1,LOOPS, NeSUIDs)) .
     
    
 endom)

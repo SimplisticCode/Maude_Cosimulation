@@ -58,15 +58,15 @@ endfm)
     var IM : IndexMap .
     vars CONF INPUTS OUTPUTS : Configuration .
     vars STACK STACK1 STACK2 : PortList .
-    vars SCCs : SCCMap .
+    var SCCs : SCCMap .
     var LOOPS : AlgebraicLoopSet .
     var NONZERO : NzNat .
-    vars M INDEX SCCNUMBER : Nat .
+    vars PINDEX INDEX SCCNUMBER : Nat .
     var ENV : Environment .
     var PORTPAIR : PortListPair .
 
     *** Add the element to the stack, update the INDEX of the node and increments the counter
-    eq addStackIncr(PORT, env(STACK, SCCs, INDEX, SCCNUMBER, ((PORT |-> M) , IM))) = env(PORT STACK, SCCs, (INDEX + 1), SCCNUMBER, insert(PORT, INDEX, IM)) .
+    eq addStackIncr(PORT, env(STACK, SCCs, INDEX, SCCNUMBER, ((PORT |-> PINDEX) , IM))) = env(PORT STACK, SCCs, (INDEX + 1), SCCNUMBER, insert(PORT, INDEX, IM)) .
 
     *** The node has been visited if its INDEX is non-zero
     eq nodeHasBeenVisited(PORT, env(STACK, SCCs, INDEX, SCCNUMBER, ((PORT |-> NONZERO) , IM))) = true .
@@ -87,7 +87,7 @@ endfm)
         /\ size(STACK) > 1 and not(isReactiveLoop(PORTSET, CONF)) .
     
     *** Trivial SCC should be forgotten
-    eq createAlgebraic(((INDEX |-> PORTSET) , SCCs), CONF, LOOPS) = createAlgebraic(SCCs, CONF, LOOPS) [owise] .
+    eq createAlgebraic(((INDEX |-> PORTSET) , SCCs), CONF, LOOPS) = createAlgebraic(SCCs, CONF, LOOPS) .
 
     *** Check type of SCC - one reactivity input makes it Reactive
     eq isReactiveLoop(((ID1 ! INPUT) , PORTSET), < ID1 : SU | inputs : (< INPUT : Input | contract : reactive > INPUTS) > CONF) = true .

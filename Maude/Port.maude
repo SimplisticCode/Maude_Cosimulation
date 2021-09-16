@@ -9,9 +9,7 @@ load GenericDT
  class Port | value : FMIValue, type : PortType, time : Nat, status : PortStatus . 
  class Input | contract : Contract .
  class Output | dependsOn : OidSet .
- class Parameter | value : FMIValue .
  subclasses Input Output < Port . 
- *** Make longer name here
  ops delayed reactive noContract : -> Contract [ctor] .   *** d = delayed, r = Reactive.
  ops integer string real boolean : -> PortType [ctor] . 
  ops Def Undef : -> PortStatus [ctor] .
@@ -23,7 +21,6 @@ load GenericDT
  var CONF : Configuration .
  var CON : Connection .
  var STACK : PortList .
- var VALUE : PortValueAndTime .
  var PORTSET : PortSet .
 
  eq elems(nil, PORTSET) = PORTSET .

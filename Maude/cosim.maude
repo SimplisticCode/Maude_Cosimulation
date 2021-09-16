@@ -69,47 +69,41 @@ load Scenario
 
   *** FMI-standard fmistate transition:
   *** Initialize all - to have fewer states
-  crl [setExp] : { < ID1 : SU | fmistate : Instantiated > CONF
-                   < OCH : OrchestrationData | Initialization : ALGO > }
+  rl [setExp] : { < ID1 : SU | fmistate : Instantiated > CONF
+                   < OCH : OrchestrationData | Initialization : ALGO, suids : SUIDsNE > }
                  => { moveState(SUIDsNE, < ID1 : SU | > CONF, Instantiated, ExperimentSetup)
-                    < OCH : OrchestrationData | Initialization : (ALGO ; (fmiEvent: CreateExp SUs: SUIDsNE)) > }
-                if SUIDsNE := getSUIDsOfScenario(< ID1 : SU | > CONF) .
+                    < OCH : OrchestrationData | Initialization : (ALGO ; (fmiEvent: CreateExp SUs: SUIDsNE)) > } .
 
 
   crl [init] : { < ID1 : SU | fmistate : ExperimentSetup > CONF
-                  < OCH : OrchestrationData | Initialization : ALGO > } 
+                  < OCH : OrchestrationData | Initialization : ALGO, suids : SUIDsNE > } 
            => { moveToInitialize(SUIDsNE, < ID1 : SU | > CONF)
                     < OCH : OrchestrationData | Initialization : (ALGO ; EVENT) > } 
-          if SUIDsNE := getSUIDsOfScenario(< ID1 : SU | > CONF)
-          /\ EVENT := fmiEvent: EnterInitialization SUs: SUIDsNE .
+          if EVENT := fmiEvent: EnterInitialization SUs: SUIDsNE .
            
 
   crl [simulate] : { < ID1 : SU | fmistate : Initialize > CONF
-                    < OCH : OrchestrationData | Initialization : ALGO, valuesToSet : empty > } 
+                    < OCH : OrchestrationData | Initialization : ALGO, suids : SUIDsNE, valuesToSet : empty > } 
                 => { moveState(SUIDsNE, < ID1 : SU | > CONF, Initialize, Simulation)
                     < OCH : OrchestrationData | Initialization : (ALGO ; EVENT) > }
-                if SUIDsNE := getSUIDsOfScenario(< ID1 : SU | > CONF)
-                /\ initializationDone(SUIDsNE, < ID1 : SU | fmistate : Initialize > CONF)
+                if initializationDone(SUIDsNE, < ID1 : SU | fmistate : Initialize > CONF)
                 /\ EVENT := fmiEvent: ExitInitialization SUs: SUIDsNE .
 
   crl [terminate] : { < ID1 : SU | time : ENDTIME, fmistate : Simulation > CONF
-                  < OCH : OrchestrationData | Termination : ALGO, endTime : ENDTIME > }
+                  < OCH : OrchestrationData | Termination : ALGO, endTime : ENDTIME, suids : SUIDsNE > }
                  => { moveState(SUIDsNE, < ID1 : SU | > CONF, Simulation, Terminated)
                   < OCH : OrchestrationData | Termination : (ALGO ; (fmiEvent: Terminate SUs: SUIDsNE)) > } 
-                 if SUIDsNE := getSUIDsOfScenario(< ID1 : SU | > CONF)
-                 /\ simulationStepDone(SUIDsNE, < ID1 : SU | > CONF, ENDTIME) .
+                 if simulationStepDone(SUIDsNE, < ID1 : SU | > CONF, ENDTIME) .
 
-  crl [free] : { < ID1 : SU | fmistate : Terminated > CONF
-                  < OCH : OrchestrationData | Termination : ALGO > }
+  rl [free] : { < ID1 : SU | fmistate : Terminated > CONF
+                  < OCH : OrchestrationData | Termination : ALGO, suids : SUIDsNE > }
                  => { moveState(SUIDsNE, < ID1 : SU | > CONF, Terminated, InstanceFreed)
-                  < OCH : OrchestrationData | Termination : (ALGO ; (fmiEvent: FreeInstance SUs: SUIDsNE)) > } 
-                  if SUIDsNE := getSUIDsOfScenario(< ID1 : SU | > CONF) .
+                  < OCH : OrchestrationData | Termination : (ALGO ; (fmiEvent: FreeInstance SUs: SUIDsNE)) > } .
 
-  crl [unload] : { < ID1 : SU | fmistate : InstanceFreed > CONF
-                  < OCH : OrchestrationData | Termination : ALGO > }
+  rl [unload] : { < ID1 : SU | fmistate : InstanceFreed > CONF
+                  < OCH : OrchestrationData | Termination : ALGO, suids : SUIDsNE > }
                  => { moveState(SUIDsNE, < ID1 : SU | > CONF, InstanceFreed, Unloaded)
-                  < OCH : OrchestrationData | Termination : (ALGO ; (fmiEvent: Unload SUs: SUIDsNE)) > }
-                if SUIDsNE := getSUIDsOfScenario(< ID1 : SU | > CONF) .
+                  < OCH : OrchestrationData | Termination : (ALGO ; (fmiEvent: Unload SUs: SUIDsNE)) > } .
 
   *** Error handling in Maude
 
@@ -232,9 +226,9 @@ load Scenario
   crl [getAlgortihm]: { SCENARIOMODEL } => { getOrchestrator(CONF1) }
       if isInitialState(SCENARIOMODEL)
       /\ LOOPS := tarjan(SCENARIOMODEL)
-      /\ CONF := calculateSNSet(SCENARIOMODEL initialOrchestrationData(1,1,LOOPS)) 
+      /\ SUIDsNE := getSUIDsOfScenario(SCENARIOMODEL)
+      /\ CONF := calculateSNSet(SCENARIOMODEL initialOrchestrationData(1,1,LOOPS,SUIDsNE)) 
       /\ {CONF} => { CONF1 } 
-      /\ SUIDsNE := getSUIDsOfScenario(CONF)
       /\ allSUsinUnloaded(SUIDsNE, CONF1) .
 
 

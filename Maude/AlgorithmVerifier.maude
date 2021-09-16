@@ -33,9 +33,9 @@ load cosim
     op runAnyAlgorithm_ : Configuration -> SimulationState [ctor] .
     crl [runAnyAlg] : runAnyAlgorithm INITSTATE => run: ORCHESTRATOR on: INITSTATE 
         if LOOPS := tarjan(INITSTATE)
-      /\ CONF := calculateSNSet(INITSTATE initialOrchestrationData(1,1,LOOPS)) 
+      /\ SUIDsNE := getSUIDsOfScenario(INITSTATE)
+      /\ CONF := calculateSNSet(INITSTATE initialOrchestrationData(1,1,LOOPS,SUIDsNE)) 
       /\ {CONF} => { CONF1 } 
-      /\ SUIDsNE := getSUIDsOfScenario(CONF)
       /\ ORCHESTRATOR := getOrchestrator(CONF1)
       /\ allSUsinUnloaded(SUIDsNE, CONF1) .
 

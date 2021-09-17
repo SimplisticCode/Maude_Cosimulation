@@ -52,7 +52,6 @@ class AlgorithmData |
     Termination : ActionList,
     endTime : NzNat .
 
-
   op initialOrchestrationData : NzNat AlgebraicLoopSet NeOidSet -> Object .
   eq initialOrchestrationData(STEPSIZE, LOOPS, SUIDs) =
     < "Orchestrator" : SimulationData | 

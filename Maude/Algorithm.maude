@@ -20,7 +20,6 @@ load Port
  op emptyList : -> ActionList [ctor] .
  op _;_ : ActionList ActionList -> ActionList [ctor assoc id: emptyList] .
 
-
  vars SU PORTID : Oid .
  var SUIDs : OidSet .
  var LOOPS : AlgebraicLoopSet .

@@ -129,6 +129,17 @@ ceq scenario(CONNECTIONS, SUs) = CONNECTIONS SUs
     /\ NeSUIDs := getSUIDsOfScenario(SCENARIOMODEL)
     /\ CONF := calculateSNSet(SCENARIOMODEL initialOrchestrationData(1,LOOPS, NeSUIDs)) .
     
+  op init : -> GlobalState .
+  eq init = { scenario(externalConnection, simulationUnits) } .
+
+  ops initConfiguration initConfigurationUninstrumented initConfDSE : -> Configuration .
+  eq initConfiguration = scenario(externalConnection, simulationUnits) .
+  eq initConfigurationUninstrumented = scenario(externalConnection, simulationUnitsNotInstrumented) .
+  eq initConfDSE = externalConnection simulationUnitsNotInitialized .
+
+  op isInitialState : Configuration -> Bool .
+  eq isInitialState(CONF < OCH : SimulationData | >) = false .
+  eq isInitialState(CONF) = true [owise] .
    
 endom)
 eof

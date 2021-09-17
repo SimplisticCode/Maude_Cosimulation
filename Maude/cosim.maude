@@ -10,21 +10,19 @@ load Scenario
    op allSUsinUnloaded : OidSet Configuration -> Bool .
    op initializationDone : OidSet Configuration -> Bool .
   
-   vars ID1 ID2 : SUID .
-   vars OCH ALG : Oid .
-   vars INPUT OUTPUT : PortId .
+   vars SU1 SU2 INPUT OUTPUT OCH ALG : Oid .
    vars SUTIME INPUTTIME TIME : Nat .
    var VALUE : FMIValue .
-   vars INPUTS OUTPUTS CONF STARTCONF SCENARIOMODEL CONF1 SUS : Configuration . 
+   vars INPUTS OUTPUTS CONF INITSTATE FINALSTATE SUS : Configuration . 
    var STATE : fmiState .
-   vars ALGO STEPNEGOALGO INIT TERM : ActionList .
+   vars ALGO STEPNEGOALGO : ActionList .
    vars FEEDTHROUGH SUIDs : OidSet .
    var SUIDsNE : NeOidSet . 
    vars STEPSIZE NEGOTIATEDSTEPSIZE FUTURETIME ENDTIME : NzNat .
    var LOOP : AlgebraicLoop .  
-   vars LOOPS SOLVEDLOOPS LOOPTOSOLVE : AlgebraicLoopSet .  
+   vars LOOPS SOLVEDLOOPS : AlgebraicLoopSet .  
    vars PORTVALUES : PortValueMap .
-   var SUINSTANCE SIMULATIONDATA : Object .
+   vars SUINSTANCE SIMULATIONDATA : Object .
    var EVENT : Action .
    vars STATE1 STATE2 : fmiState .
    var CONTRACT : Contract .
@@ -32,11 +30,11 @@ load Scenario
   *** Find instrumentation
   *** Succedes if there is a contract 
   ***
-  eq simulationStepDone((ID1, SUIDs), < ID1 : SU | time : TIME, inputs : INPUTS, outputs : OUTPUTS > CONF, TIME) 
+  eq simulationStepDone((SU1, SUIDs), < SU1 : SU | time : TIME, inputs : INPUTS, outputs : OUTPUTS > CONF, TIME) 
   = TIME > 0 and allDef(INPUTS, TIME) and allDef(OUTPUTS, TIME) and simulationStepDone(SUIDs, CONF, TIME) .
   eq simulationStepDone(empty, CONF, TIME) = true .
 
-  eq initializationDone((ID1, SUIDs), < ID1 : SU | inputs : INPUTS, outputs : OUTPUTS > CONF) = allDef(INPUTS, 0) and allDef(OUTPUTS, 0) and initializationDone(SUIDs, CONF) .
+  eq initializationDone((SU1, SUIDs), < SU1 : SU | inputs : INPUTS, outputs : OUTPUTS > CONF) = allDef(INPUTS, 0) and allDef(OUTPUTS, 0) and initializationDone(SUIDs, CONF) .
   eq initializationDone(empty, CONF) = true .
 
   *** Step Negotiation
@@ -45,93 +43,93 @@ load Scenario
                         < ALG : AlgorithmData |  CosimStep : ALGO > ) = 
                         < OCH : SimulationData | actualStepSize : NEGOTIATEDSTEPSIZE, SNSet : empty >
                         < ALG : AlgorithmData |  CosimStep : (ALGO ; EVENT) > CONF
-                              if STARTCONF := CONF < OCH : SimulationData | >
-                              /\ < NEGOTIATEDSTEPSIZE ++ STEPNEGOALGO > := findStep(SUIDsNE, STARTCONF, STARTCONF, emptyList)
+                              if INITSTATE := CONF < OCH : SimulationData | >
+                              /\ < NEGOTIATEDSTEPSIZE ++ STEPNEGOALGO > := findStep(SUIDsNE, INITSTATE, INITSTATE, emptyList)
                               /\ EVENT := complexEvent: StepNegotiation SaveSUs: SUIDsNE RestoreSUs: SUIDsNE Actions: STEPNEGOALGO .
 
   eq performStepNegotiation(CONF < OCH : SimulationData | SNSet : empty > ) 
                               = CONF < OCH : SimulationData | > .  
 
   *** All SUS are in the simulation fmistate
-  eq allSUsinSimulation((ID1, SUIDs), < ID1 : SU | fmistate : STATE > SUS) = STATE == Simulation and allSUsinSimulation(SUIDs, SUS) . 
+  eq allSUsinSimulation((SU1, SUIDs), < SU1 : SU | fmistate : STATE > SUS) = STATE == Simulation and allSUsinSimulation(SUIDs, SUS) . 
   eq allSUsinSimulation(empty, CONF) = true .
 
   *** All SUS unloaded
-  eq allSUsinUnloaded((ID1, SUIDs), < ID1 : SU | fmistate : STATE > SUS) = STATE == Unloaded and allSUsinUnloaded(SUIDs, SUS) . 
+  eq allSUsinUnloaded((SU1, SUIDs), < SU1 : SU | fmistate : STATE > SUS) = STATE == Unloaded and allSUsinUnloaded(SUIDs, SUS) . 
   eq allSUsinUnloaded(empty, CONF) = true .
 
   ***SUS -> fmiState -> fmiState -> SUS
   op moveState : OidSet Configuration fmiState fmiState -> Configuration .
-  eq moveState((ID1, SUIDs), < ID1 : SU | fmistate : STATE1 > SUS, STATE1, STATE2) = 
-     < ID1 : SU | fmistate : STATE2 > moveState(SUIDs, SUS, STATE1, STATE2) .
+  eq moveState((SU1, SUIDs), < SU1 : SU | fmistate : STATE1 > SUS, STATE1, STATE2) = 
+     < SU1 : SU | fmistate : STATE2 > moveState(SUIDs, SUS, STATE1, STATE2) .
   eq moveState(empty, CONF, STATE1, STATE2) = CONF .
 
   op moveToInitialize : OidSet Configuration -> Configuration .
-  eq moveToInitialize((ID1, SUIDs), < ID1 : SU | inputs : INPUTS , outputs : OUTPUTS, fmistate : ExperimentSetup > SUS) = 
-     < ID1 : SU | fmistate : Initialize, inputs : undefPorts(INPUTS, 0), outputs : undefPorts(OUTPUTS, 0) > moveToInitialize(SUIDs, SUS) .
+  eq moveToInitialize((SU1, SUIDs), < SU1 : SU | inputs : INPUTS , outputs : OUTPUTS, fmistate : ExperimentSetup > SUS) = 
+     < SU1 : SU | fmistate : Initialize, inputs : undefPorts(INPUTS, 0), outputs : undefPorts(OUTPUTS, 0) > moveToInitialize(SUIDs, SUS) .
   eq moveToInitialize(empty, CONF) = CONF .
 
   *** FMI-standard fmistate transition:
   *** Initialize all - to have fewer states
-  rl [setupExp] : { < ID1 : SU | fmistate : Instantiated > CONF
+  rl [setupExp] : { < SU1 : SU | fmistate : Instantiated > CONF
                     < OCH : SimulationData | suids : SUIDsNE > 
                     < ALG : AlgorithmData |  Initialization : ALGO > 
                    }
                  => { 
-                   moveState(SUIDsNE, < ID1 : SU | > CONF, Instantiated, ExperimentSetup)
+                   moveState(SUIDsNE, < SU1 : SU | > CONF, Instantiated, ExperimentSetup)
                    < ALG : AlgorithmData |  Initialization : (ALGO ; (fmiEvent: CreateExp SUs: SUIDsNE)) > 
                    < OCH : SimulationData | > 
                   } .
 
-  rl [init] : { < ID1 : SU | fmistate : ExperimentSetup > CONF
+  rl [init] : { < SU1 : SU | fmistate : ExperimentSetup > CONF
                  < OCH : SimulationData | suids : SUIDsNE > 
                  < ALG : AlgorithmData | Initialization : ALGO > 
                } 
            => { 
-             moveToInitialize(SUIDsNE, < ID1 : SU | > CONF)
+             moveToInitialize(SUIDsNE, < SU1 : SU | > CONF)
              < ALG : AlgorithmData | Initialization : (ALGO ; (fmiEvent: EnterInitialization SUs: SUIDsNE)) > 
              < OCH : SimulationData | > 
              } .
            
-  crl [simulate] : { < ID1 : SU | fmistate : Initialize > CONF
+  crl [simulate] : { < SU1 : SU | fmistate : Initialize > CONF
                     < OCH : SimulationData | suids : SUIDsNE, values : empty > 
                     < ALG : AlgorithmData | Initialization : ALGO > 
                   } 
                 => { 
-                    moveState(SUIDsNE, < ID1 : SU | > CONF, Initialize, Simulation)
+                    moveState(SUIDsNE, < SU1 : SU | > CONF, Initialize, Simulation)
                     < OCH : SimulationData | > 
                     < ALG : AlgorithmData | Initialization : (ALGO ; EVENT) > 
                     }
-                if initializationDone(SUIDsNE, < ID1 : SU | fmistate : Initialize > CONF)
+                if initializationDone(SUIDsNE, < SU1 : SU | fmistate : Initialize > CONF)
                 /\ EVENT := fmiEvent: ExitInitialization SUs: SUIDsNE .
 
-  crl [terminate] : { < ID1 : SU | time : ENDTIME, fmistate : Simulation > CONF
+  crl [terminate] : { < SU1 : SU | time : ENDTIME, fmistate : Simulation > CONF
                     < OCH : SimulationData | suids : SUIDsNE > 
                     < ALG : AlgorithmData | Termination : ALGO, endTime : ENDTIME > 
                     }
                  => { 
-                   moveState(SUIDsNE, < ID1 : SU | > CONF, Simulation, Terminated)
+                   moveState(SUIDsNE, < SU1 : SU | > CONF, Simulation, Terminated)
                    < ALG : AlgorithmData | Termination : (ALGO ; (fmiEvent: Terminate SUs: SUIDsNE)) > 
                    < OCH : SimulationData | > 
                   } 
-                 if simulationStepDone(SUIDsNE, < ID1 : SU | > CONF, ENDTIME) .
+                 if simulationStepDone(SUIDsNE, < SU1 : SU | > CONF, ENDTIME) .
 
-  rl [free] : { < ID1 : SU | fmistate : Terminated > CONF
+  rl [free] : { < SU1 : SU | fmistate : Terminated > CONF
                 < OCH : SimulationData | suids : SUIDsNE > 
                 < ALG : AlgorithmData | Termination : ALGO > 
               }
               => { 
-                moveState(SUIDsNE, < ID1 : SU | > CONF, Terminated, InstanceFreed)
+                moveState(SUIDsNE, < SU1 : SU | > CONF, Terminated, InstanceFreed)
                 < ALG : AlgorithmData | Termination : (ALGO ; (fmiEvent: FreeInstance SUs: SUIDsNE)) >
                 < OCH : SimulationData | >  
               } .
 
-  rl [unload] : { < ID1 : SU | fmistate : InstanceFreed > CONF
+  rl [unload] : { < SU1 : SU | fmistate : InstanceFreed > CONF
                   < OCH : SimulationData | suids : SUIDsNE > 
                   < ALG : AlgorithmData | Termination : ALGO > 
                 }
                 => { 
-                  moveState(SUIDsNE, < ID1 : SU | > CONF, InstanceFreed, Unloaded)
+                  moveState(SUIDsNE, < SU1 : SU | > CONF, InstanceFreed, Unloaded)
                   < OCH : SimulationData | > 
                   < ALG : AlgorithmData | Termination : (ALGO ; (fmiEvent: Unload SUs: SUIDsNE)) > 
                 } .
@@ -139,8 +137,8 @@ load Scenario
   *** Simulation Procedure
   *** Perform the global simulation step
   *** Set input                  
-  ceq performGlobalStep(CONF < ID1 : SU | time : SUTIME, inputs : (< INPUT : Input | time : INPUTTIME, contract : CONTRACT > INPUTS) > 
-          < OCH : SimulationData | values : (((ID1 ! INPUT) |-> < TIME ; VALUE >), PORTVALUES) >
+  ceq performGlobalStep(CONF < SU1 : SU | time : SUTIME, inputs : (< INPUT : Input | time : INPUTTIME, contract : CONTRACT > INPUTS) > 
+          < OCH : SimulationData | values : (((SU1 ! INPUT) |-> < TIME ; VALUE >), PORTVALUES) >
           < ALG : AlgorithmData | CosimStep : ALGO > 
           ) = 
       performGlobalStep(CONF SUINSTANCE 
@@ -148,11 +146,11 @@ load Scenario
             < ALG : AlgorithmData | CosimStep : (ALGO ; EVENT) > 
             )
     if (CONTRACT == reactive and TIME > INPUTTIME and INPUTTIME == SUTIME) or (CONTRACT == delayed and TIME == SUTIME and INPUTTIME < SUTIME)    
-      /\ SUINSTANCE := < ID1 : SU | inputs : (< INPUT : Input | value : VALUE, time : TIME > INPUTS) >
-      /\ EVENT := portEvent: Set SU: ID1 PId: INPUT .
+      /\ SUINSTANCE := < SU1 : SU | inputs : (< INPUT : Input | value : VALUE, time : TIME > INPUTS) >
+      /\ EVENT := portEvent: Set SU: SU1 PId: INPUT .
 
   *** Step
-  ceq performGlobalStep(CONF < ID1 : SU | time : TIME, inputs : INPUTS, outputs : OUTPUTS > 
+  ceq performGlobalStep(CONF < SU1 : SU | time : TIME, inputs : INPUTS, outputs : OUTPUTS > 
     < OCH : SimulationData | actualStepSize : STEPSIZE >
     < ALG : AlgorithmData | CosimStep : ALGO, endTime : ENDTIME > )
       = 
@@ -161,22 +159,22 @@ load Scenario
           < ALG : AlgorithmData | CosimStep : (ALGO ; EVENT) > )
       if FUTURETIME := TIME + STEPSIZE 
       /\ canStep(TIME, FUTURETIME, INPUTS, OUTPUTS) and FUTURETIME <= ENDTIME 
-      /\ SUINSTANCE := stepAction(< ID1 : SU | >, STEPSIZE)
-      /\ EVENT := stepEvent: ID1 StepSize: STEPSIZE . 
+      /\ SUINSTANCE := stepAction(< SU1 : SU | >, STEPSIZE)
+      /\ EVENT := stepEvent: SU1 StepSize: STEPSIZE . 
 
   *** Get
   ceq performGlobalStep(CONF 
-    < ID1 : SU | outputs : (< OUTPUT : Output | time : TIME, status : Undef, value : VALUE, dependsOn : FEEDTHROUGH > OUTPUTS), inputs : INPUTS >  
+    < SU1 : SU | outputs : (< OUTPUT : Output | time : TIME, status : Undef, value : VALUE, dependsOn : FEEDTHROUGH > OUTPUTS), inputs : INPUTS >  
     <  ALG : AlgorithmData | CosimStep : ALGO > 
     < OCH : SimulationData | values : PORTVALUES >
-    (ID1 ! OUTPUT ==> ID2 ! INPUT)) 
+    (SU1 ! OUTPUT ==> SU2 ! INPUT)) 
     =
-  performGlobalStep(CONF SUINSTANCE (ID1 ! OUTPUT ==> ID2 ! INPUT)
+  performGlobalStep(CONF SUINSTANCE (SU1 ! OUTPUT ==> SU2 ! INPUT)
     <  ALG : AlgorithmData | CosimStep : (ALGO ; EVENT) > 
-    < OCH : SimulationData | values : insert((ID2 ! INPUT), < TIME ; VALUE >, PORTVALUES) >)
+    < OCH : SimulationData | values : insert((SU2 ! INPUT), < TIME ; VALUE >, PORTVALUES) >)
   if feedthroughSatisfied(FEEDTHROUGH, INPUTS, TIME)
-    /\ SUINSTANCE := < ID1 : SU | outputs : (< OUTPUT : Output | status : Def > OUTPUTS) >
-    /\ EVENT := portEvent: Get SU: ID1 PId: OUTPUT . 
+    /\ SUINSTANCE := < SU1 : SU | outputs : (< OUTPUT : Output | status : Def > OUTPUTS) >
+    /\ EVENT := portEvent: Get SU: SU1 PId: OUTPUT . 
                       
 
   *** Algebraic Loop - solve and remove loop
@@ -197,32 +195,27 @@ load Scenario
   ***ceq performGlobalStep(CONF endTime: ENDTIME) = CONF endTime: ENDTIME
   ***  if simulationStepDone(CONF) and endTime: ENDTIME .
 
-  *** Extract the algortihm and call verify to verify it
- *** crl [get-algortihm]: CONF CosimStep: ALGO Initialization: INIT Termination: TERM => 
- ***                      CosimStep: ALGO Initialization: INIT Termination: TERM
-  ***            if simulationDone(CONF) .
-
   *** Initialization Procedure 
   crl [get-init] :
-    < ID1 : SU | fmistate : Initialize, inputs : INPUTS, 
+    < SU1 : SU | fmistate : Initialize, inputs : INPUTS, 
       outputs : (< OUTPUT : Output | status : Undef, value : VALUE, dependsOn : FEEDTHROUGH > OUTPUTS) > 
-    (ID1 ! OUTPUT ==> ID2 ! INPUT)
+    (SU1 ! OUTPUT ==> SU2 ! INPUT)
     < OCH : SimulationData | values : PORTVALUES > 
     < ALG : AlgorithmData | Initialization : ALGO >
-    => < ID1 : SU | outputs : (< OUTPUT : Output | status : Def > OUTPUTS) > 
-        (ID1 ! OUTPUT ==> ID2 ! INPUT)
-        < OCH : SimulationData | values : insert((ID2 ! INPUT), < 0 ; VALUE >, PORTVALUES) >  
+    => < SU1 : SU | outputs : (< OUTPUT : Output | status : Def > OUTPUTS) > 
+        (SU1 ! OUTPUT ==> SU2 ! INPUT)
+        < OCH : SimulationData | values : insert((SU2 ! INPUT), < 0 ; VALUE >, PORTVALUES) >  
         < ALG : AlgorithmData | Initialization : (ALGO ; EVENT) >
   if feedthroughSatisfied(FEEDTHROUGH, INPUTS, 0)
-    /\ EVENT := portEvent: Get SU: ID1 PId: OUTPUT . 
+    /\ EVENT := portEvent: Get SU: SU1 PId: OUTPUT . 
 
-  crl [set-init] : < ID1 : SU | inputs : (< INPUT : Input | status : Undef > INPUTS), fmistate : Initialize > 
-        < OCH : SimulationData | values : (((ID1 ! INPUT) |-> < TIME ; VALUE >), PORTVALUES) >
+  crl [set-init] : < SU1 : SU | inputs : (< INPUT : Input | status : Undef > INPUTS), fmistate : Initialize > 
+        < OCH : SimulationData | values : (((SU1 ! INPUT) |-> < TIME ; VALUE >), PORTVALUES) >
         < ALG : AlgorithmData | Initialization : ALGO >
-    => < ID1 : SU | inputs : (< INPUT : Input | status : Def, value : VALUE > INPUTS ) >
+    => < SU1 : SU | inputs : (< INPUT : Input | status : Def, value : VALUE > INPUTS ) >
        < OCH : SimulationData | values : PORTVALUES >
        < ALG : AlgorithmData | Initialization : (ALGO ; EVENT) >
-    if EVENT := portEvent: Set SU: ID1 PId: INPUT .
+    if EVENT := portEvent: Set SU: SU1 PId: INPUT .
 
   ***rl [init-loop] : CONF unsolvedSCC: (L ;; LOOPS) => solveLoop(CONF unsolvedSCC: LOOPS, L) .                 
 
@@ -242,30 +235,18 @@ load Scenario
           }
           if allSUsinSimulation(SUIDsNE, CONF) and TIME < ENDTIME .
 
-  op init : -> GlobalState .
-  eq init = { scenario(externalConnection, simulationUnits) } .
-
-  ops initConfiguration initConfigurationUninstrumented initConfDSE : -> Configuration .
-  eq initConfiguration = scenario(externalConnection, simulationUnits) .
-  eq initConfigurationUninstrumented = scenario(externalConnection, simulationUnitsNotInstrumented) .
-  eq initConfDSE = externalConnection simulationUnitsNotInitialized .
-
-  op isInitialState : Configuration -> Bool .
-  eq isInitialState(CONF < OCH : SimulationData | >) = false .
-  eq isInitialState(CONF) = true [owise] .
-
   op getOrchestrator : Configuration -> Configuration .
   eq getOrchestrator(CONF < OCH : AlgorithmData | >) = < OCH : AlgorithmData | > .
   eq getOrchestrator(CONF) = none [owise] .
 
-  crl [getAlgortihm]: { SCENARIOMODEL } => { getOrchestrator(CONF1) }
-      if isInitialState(SCENARIOMODEL)
-      /\ LOOPS := tarjan(SCENARIOMODEL)
-      /\ SUIDsNE := getSUIDsOfScenario(SCENARIOMODEL)
+  crl [getAlgortihm]: { INITSTATE } => { getOrchestrator(FINALSTATE) }
+      if isInitialState(INITSTATE)
+      /\ LOOPS := tarjan(INITSTATE)
+      /\ SUIDsNE := getSUIDsOfScenario(INITSTATE)
       /\ SIMULATIONDATA := initialOrchestrationData(1,LOOPS,SUIDsNE)
-      /\ CONF := calculateSNSet(SCENARIOMODEL) SIMULATIONDATA initialAlgorithmData(1)
-      /\ {CONF} => { CONF1 } 
-      /\ allSUsinUnloaded(SUIDsNE, CONF1) .
+      /\ CONF := calculateSNSet(INITSTATE) SIMULATIONDATA initialAlgorithmData(1)
+      /\ {CONF} => { FINALSTATE } 
+      /\ allSUsinUnloaded(SUIDsNE, FINALSTATE) .
 
 
 endom)

@@ -20,20 +20,6 @@ load Port
  op emptyList : -> ActionList [ctor] .
  op _;_ : ActionList ActionList -> ActionList [ctor assoc id: emptyList] .
 
-class OrchestrationData | 
-    Algorithm : ActionList, 
-    Initialization : ActionList,
-    Termination : ActionList,
-    SNSet : OidSet,
-    defaultStepSize : NzNat,
-    actualStepSize : NzNat,
-    endTime : NzNat,
-    unsolvedSCC : AlgebraicLoopSet,
-    solvedSCC : AlgebraicLoopSet,
-    guessOn : PortSet,
-    valuesToSet : PortValueMap,
-    simulationTime : Nat,
-    suids : NeOidSet .
 
  vars SU PORTID : Oid .
  var SUIDs : OidSet .
@@ -50,22 +36,45 @@ class OrchestrationData |
  ceq getSUs(((SU ! PORTID), PORTSET), SUIDs) = getSUs(PORTSET, SUIDs) if SU in SUIDs .
  eq getSUs(((SU ! PORTID), PORTSET), SUIDs) = getSUs(PORTSET, (SU , SUIDs)) [owise] .
 
- op initialOrchestrationData : NzNat NzNat AlgebraicLoopSet NeOidSet -> Object .
-  eq initialOrchestrationData(STEPSIZE, ENDTIME, LOOPS, SUIDs) =
-    < "Orchestrator" : OrchestrationData | 
-      Algorithm : emptyList, 
-      Initialization : emptyList,
-      Termination : emptyList,
+class SimulationData | 
+    SNSet : OidSet,
+    defaultStepSize : NzNat,
+    actualStepSize : NzNat,
+    unsolvedSCC : AlgebraicLoopSet,
+    solvedSCC : AlgebraicLoopSet,
+    guessOn : PortSet,
+    values : PortValueMap,
+    simulationTime : Nat,
+    suids : NeOidSet .
+
+class AlgorithmData | 
+    CosimStep : ActionList, 
+    Initialization : ActionList,
+    Termination : ActionList,
+    endTime : NzNat .
+
+
+  op initialOrchestrationData : NzNat AlgebraicLoopSet NeOidSet -> Object .
+  eq initialOrchestrationData(STEPSIZE, LOOPS, SUIDs) =
+    < "Orchestrator" : SimulationData | 
       SNSet : empty,
       defaultStepSize : STEPSIZE,
       actualStepSize : STEPSIZE,
-      endTime : ENDTIME,
       unsolvedSCC : LOOPS,
       solvedSCC : empty,
       guessOn : empty,
-      valuesToSet : empty,
+      values : empty,
       simulationTime : 0,
-      suids : SUIDs > .
+      suids : SUIDs 
+    > .
+
+  op initialAlgorithmData : NzNat  -> Object .
+  eq initialAlgorithmData(ENDTIME) =
+    < "Algorithm" : AlgorithmData | 
+      CosimStep : emptyList, 
+      Initialization : emptyList,
+      Termination : emptyList,
+      endTime : ENDTIME > .
 
 endom)
 

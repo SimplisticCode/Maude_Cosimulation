@@ -39,31 +39,32 @@ load LOOPSolver
 
   *** Set case (only on reactive Inputs)
   ceq findStep((ID1 , ID2 , SUIDs), 
-                      < ID1 : SU | inputs : (< INPUT : Input | time : INPUTTIME, contract : reactive > INPUTS) > 
-                      < ID2 : SU | outputs : (< OUTPUT : Output | value : VALUE, time : OUTPUTTIME, status : Def > OUTPUTS) > 
-                        (ID2 ! OUTPUT ==> ID1 ! INPUT) CONF, SAVEDCONF, ALGO) = 
-              findStep((ID1 , ID2 , SUIDs), SUINSTANCE < ID2 : SU | > (ID2 ! OUTPUT ==> ID1 ! INPUT) CONF, SAVEDCONF, ALGO ; EVENT) 
-              if INPUTTIME < OUTPUTTIME 
-              /\ SUINSTANCE := setAction(< ID1 : SU | >, INPUT, VALUE, OUTPUTTIME) 
-              /\ EVENT := portEvent: Set SU: ID1 PId: INPUT .
+      < ID1 : SU | inputs : (< INPUT : Input | time : INPUTTIME, contract : reactive > INPUTS) > 
+      < ID2 : SU | outputs : (< OUTPUT : Output | value : VALUE, time : OUTPUTTIME, status : Def > OUTPUTS) > 
+      (ID2 ! OUTPUT ==> ID1 ! INPUT) CONF, SAVEDCONF, ALGO) 
+      = 
+      findStep((ID1, ID2, SUIDs), SUINSTANCE < ID2 : SU | > (ID2 ! OUTPUT ==> ID1 ! INPUT) CONF, SAVEDCONF, ALGO ; EVENT) 
+      if INPUTTIME < OUTPUTTIME 
+      /\ SUINSTANCE := setAction(< ID1 : SU | >, INPUT, VALUE, OUTPUTTIME) 
+      /\ EVENT := portEvent: Set SU: ID1 PId: INPUT .
 
   ***Stepping case
   ceq findStep((ID1 , SUIDs), < ID1 : SU | time : TIME, outputs : OUTPUTS, inputs : INPUTS > 
-      < OCH : OrchestrationData | actualStepSize : STEPSIZE > CONF, SAVEDCONF, ALGO) 
-                    = findStep((ID1 , SUIDs), SUINSTANCE < OCH : OrchestrationData | actualStepSize : FUTURETIME >  CONF, SAVEDCONF, ALGO ; EVENT)
-                    if FUTURETIME := askStepSize(< ID1 : SU | >, STEPSIZE) 
-                    /\ SUINSTANCE := stepAction(< ID1 : SU | >, FUTURETIME) 
-                    /\ EVENT := stepEvent: ID1 StepSize: STEPSIZE 
-                    /\ canStep(TIME, (TIME + STEPSIZE), INPUTS, OUTPUTS) .
+      < OCH : SimulationData | actualStepSize : STEPSIZE > CONF, SAVEDCONF, ALGO) 
+      = findStep((ID1 , SUIDs), SUINSTANCE < OCH : SimulationData | actualStepSize : FUTURETIME >  CONF, SAVEDCONF, ALGO ; EVENT)
+        if FUTURETIME := askStepSize(< ID1 : SU | >, STEPSIZE) 
+        /\ SUINSTANCE := stepAction(< ID1 : SU | >, FUTURETIME) 
+        /\ EVENT := stepEvent: ID1 StepSize: STEPSIZE 
+        /\ canStep(TIME, (TIME + STEPSIZE), INPUTS, OUTPUTS) .
 
   *** Restart search and and update step size for next iteration of search
   ceq findStep((ID1 , ID2 , SUIDs),  < ID1 : SU | time : FUTURETIME > 
                         < ID2 : SU | time : FUTURETIME1 > CONF, SAVEDCONF 
-                        < OCH : OrchestrationData | actualStepSize : STEPSIZE >, ALGO) = 
+                        < OCH : SimulationData | actualStepSize : STEPSIZE >, ALGO) = 
               findStep((ID1 , ID2 , SUIDs), CONF1, CONF1, ALGO)   
                     if FUTURETIME =/= FUTURETIME1 
                     /\ MINSTEP := min(FUTURETIME, FUTURETIME1) 
-                    /\ CONF1 :=  SAVEDCONF < OCH : OrchestrationData | actualStepSize : MINSTEP > . 
+                    /\ CONF1 :=  SAVEDCONF < OCH : SimulationData | actualStepSize : MINSTEP > . 
                     *** The simulations should both have stepped, but not to the same time
 
   *** Solve Algebraic Loops *** Information should be carried over!
@@ -72,7 +73,7 @@ load LOOPSolver
   ***findStep(SUIDs, solveLoopConf(CONF UnsolvedSCC: LOOPS SolvedSCC: (LOOP , SOLVEDLOOPS), LOOP), SAVEDCONF UnsolvedSCC: LOOPS SolvedSCC: (LOOP , SOLVEDLOOPS), ALGO ; solveLoopAlgorithm(CONF UnsolvedSCC: LOOPS, LOOP)) [owise] . 
   )
 
-  ceq findStep(SUIDs, CONF < OCH : OrchestrationData | actualStepSize : STEPSIZE >, SAVEDCONF, ALGO) = < STEPSIZE ++ ALGO > 
+  ceq findStep(SUIDs, CONF < OCH : SimulationData | actualStepSize : STEPSIZE >, SAVEDCONF, ALGO) = < STEPSIZE ++ ALGO > 
     if stepFindingDone(SUIDs, CONF, STEPSIZE) . 
 
 endom)

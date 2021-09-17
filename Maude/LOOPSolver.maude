@@ -39,9 +39,10 @@ load SimulationUnit
    eq containsCycle(empty) = false .
    eq containsCycle(LOOPS) = true [owise] .
 
-   ceq solveLoop(CONF < OCH : OrchestrationData | Algorithm : ALGO > , 
+   ceq solveLoop(CONF 
+          < OCH : AlgorithmData | CosimStep : ALGO > , 
           AlgebraicLoop: PSet Type: LOOPTYPE) = 
-        CONF1 < OCH : OrchestrationData | Algorithm : (ALGO ; EVENT) >
+        CONF1 < OCH : AlgorithmData | CosimStep : (ALGO ; EVENT) >
         if < LOOPSOLVINGALGO ; CONF1 > := loopStep(PSet, breakLoop(PSet, CONF, LOOPTYPE), emptyList)
         /\ SUIDS := getSUs(PSet, empty) 
         /\ EVENT := complexEvent: Loop SaveSUs: SUIDS RestoreSUs: SUIDS Actions: LOOPSOLVINGALGO .
@@ -57,9 +58,9 @@ load SimulationUnit
                      < ID1 : SU | inputs : (< INPUT : Input | contract : CONTRACT > INPUTS) > 
                      < ID2 : SU | outputs : (< OUTPUT : Output | > OUTPUTS) > 
                      (ID2 ! OUTPUT ==> ID1 ! INPUT) 
-                     < OCH : OrchestrationData | guessOn : GSet > CONF, LOOPTYPE) = 
+                     < OCH : SimulationData | guessOn : GSet > CONF, LOOPTYPE) = 
                         breakLoop(((ID1 ! INPUT) , PSet), < ID1 : SU | > < ID2 : SU | > 
-                        < OCH : OrchestrationData | guessOn : ((ID1 ! INPUT) , GSet) > CONF, LOOPTYPE) 
+                        < OCH : SimulationData | guessOn : ((ID1 ! INPUT) , GSet) > CONF, LOOPTYPE) 
                         if (LOOPTYPE == reactivity and CONTRACT == reactive) or (LOOPTYPE == feedthrough and CONTRACT == delayed) .
 
     eq breakLoop(PSet, CONF, LOOPTYPE) = CONF [owise] .
@@ -68,9 +69,9 @@ load SimulationUnit
     *** Set value using Guess
     ceq loopStep(((ID1 ! INPUT) , PSet), 
                     < ID1 : SU | time : TIME, inputs : (< INPUT : Input | time : T1, contract : CONTRACT > INPUTS) >
-                      < OCH : OrchestrationData | guessOn : ((ID1 ! INPUT) , GSet), actualStepSize : STEP > 
+                    < OCH : SimulationData | guessOn : ((ID1 ! INPUT) , GSet), actualStepSize : STEP > 
                       CONF, ALGO) = 
-            loopStep(PSet, SUINSTANCE < OCH : OrchestrationData | guessOn : GSet > CONF, (ALGO ; EVENT)) 
+            loopStep(PSet, SUINSTANCE < OCH : SimulationData | guessOn : GSet > CONF, (ALGO ; EVENT)) 
                     if VALUE := < random(TIME) >
                     /\ FUTURETIME := T1 + STEP
                     /\ SUINSTANCE := < ID1 : SU | time : TIME, inputs : (< INPUT : Input | time : FUTURETIME, value : VALUE > INPUTS) >  
@@ -96,9 +97,8 @@ load SimulationUnit
 
     *** Step
     ceq loopStep(((ID1 ! OUTPUT) , PSet), < ID1 : SU | time : TIME, outputs : OUTPUTS, inputs : INPUTS > 
-     < OCH : OrchestrationData | actualStepSize : STEP > 
- CONF, ALGO) = 
-                  loopStep(((ID1 ! OUTPUT) , PSet), SUINSTANCE < OCH : OrchestrationData | > CONF, (ALGO ; EVENT))
+     < OCH : SimulationData | actualStepSize : STEP > CONF, ALGO) = 
+                  loopStep(((ID1 ! OUTPUT) , PSet), SUINSTANCE < OCH : SimulationData | > CONF, (ALGO ; EVENT))
                   if EVENT := stepEvent: ID1 StepSize: STEP
                   /\ SUINSTANCE := stepAction(< ID1 : SU | >, STEP) 
                   /\ FUTURETIME := TIME + STEP

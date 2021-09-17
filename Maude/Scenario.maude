@@ -49,16 +49,16 @@ load ScenarioAnalyser
   ceq calculateSNSet(< SU1 : SU | inputs : (< INPUT : Input | contract : reactive > INPUTS) > 
                      < SU2 : SU | outputs : (< OUTPUT : Output | > OUTPUTS) > 
                       (SU2 ! OUTPUT ==> SU1 ! INPUT) 
-                      < OCH : OrchestrationData | SNSet : (SU1 , SUIDs) > 
+                      < OCH : SimulationData | SNSet : (SU1 , SUIDs) > 
                       CONF) = 
                       calculateSNSet(< SU1 : SU | > < SU2 : SU | > (SU2 ! OUTPUT ==> SU1 ! INPUT) 
-                      < OCH : OrchestrationData | SNSet : (SU1 , SU2 , SUIDs) > 
+                      < OCH : SimulationData | SNSet : (SU1 , SU2 , SUIDs) > 
                       CONF) 
                       if not SU2 in SUIDs .
   
   ceq calculateSNSet(< SU1 : SU | canReject : true > 
-                      < OCH : OrchestrationData | SNSet : SUIDs > CONF ) = 
-        calculateSNSet(< SU1 : SU | > < OCH : OrchestrationData | SNSet : (SU1 , SUIDs) > CONF )
+                      < OCH : SimulationData | SNSet : SUIDs > CONF ) = 
+        calculateSNSet(< SU1 : SU | > < OCH : SimulationData | SNSet : (SU1 , SUIDs) > CONF )
                                          if not SU1 in SUIDs .                             
   eq calculateSNSet(CONF) = CONF [owise] .
 
@@ -127,7 +127,7 @@ ceq scenario(CONNECTIONS, SUs) = CONNECTIONS SUs
     if SCENARIOMODEL := scenario(externalConnection, simulationUnits)
     /\ LOOPS := tarjan(SCENARIOMODEL)
     /\ NeSUIDs := getSUIDsOfScenario(SCENARIOMODEL)
-    /\ CONF := calculateSNSet(SCENARIOMODEL initialOrchestrationData(1,1,LOOPS, NeSUIDs)) .
+    /\ CONF := calculateSNSet(SCENARIOMODEL initialOrchestrationData(1,LOOPS, NeSUIDs)) .
     
    
 endom)

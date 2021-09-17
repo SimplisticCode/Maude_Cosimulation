@@ -89,7 +89,7 @@ eq simulationUnitsNotInitialized =
 eq step(< "ctrl" : SU | time : TIME, parameters : (("high" |-> < HIGH >) , ("low" |-> < LOW >)), 
                       inputs : < "waterlevel" : Input | value : < NATVALUE > >, 
                       outputs : < "valveState" : Output | value : < VALVESTATE >, time : TIME, status : PORTSTATUS >,
-                      localState : ( "valve" |-> < false > ) >,
+                      localState : ( "valve" |-> < BOOLVALUE > ) >,
                       STEPSIZE) = 
   if NATVALUE > HIGH then
     < "ctrl" : SU | time : (TIME + STEPSIZE), localState : ( "valve" |-> < true > ), 

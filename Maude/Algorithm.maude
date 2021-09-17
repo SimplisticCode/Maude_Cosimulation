@@ -1,24 +1,5 @@
 load Port
 
-(fmod ALGEBRAICLOOP is
-    protecting Ports .
-    sort AlgebraicLoop LoopType .
-    ops feedthrough reactivity : -> LoopType [ctor] . 
-    op AlgebraicLoop:_Type:_ : PortSet LoopType -> AlgebraicLoop [ctor] . 
-endfm )
-
-(view ALGEBRAICLOOPAsTRIV from TRIV to ALGEBRAICLOOP is
-  protecting ALGEBRAICLOOP .
-  sort Elt to AlgebraicLoop .
-endv)
-
-(fmod ALGEBRAICLOOPSET is
-  protecting SET{ALGEBRAICLOOPAsTRIV} * (sort NeSet{ALGEBRAICLOOPAsTRIV} to NeALSet, sort Set{ALGEBRAICLOOPAsTRIV} to AlgebraicLoopSet) .
-endfm)
-
-
-
-*** TODO look at action list to make it to a proper list
 (omod Algorithm is 
  protecting Ports + ALGEBRAICLOOPSET .
  sorts ActionType FMIActionType ComplexActionType ActionList Action  .
@@ -54,21 +35,20 @@ class OrchestrationData |
     simulationTime : Nat,
     suids : NeOidSet .
 
- var ID : SUID .
+ vars SU PORTID : Oid .
  var SUIDs : OidSet .
  var LOOPS : AlgebraicLoopSet .
  var PORT : EPortId .
  var LOOPTYPE : LoopType .
  var PORTSET : PortSet .
- var PORTID : PortId .
  vars ENDTIME STEPSIZE : NzNat .
 
  eq PORT memberOf ((AlgebraicLoop: (PORT , PORTSET)  Type: LOOPTYPE) , LOOPS) = true .
  eq PORT memberOf LOOPS = false [owise] .
 
  eq getSUs(empty, SUIDs) = SUIDs .
- ceq getSUs(((ID ! PORTID), PORTSET), SUIDs) = getSUs(PORTSET, SUIDs) if ID in SUIDs .
- eq getSUs(((ID ! PORTID), PORTSET), SUIDs) = getSUs(PORTSET, (ID , SUIDs)) [owise] .
+ ceq getSUs(((SU ! PORTID), PORTSET), SUIDs) = getSUs(PORTSET, SUIDs) if SU in SUIDs .
+ eq getSUs(((SU ! PORTID), PORTSET), SUIDs) = getSUs(PORTSET, (SU , SUIDs)) [owise] .
 
  op initialOrchestrationData : NzNat NzNat AlgebraicLoopSet NeOidSet -> Object .
   eq initialOrchestrationData(STEPSIZE, ENDTIME, LOOPS, SUIDs) =

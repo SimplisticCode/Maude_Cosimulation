@@ -109,3 +109,19 @@ endfm)
 (fmod SCC-MAP is
     protecting MAP{Nat ,PortListAsTRIV} * (sort Map{Nat, PortListAsTRIV} to SCCMap) .
 endfm) 
+
+(fmod ALGEBRAICLOOP is
+    protecting PORT-SET .
+    sort AlgebraicLoop LoopType .
+    ops feedthrough reactivity : -> LoopType [ctor] . 
+    op AlgebraicLoop:_Type:_ : PortSet LoopType -> AlgebraicLoop [ctor] . 
+endfm )
+
+(view ALGEBRAICLOOPAsTRIV from TRIV to ALGEBRAICLOOP is
+  protecting ALGEBRAICLOOP .
+  sort Elt to AlgebraicLoop .
+endv)
+
+(fmod ALGEBRAICLOOPSET is
+  protecting SET{ALGEBRAICLOOPAsTRIV} * (sort NeSet{ALGEBRAICLOOPAsTRIV} to NeALSet, sort Set{ALGEBRAICLOOPAsTRIV} to AlgebraicLoopSet) .
+endfm)

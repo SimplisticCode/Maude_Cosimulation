@@ -3,11 +3,9 @@ load cosim
 (omod AlgorithmVerifier is 
     protecting COSIMULATION .
     sorts SimulationState InstrumentationState .
-    var OCH : Oid .
+    vars SU1 SU2 OCH OUTPUT INPUT : Oid .
     vars RESTALGORITHM ALGO STEPNEGOALGO : ActionList .
     vars OUTPUTS INPUTS CONF CONF1 INITSTATE STATE FINALSTATE : Configuration .
-    vars OUTPUT INPUT : PortId .
-    vars ID1 ID2 : SUID . 
     vars STEPSIZE FUTURETIME NEGOTIATEDSTEPSIZE ENDTIME : NzNat .
     vars TIME SUTIME INPUTTIME NATVALUE ITERATION : Nat .
     var VALUE : FMIValue .
@@ -39,21 +37,21 @@ load cosim
       /\ ORCHESTRATOR := getOrchestrator(CONF1)
       /\ allSUsinUnloaded(SUIDsNE, CONF1) .
 
-    ops findConst findInstr : Configuration -> InstrumentationState [ctor] .
+    ops findContacts findInstr : Configuration -> InstrumentationState [ctor] .
     subsort Configuration < InstrumentationState .
     
     *** Everything that takes something frozen into something static should be frozen
     op allConstraintsDefined : Configuration -> Bool [frozen] .
-    eq allConstraintsDefined(< ID1 : SU | inputs : (< INPUT : Input | contract : noContract > INPUTS) > CONF) = false .
+    eq allConstraintsDefined(< SU1 : SU | inputs : (< INPUT : Input | contract : noContract > INPUTS) > CONF) = false .
     eq allConstraintsDefined(CONF) = true [owise] .
 
-    rl [insr-delayed]: findInstr(< ID1 : SU | inputs : (< INPUT : Input | contract : noContract > INPUTS) > CONF)
+    rl [insr-delayed]: findInstr(< SU1 : SU | inputs : (< INPUT : Input | contract : noContract > INPUTS) > CONF)
                      =>
-                       findInstr(< ID1 : SU | inputs : (< INPUT : Input | contract : delayed > INPUTS) > CONF) .
+                       findInstr(< SU1 : SU | inputs : (< INPUT : Input | contract : delayed > INPUTS) > CONF) .
 
-    rl [insr-reactive]: findInstr(< ID1 : SU | inputs : (< INPUT : Input | contract : noContract > INPUTS) > CONF)
+    rl [insr-reactive]: findInstr(< SU1 : SU | inputs : (< INPUT : Input | contract : noContract > INPUTS) > CONF)
                          =>
-                        findInstr(< ID1 : SU | inputs : (< INPUT : Input | contract : reactive > INPUTS) > CONF) .
+                        findInstr(< SU1 : SU | inputs : (< INPUT : Input | contract : reactive > INPUTS) > CONF) .
 
     crl [remove-findInstr]: findInstr(CONF) => CONF 
         if allConstraintsDefined(CONF) .
@@ -63,7 +61,7 @@ load cosim
         
     *** Find an implementation such that when it runs the algortihm it satisfies the property X
     ***op synthesizeInstrumentation : 
-    crl [findInstrumentation]: findConst(INITSTATE) => CONF
+    crl [findInstrumentation]: findContacts(INITSTATE) => CONF
         if findInstr(INITSTATE) => CONF
         /\ empty == tarjan(CONF)
         /\ runAnyAlgorithm CONF => run: ORCHESTRATOR on: CONF1
@@ -82,95 +80,113 @@ load cosim
     /\ above10(CONF1) .
 
   op above10 : Configuration -> Bool .
-  eq above10(CONF < "tank" : SU | localState : ( "waterlevel" |-> < NATVALUE >) >) = NATVALUE > 1 .
+  eq above10(CONF < "tank" : SU | localState : ( "waterlevel" |-> < NATVALUE >) >) = NATVALUE > 0 .
 
         
   *** FMI-standard fmistate transition:
-  rl [setExp] : run: < OCH : OrchestrationData | Initialization : ((fmiEvent: CreateExp SUs: SUIDsNE) ; RESTALGORITHM) > on: < ID1 : SU | fmistate : Instantiated > CONF  
-                => run: < OCH : OrchestrationData | Initialization : RESTALGORITHM > on: moveState(SUIDsNE, < ID1 : SU | > CONF, Instantiated, ExperimentSetup)  .
+  rl [setExp] : run: < OCH : OrchestrationData | Initialization : ((fmiEvent: CreateExp SUs: SUIDsNE) ; RESTALGORITHM) > on: < SU1 : SU | fmistate : Instantiated > CONF  
+                => run: < OCH : OrchestrationData | Initialization : RESTALGORITHM > on: moveState(SUIDsNE, < SU1 : SU | > CONF, Instantiated, ExperimentSetup)  .
 
   rl [init] : run: < OCH : OrchestrationData | Initialization : ((fmiEvent: EnterInitialization SUs: SUIDsNE) ; RESTALGORITHM )> 
-                on: < ID1 : SU | fmistate : ExperimentSetup > CONF       
+                on: < SU1 : SU | fmistate : ExperimentSetup > CONF       
            => run: < OCH : OrchestrationData | Initialization : RESTALGORITHM > 
-                    on:  moveToInitialize(SUIDsNE, < ID1 : SU | > CONF)  .
+                    on:  moveToInitialize(SUIDsNE, < SU1 : SU | > CONF)  .
 
   crl [simulate] : run: < OCH : OrchestrationData | Initialization : (fmiEvent: ExitInitialization SUs: SUIDsNE), valuesToSet : empty > 
-                on:  < ID1 : SU | fmistate : Initialize > CONF  
+                on:  < SU1 : SU | fmistate : Initialize > CONF  
                 => run: < OCH : OrchestrationData | Initialization : emptyList >  
-                on:  moveState(SUIDsNE, < ID1 : SU | > CONF, Initialize, Simulation) 
-                if initializationDone(SUIDsNE, < ID1 : SU | fmistate : Initialize > CONF) .
+                on:  moveState(SUIDsNE, < SU1 : SU | > CONF, Initialize, Simulation) 
+                if initializationDone(SUIDsNE, < SU1 : SU | fmistate : Initialize > CONF) .
 
   crl [terminate] : run: < OCH : OrchestrationData | endTime : TIME, Algorithm : emptyList, Termination : ((fmiEvent: Terminate SUs: SUIDsNE) ; RESTALGORITHM) >
-                on: < ID1 : SU | time : ENDTIME, inputs : INPUTS , outputs : OUTPUTS , fmistate : Simulation > CONF 
+                on: < SU1 : SU | time : ENDTIME, inputs : INPUTS , outputs : OUTPUTS , fmistate : Simulation > CONF 
                  => run: < OCH : OrchestrationData | Termination : RESTALGORITHM > 
-                    on: moveState(SUIDsNE, < ID1 : SU | > CONF, Simulation, Terminated) 
+                    on: moveState(SUIDsNE, < SU1 : SU | > CONF, Simulation, Terminated) 
                  if allDef(OUTPUTS, ENDTIME) and allDef(INPUTS, ENDTIME) .
 
   rl [free] : run: < OCH : OrchestrationData | Termination : ((fmiEvent: FreeInstance SUs: SUIDsNE) ; RESTALGORITHM) >
-              on:  < ID1 : SU | fmistate : Terminated > CONF 
+              on:  < SU1 : SU | fmistate : Terminated > CONF 
            => run: < OCH : OrchestrationData | Termination : RESTALGORITHM >
-              on:  moveState(SUIDsNE, < ID1 : SU | > CONF, Terminated, InstanceFreed)  .
+              on:  moveState(SUIDsNE, < SU1 : SU | > CONF, Terminated, InstanceFreed)  .
 
   rl [unload] : run: < OCH : OrchestrationData | Termination : ((fmiEvent: Unload SUs: SUIDsNE) ; RESTALGORITHM) >
-                on:  < ID1 : SU | fmistate : InstanceFreed > CONF 
+                on:  < SU1 : SU | fmistate : InstanceFreed > CONF 
               => run: < OCH : OrchestrationData | Termination : RESTALGORITHM > 
-                on:  moveState(SUIDsNE, < ID1 : SU | > CONF, InstanceFreed, Unloaded)  .
+                on:  moveState(SUIDsNE, < SU1 : SU | > CONF, InstanceFreed, Unloaded)  .
 
     *** Initialization
     crl [get-init] :
-            run:  < OCH : OrchestrationData | Initialization : ((portEvent: Get SU: ID1 PId: OUTPUT) ; RESTALGORITHM), valuesToSet : PORTVALUES > 
+            run:  < OCH : OrchestrationData | Initialization : ((portEvent: Get SU: SU1 PId: OUTPUT) ; RESTALGORITHM), valuesToSet : PORTVALUES > 
             on: 
-             < ID1 : SU | fmistate : Initialize, 
+             < SU1 : SU | fmistate : Initialize, 
             outputs : (< OUTPUT : Output | status : Undef, value : VALUE, dependsOn : FEEDTHROUGH > OUTPUTS), 
                     inputs : INPUTS > 
-                    (ID1 ! OUTPUT ==> ID2 ! INPUT) CONF
+                    (SU1 ! OUTPUT ==> SU2 ! INPUT) CONF
                 => 
-            run: < OCH : OrchestrationData | Initialization : RESTALGORITHM, valuesToSet : insert((ID2 ! INPUT), < 0 ; VALUE >, PORTVALUES) >
-            on:  < ID1 : SU | outputs : (< OUTPUT : Output | status : Def > OUTPUTS) > 
-                    (ID1 ! OUTPUT ==> ID2 ! INPUT) CONF             
+            run: < OCH : OrchestrationData | Initialization : RESTALGORITHM, valuesToSet : insert((SU2 ! INPUT), < 0 ; VALUE >, PORTVALUES) >
+            on:  < SU1 : SU | outputs : (< OUTPUT : Output | status : Def > OUTPUTS) > 
+                    (SU1 ! OUTPUT ==> SU2 ! INPUT) CONF             
             if feedthroughSatisfied(FEEDTHROUGH, INPUTS, 0) .
 
 
    *** Inputs can only rely on: one connection 
   rl [set-init] : 
-    run: < OCH : OrchestrationData | Initialization : ((portEvent: Set SU: ID1 PId: INPUT)  ; RESTALGORITHM), valuesToSet : (((ID1 ! INPUT) |-> < TIME ; VALUE >), PORTVALUES) >
-    on:  < ID1 : SU | inputs : (< INPUT : Input | status : Undef > INPUTS), fmistate : Initialize > CONF
+    run: < OCH : OrchestrationData | Initialization : ((portEvent: Set SU: SU1 PId: INPUT)  ; RESTALGORITHM), valuesToSet : (((SU1 ! INPUT) |-> < TIME ; VALUE >), PORTVALUES) >
+    on:  < SU1 : SU | inputs : (< INPUT : Input | status : Undef > INPUTS), fmistate : Initialize > CONF
     => 
     run: < OCH : OrchestrationData | Initialization : RESTALGORITHM, valuesToSet : PORTVALUES >
-    on:  < ID1 : SU | inputs : (< INPUT : Input | time : TIME, status : Def, value : VALUE > INPUTS ) > CONF  .
+    on:  < SU1 : SU | inputs : (< INPUT : Input | time : TIME, status : Def, value : VALUE > INPUTS ) > CONF  .
 
     *** Simulation
     crl [get] : 
-    run: < OCH : OrchestrationData | Algorithm : ((portEvent: Get SU: ID1 PId: OUTPUT) ; RESTALGORITHM), valuesToSet : PORTVALUES >
+    run: < OCH : OrchestrationData | Algorithm : ((portEvent: Get SU: SU1 PId: OUTPUT) ; RESTALGORITHM), valuesToSet : PORTVALUES >
     on: CONF
-     < ID1 : SU | outputs : (< OUTPUT : Output | time : TIME, value : VALUE, dependsOn : FEEDTHROUGH > OUTPUTS), inputs : INPUTS > 
-                ( ID1 ! OUTPUT ==> ID2 ! INPUT)  
+     < SU1 : SU | outputs : (< OUTPUT : Output | time : TIME, value : VALUE, dependsOn : FEEDTHROUGH > OUTPUTS), inputs : INPUTS > 
+                ( SU1 ! OUTPUT ==> SU2 ! INPUT)  
                 => 
-    run: < OCH : OrchestrationData | Algorithm : RESTALGORITHM, valuesToSet : (((ID2 ! INPUT) |-> < TIME ; VALUE >), PORTVALUES) >
-    on: CONF < ID1 : SU | outputs : (< OUTPUT : Output | status : Def > OUTPUTS) > 
-                ( ID1 ! OUTPUT ==> ID2 ! INPUT)
+    run: < OCH : OrchestrationData | Algorithm : RESTALGORITHM, valuesToSet : (((SU2 ! INPUT) |-> < TIME ; VALUE >), PORTVALUES) >
+    on: CONF < SU1 : SU | outputs : (< OUTPUT : Output | status : Def > OUTPUTS) > 
+                ( SU1 ! OUTPUT ==> SU2 ! INPUT)
         if feedthroughSatisfied(FEEDTHROUGH, INPUTS, TIME) .
                 
     crl [set] : 
-    run: < OCH : OrchestrationData | Algorithm : ((portEvent: Set SU: ID1 PId: INPUT) ; RESTALGORITHM), valuesToSet : (((ID1 ! INPUT) |-> < TIME ; VALUE >), PORTVALUES) >
-    on: CONF < ID1 : SU | time : SUTIME, fmistate : Simulation, inputs : (< INPUT : Input | contract : CONTRACT, time : INPUTTIME > INPUTS) >
+    run: < OCH : OrchestrationData | Algorithm : ((portEvent: Set SU: SU1 PId: INPUT) ; RESTALGORITHM), valuesToSet : (((SU1 ! INPUT) |-> < TIME ; VALUE >), PORTVALUES) >
+    on: CONF < SU1 : SU | time : SUTIME, fmistate : Simulation, inputs : (< INPUT : Input | contract : CONTRACT, time : INPUTTIME > INPUTS) >
             => 
     run: < OCH : OrchestrationData | Algorithm : RESTALGORITHM, valuesToSet : PORTVALUES >
-    on: CONF < ID1 : SU | inputs : (< INPUT : Input | time : TIME, value : VALUE > INPUTS) > 
+    on: CONF < SU1 : SU | inputs : (< INPUT : Input | time : TIME, value : VALUE > INPUTS) > 
     if ((CONTRACT == reactive and (TIME > INPUTTIME) and INPUTTIME == SUTIME) or (CONTRACT == delayed and TIME == SUTIME)) .
 
     crl [step-action] : 
-            run: < OCH : OrchestrationData | Algorithm : ((stepEvent: ID1 StepSize: STEPSIZE) ; RESTALGORITHM) >
-            on: CONF < ID1 : SU | time : TIME, inputs : INPUTS, outputs : OUTPUTS, fmistate : Simulation >
+            run: < OCH : OrchestrationData | Algorithm : ((stepEvent: SU1 StepSize: STEPSIZE) ; RESTALGORITHM) >
+            on: CONF < SU1 : SU | time : TIME, inputs : INPUTS, outputs : OUTPUTS, fmistate : Simulation >
             => 
             run: < OCH : OrchestrationData | Algorithm : RESTALGORITHM >
             on: CONF O:Object
                 if FUTURETIME := TIME + STEPSIZE
                 /\ canStep(TIME, FUTURETIME, INPUTS, OUTPUTS) 
-                /\ step(< ID1 : SU | >, STEPSIZE) => O:Object .
+                /\ step(< SU1 : SU | >, STEPSIZE) => O:Object .
 
-
+    *** Next step look at Complex scenarios
+    rl [step-negotiation] :
+                run:
+                < OCH : OrchestrationData | Algorithm : 
+                    ((complexEvent: StepNegotiation SaveSUs: SUIDsNE RestoreSUs: SUIDsNE Actions: ALGO) ; RESTALGORITHM) >
+                on: CONF
+                => 
+                run: 
+                < OCH : OrchestrationData | Algorithm : RESTALGORITHM > 
+                on: CONF .
     
+    rl [fixed-point] :
+            run:
+            < OCH : OrchestrationData | Algorithm : 
+                ((complexEvent: Loop SaveSUs: SUIDsNE RestoreSUs: SUIDsNE Actions: ALGO) ; RESTALGORITHM) >
+            on: CONF
+            => 
+            run: 
+            < OCH : OrchestrationData | Algorithm : RESTALGORITHM > 
+            on: CONF .
 
 endom)
     eof
@@ -211,13 +227,14 @@ on: (("ctrl" ! "valveState" ==> "tank" ! "valveState")(
 
 
 *** find Insrumentations
-( search findConst(initConfiguration) =>! C:Configuration . )
-( frew findConst(initConfigurationUninstrumented) . )
+( search findContacts(initConfiguration) =>! C:Configuration . )
+( frew findContacts(initConfigurationUninstrumented) . )
 
-( search findConst(initConfigurationUninstrumented) =>! C:Configuration . )
+( search findContacts(initConfigurationUninstrumented) =>! C:Configuration . )
 *** Find correct Parameters:
 ( search selectParams(initConfDSE)  =>! C:Configuration . )
 
+( frew selectParams(initConfDSE)  . )
 
 *** Deterministic
 *** Go from an initial configuration to search for  
@@ -266,3 +283,23 @@ fmiEvent: Unload SUs:("ctrl", "tank")),actualStepSize : 1,defaultStepSize : 1,en
     Input | contract : delayed,status : Def,time : 1,type : integer,value : < 1 > >,localState : "waterlevel" |-> < 100 >,outputs
     : < "waterlevel" : Output | dependsOn : empty,status : Def,time : 1,type : integer,value : < 100 > >,parameters : "flow" |-> <
     100 >,path : "",time : 1 > . )
+
+(frew run: < "Orchestrator" : OrchestrationData | Algorithm :((
+stepEvent: "ctrl" StepSize: 1);(
+portEvent: Get SU: "ctrl" PId: "valveState");(
+stepEvent: "tank" StepSize: 1);(
+portEvent: Get SU: "tank" PId: "waterlevel");(
+portEvent: Set SU: "ctrl" PId: "waterlevel");
+portEvent: Set SU: "tank" PId: "valveState"),Initialization : emptyList,SNSet : empty,Termination :((
+fmiEvent: Terminate SUs:("ctrl", "tank"));(
+fmiEvent: FreeInstance SUs:("ctrl", "tank"));
+fmiEvent: Unload SUs:("ctrl", "tank")),actualStepSize : 1,defaultStepSize : 1,endTime : 2,guessOn : empty,simulationTime : 2,
+    solvedSCC : empty,suids :("ctrl", "tank"),unsolvedSCC : empty,valuesToSet : empty > on:(
+"ctrl" ! "valveState" ==> "tank" ! "valveState")(
+"tank" ! "waterlevel" ==> "ctrl" ! "waterlevel")< "ctrl" : SU | canReject : false,fmistate : Simulation,inputs : < "waterlevel" :
+    Input | contract : delayed,status : Def,time : 1,type : integer,value : < 100 > >,localState : "valve" |-> < true >,outputs : <
+    "valveState" : Output | dependsOn : empty,status : Def,time : 1,type : integer,value : < 1 > >,parameters :("high" |-> < 5 >,
+    "low" |-> < 0 >),path : "",time : 1 > < "tank" : SU | canReject : false,fmistate : Simulation,inputs : < "valveState" : Input |
+    contract : delayed,status : Def,time : 1,type : integer,value : < 1 > >,localState : "waterlevel" |-> < 100 >,outputs : <
+    "waterlevel" : Output | dependsOn : empty,status : Def,time : 1,type : integer,value : < 100 > >,parameters : "flow" |-> < 100 >,
+    path : "",time : 1 > .)

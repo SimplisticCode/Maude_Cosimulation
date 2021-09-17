@@ -63,7 +63,7 @@
 %
 %\authorrunning{S. Thrane et al.}
 
-\titlerunning{Co-Simulation using Rewriting Logic}
+\titlerunning{Formal Framework for Synthesizing Co-simulation algorithms, analyzing and executing co-simulations}
 
 % First names are abbreviated in the running head.
 % If there are more than two authors, 'et al.' is used.
@@ -87,127 +87,12 @@ WRLA:\\
 \textbf{Page limit: 15 (without references)}\\
 \textbf{Notification: 8th of February}
 
-Formal Framework for Synthesizing Co-simulation algorithms
-, analyzing and executing co-simulations
-\begin{itemize}
-  \item Motivation for co-simulation
-  \begin{itemize}
-    \item Industry 4.0
-    \item Development of CPS
-    \item The result of co-simulation
-    \begin{itemize}
-    \item How to test and verify an OA - need for correct by construction algorithm
-    \item Design Space Exploration of the system - model checking 
-    \item Testing the configurations of the systems - model checking the contracts.
-    \item Dynamic observation of the system
-    \item Satisfying the contracts
-    \item Checking safety properties (possible to reach a bad state). - model checking might be needed because although each SU might have deterministic behavior, we might not know this - we have to consider a range of possible behaviors.
-    \item General problem with writing sound SU.
-    \item Time 
-  \end{itemize}
-  \end{itemize}
-  \item Background
-  \begin{itemize}
-    \item Rewriting Logic
-    \item Co-simulation
-    \begin{itemize}
-      \item 
-    \end{itemize}
-  \end{itemize}
-  \item The Maude model
-  \begin{itemize}
-    \item 
-  \end{itemize}
-  \item Analyses
-  \begin{itemize}
-    \item Confluent and deterministic algorithm
-    \item Verification of Algorithms
-    \item Design Space Exploration
-    \item Step negotiation (Non-deterministic behavior)
-    \item Contracts
-    \item Interaction with real-world SUs
-  \end{itemize}
-\end{itemize}
 
-Need for formal methods:
-\begin{itemize}
-  \item Desireable to do model checking as run-time verification during the simulation.
-  \item Communication to external objects - continuous Interaction between formal tool.
-  \item Step negotiation
-  \item Fixed-point iteration (Algebraic loop)
-  \item Complex functions - Tarjan, fixed-point iteration.
-\end{itemize}
 
-Contribution
-\begin{itemize}
-  \item Address the problems - obtaining good co-simulation algorithm
-  \item Perform co-simulation in Maude
-  \item Step negotiation
-  \item Fixed-point iteration (Algebraic loop)
-  \item Complex functions - Tarjan, fixed-point iteration.
-\end{itemize}
 
-Use of Maude:
-\begin{itemize}
-  \item Addresses the challenges:
-  \item Non-distributed components
-  \item Supports functions and is very compressive
-  \item Supports model-checking - lets the user explore all different initialization of all the simulation units
-  \item Model checking allows one to explore that the SU does not reach a bad state
-  \item Most importantly, Maude supports communication with external objects so, in each simulation iteration, we can check and verify (model check) the algorithm used to simulate the next system step.
-\end{itemize}
-
-In this paper, we present a co-simulation Synthesizing engine and a Framework for performing various analyses in Maude of both the algorithm and the system of interest.
-\begin{itemize}
-  \item Model checking approach is used to explore the system's instrumentation's design space - check all possible contracts to reach the best simulation.
-  This happens by 
-  \item Given a state of the co-simulation system, we synthesize all correct orchestration (one of the algorithms might actually be better than another) for the next step of the co-simulation algorithm.
-  \item Model checking is used to show that all synthesized algorithms lead to a  
-  \item By defining abstract models of the system in Maude, we can perform model checking to explore violations of safety properties - to 
-  \item We then show have this framework can be used to run a co-simulation - to let Maude use as the orchestration engine.
-\end{itemize}
-
-We illustrate our techniques with some examples.
-
-Related work
-\begin{itemize}
-  \item Not a lot of formal methods on co-simulation
-  \begin{itemize}
-    \item All do work on a symbolic version of the simulation units
-    \item Generate only one algorithm
-  \end{itemize}
-\end{itemize}
-
-\section{Preliminaries}
-\subsection{Co-simulation}
-\subsection{Maude - Rewriting}
-\subsubsection{Model checking}
-
-\section{Formal model of co-simulation in Maude}
-Abstract model in Maude 
-\begin{itemize}
-  \item Inputs
-  \item Outputs
-  \item Local state
-  \item Parameters
-\end{itemize}
-
-\section{Synthesizing Algorithm}
-
-\section{Model checking Analysis of co-simulation}
-  \subsection{Orchestration Algorithms}
-  \subsection{Design Space Exploration for instrumentation of the scenario}
-
-\section{Use Maude an Orchestration Engine}
-
-Interaction with real system
 
 \section{Case study}
-
-\section{Related Work}
-
-\section{Concluding remarks}
-
+Hopefully one with real SUs
 
 
 TODAY:
@@ -227,8 +112,6 @@ TODAY:
 
 External objects in Aarhus - ask Casper -maybe implement something in Python:
 
-
-
 \section{Progress on Thursday day}
 \begin{itemize}
   \item Simulation one synthesized algorithm
@@ -238,34 +121,30 @@ External objects in Aarhus - ask Casper -maybe implement something in Python:
   \item Run for one algorithm - small step semantics
   \item Design Space Exploration:
   \begin{itemize}
-    \item Instrumentation of the ports - with no loops and that satisfied certain properties - (show casing two different ways)
+    \item Instrumentation of the ports - with no loops and that satisfies certain properties - (showcasing two different ways)
     \item Finding the different parameters of the simulation units from a discrete set
-    \item Combination of the two.
+    \item Combination of finding the right configuration and parameters.
   \end{itemize}
-  \item  Big step simulation running multiple iterations
-\end{itemize}
-
-\section{Todo:}
-
-\begin{itemize}
-  \item Simulate the system with loops
-  \item Rules vs. Equations
-  \item External objects - long run
-  \item Tidying up
-  \item Larger example - to show the different things
+  \item Big step simulation running multiple iterations
+  \item \textbf{Might} make the search space smaller than the small step semantics
 \end{itemize}
 
 %\input{abstract.tex}
 
-%\input{introduction.tex}
+\input{introduction.tex}
 
-%\input{background.tex}
+\input{background.tex}
+
+\input{maudeModel.tex}
+
+\input{synthesizing.tex}
+
+\input{modelchecking.tex}
+
+%\input{casestudy.tex}
 
 %\input{relatedwork.tex}
 
-%\input{maudeModel.tex}
-
-%\input{casestudy.tex}
 
 %\input{conclusion.tex}
 %

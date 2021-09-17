@@ -82,7 +82,7 @@ load cosim
     /\ above10(CONF1) .
 
   op above10 : Configuration -> Bool .
-  eq above10(CONF < "tank" : SU | localState : ( "waterlevel" |-> < NATVALUE >) >) = NATVALUE > 10 .
+  eq above10(CONF < "tank" : SU | localState : ( "waterlevel" |-> < NATVALUE >) >) = NATVALUE > 1 .
 
         
   *** FMI-standard fmistate transition:
@@ -169,6 +169,9 @@ load cosim
                 /\ canStep(TIME, FUTURETIME, INPUTS, OUTPUTS) 
                 /\ step(< ID1 : SU | >, STEPSIZE) => O:Object .
 
+
+    
+
 endom)
     eof
 
@@ -231,12 +234,7 @@ on: (("ctrl" ! "valveState" ==> "tank" ! "valveState")(
                 < "tank" : SU | outputs : < "waterlevel" : Output | value : < 2546248239 > > > ) . )
 
               
-    *** Next step look at Complex scenarios
-    crl [step-negotiation] : 
-                Algorithm: (
-                    (complexEvent: StepNegotiation SaveSUs: SUIDsNENE RestoreSUs: SUIDsNENE Actions: ALGO) ; RESTALGORITHM)
-                => Algorithm: RESTALGORITHM  .
-     
+
 
 
 (frew findInstr(< "ctrl" : SU | canReject : false,fmistate : Instantiated,inputs : < "waterlevel" : Input |

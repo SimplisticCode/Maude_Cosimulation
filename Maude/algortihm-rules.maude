@@ -1,0 +1,33 @@
+
+  crl [set-input]: {CONF < ID1 : SU | time : SUTIME, 
+            inputs : (< INPUT : Input | time : INPUTTIME, contract : CONTRACT > INPUTS) > 
+          < OCH : OrchestrationData | Algorithm : ALGO, 
+                    valuesToSet : (((ID1 ! INPUT) |-> < TIME ; VALUE >), PORTVALUES) >} =>
+                    {CONF < ID1 : SU | inputs : (< INPUT : Input | value : VALUE, time : TIME > INPUTS) >
+            < OCH : OrchestrationData | Algorithm : (ALGO ; EVENT), valuesToSet : PORTVALUES > }
+            if (CONTRACT == reactive and TIME > INPUTTIME and INPUTTIME == SUTIME) or (CONTRACT == delayed and TIME == SUTIME and INPUTTIME < SUTIME)    
+            /\ EVENT := portEvent: Set SU: ID1 PId: INPUT .
+            
+  crl [get-output]: {CONF < ID1 : SU | outputs : 
+                      (< OUTPUT : Output | time : TIME, status : Undef, value : VALUE, 
+                            dependsOn : FEEDTHROUGH > OUTPUTS), inputs : INPUTS >  
+                      < OCH : OrchestrationData | Algorithm : ALGO, valuesToSet : PORTVALUES > 
+                      (ID1 ! OUTPUT ==> ID2 ! INPUT) }    
+                    =>
+                    {CONF 
+                    < ID1 : SU | outputs : (< OUTPUT : Output | status : Def > OUTPUTS) >  
+                      (ID1 ! OUTPUT ==> ID2 ! INPUT)  
+                  < OCH : OrchestrationData | Algorithm : (ALGO ; EVENT), valuesToSet : insert((ID2 ! INPUT), < TIME ; VALUE >, PORTVALUES) > }
+              if feedthroughSatisfied(FEEDTHROUGH, INPUTS, TIME)
+                /\ EVENT := portEvent: Get SU: ID1 PId: OUTPUT . 
+
+
+  crl [step]: {CONF < ID1 : SU | time : TIME, inputs : INPUTS, outputs : OUTPUTS > 
+        < OCH : OrchestrationData | Algorithm : ALGO, actualStepSize : STEPSIZE, endTime : ENDTIME > }
+      => 
+      {CONF SUINSTANCE 
+              < OCH : OrchestrationData | Algorithm : (ALGO ; EVENT) > }
+                        if FUTURETIME := TIME + STEPSIZE 
+                        /\ canStep(TIME, FUTURETIME, INPUTS, OUTPUTS) and FUTURETIME <= ENDTIME 
+                        /\ SUINSTANCE := stepAction(< ID1 : SU | >, STEPSIZE)
+                        /\ EVENT := stepEvent: ID1 StepSize: STEPSIZE . 

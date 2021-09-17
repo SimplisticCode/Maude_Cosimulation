@@ -29,9 +29,8 @@ load Algorithm
    op setAction : Object OidSet FMIValue Nat -> Object .
    op stepAction : Object NzNat -> Object .
    ops getAllReactivePorts getAllPorts : Configuration PortSet -> PortSet .
-  *** SU -> Values of the input ports -> 
 
-   vars ID ID1 ID2 : SUID .
+   vars SU1 SU2 : SUID .
    vars PORTID INPUT OUTPUT : PortId .
    vars TIME SUTIME VALVESTATE WATERLEVEL : Nat .
    vars CONF INPUTS OUTPUTS : Configuration .
@@ -44,18 +43,18 @@ load Algorithm
    var CONTRACT : Contract .
 
    *** Get All ports in the scenario:
-  ceq getAllPorts(< ID1 : SU | inputs : (< INPUT : Input | > INPUTS) > CONF, PORTSET) = 
-    getAllPorts(< ID1 : SU | inputs : INPUTS > CONF,  ((ID1 ! INPUT) , PORTSET))
-    if not (ID1 ! INPUT) in PORTSET .
+  ceq getAllPorts(< SU1 : SU | inputs : (< INPUT : Input | > INPUTS) > CONF, PORTSET) = 
+    getAllPorts(< SU1 : SU | inputs : INPUTS > CONF,  ((SU1 ! INPUT) , PORTSET))
+    if not (SU1 ! INPUT) in PORTSET .
 
-  ceq getAllPorts(< ID1 : SU | outputs : (< OUTPUT : Output | > OUTPUTS) > CONF, PORTSET) = 
-    getAllPorts(< ID1 : SU | outputs : OUTPUTS > CONF, ((ID1 ! OUTPUT) , PORTSET))
-      if not (ID1 ! OUTPUT) in PORTSET .
+  ceq getAllPorts(< SU1 : SU | outputs : (< OUTPUT : Output | > OUTPUTS) > CONF, PORTSET) = 
+    getAllPorts(< SU1 : SU | outputs : OUTPUTS > CONF, ((SU1 ! OUTPUT) , PORTSET))
+      if not (SU1 ! OUTPUT) in PORTSET .
 
   eq getAllPorts(CONF, PORTSET) = PORTSET [owise] . 
 
-  ceq getAllReactivePorts(< ID1 : SU | inputs : (< INPUT : Input | contract : reactive > INPUTS) > CONF, PORTSET) = getAllReactivePorts(< ID1 : SU | inputs : INPUTS > CONF, ((ID1 ! INPUT) , PORTSET))
-    if not (ID1 ! INPUT) in PORTSET .
+  ceq getAllReactivePorts(< SU1 : SU | inputs : (< INPUT : Input | contract : reactive > INPUTS) > CONF, PORTSET) = getAllReactivePorts(< SU1 : SU | inputs : INPUTS > CONF, ((SU1 ! INPUT) , PORTSET))
+    if not (SU1 ! INPUT) in PORTSET .
   eq getAllReactivePorts(CONF, PORTSET) = PORTSET [owise] . 
 
    *** Checks if all feedthrough constraints are satisfied
@@ -68,7 +67,6 @@ load Algorithm
    eq allDef(none, TIME) = true .
    eq allDef(< PORTID : Port | status : PORTSTATUS, time : TIME > CONF, TIME) = PORTSTATUS == Def and allDef(CONF, TIME) .
 
-*** Are not defined for all cases - need to be redefined
    eq allInputsDef(none, SUTIME, FUTURETIME) = true .
    eq allInputsDef(< PORTID : Input | time : TIME, contract : CONTRACT, status : PORTSTATUS > CONF, SUTIME, FUTURETIME) = PORTSTATUS == Def and ((CONTRACT == reactive and TIME == FUTURETIME) or (CONTRACT == delayed and TIME == SUTIME))
         and allInputsDef(CONF, SUTIME, FUTURETIME) .
@@ -77,27 +75,27 @@ load Algorithm
    eq undefPorts(< PORTID : Port | > CONF, TIME) =  < PORTID : Port | value : < random(TIME) >, status : Undef, time : TIME > undefPorts(CONF, TIME) .
 
    eq allInputsSet(none) = true .
-   eq allInputsSet(< ID : SU | inputs : INPUTS > CONF) = allDef(INPUTS, 0) and allInputsSet(CONF) .
+   eq allInputsSet(< SU1 : SU | inputs : INPUTS > CONF) = allDef(INPUTS, 0) and allInputsSet(CONF) .
 
    eq canStep(SUTIME, FUTURETIME, INPUTS, OUTPUTS) = 
       allInputsDef(INPUTS, SUTIME, FUTURETIME) and allDef(OUTPUTS, SUTIME) . 
 
    *** For the moment we allow all steps - should updated to reflect the nondeterminism of the step negotiation!
-   eq askStepSize(< ID : SU | >, STEP) = STEP .
+   eq askStepSize(< SU1 : SU | >, STEP) = STEP .
 
   *** Updates the time and status of the outputs
-  eq getAction(< ID : SU | >, empty) = < ID : SU | > .
-  eq getAction(< ID : SU | time : TIME, outputs : (< OUTPUT : Output | > OUTPUTS) >, (OUTPUT , PORTS)) = 
-    getAction(< ID : SU | outputs : (< OUTPUT : Output | time : TIME, status : Def > OUTPUTS) >, PORTS) .
+  eq getAction(< SU1 : SU | >, empty) = < SU1 : SU | > .
+  eq getAction(< SU1 : SU | time : TIME, outputs : (< OUTPUT : Output | > OUTPUTS) >, (OUTPUT , PORTS)) = 
+    getAction(< SU1 : SU | outputs : (< OUTPUT : Output | time : TIME, status : Def > OUTPUTS) >, PORTS) .
 
 
-  eq setAction(< ID : SU | > , empty, VALUE, TIME) =  < ID : SU | > .
-  eq setAction(< ID : SU | inputs : (< INPUT : Input | > INPUTS) > , (INPUT , PORTS), VALUE, TIME) = 
-            setAction(< ID : SU | inputs : (< INPUT : Input | time : TIME, value : VALUE,  status : Def > INPUTS) >, PORTS, VALUE, TIME) .
+  eq setAction(< SU1 : SU | > , empty, VALUE, TIME) =  < SU1 : SU | > .
+  eq setAction(< SU1 : SU | inputs : (< INPUT : Input | > INPUTS) > , (INPUT , PORTS), VALUE, TIME) = 
+            setAction(< SU1 : SU | inputs : (< INPUT : Input | time : TIME, value : VALUE,  status : Def > INPUTS) >, PORTS, VALUE, TIME) .
 
   *** Updates the time and the status of the outputs
-  ceq stepAction(< ID : SU | time : TIME, outputs : OUTPUTS >, STEP) 
-    = < ID : SU | time : FUTURETIME, outputs : undefPorts(OUTPUTS, FUTURETIME) > 
+  ceq stepAction(< SU1 : SU | time : TIME, outputs : OUTPUTS >, STEP) 
+    = < SU1 : SU | time : FUTURETIME, outputs : undefPorts(OUTPUTS, FUTURETIME) > 
     if FUTURETIME := TIME + STEP .
 
   op step : Object NzNat -> StepState [ctor] .

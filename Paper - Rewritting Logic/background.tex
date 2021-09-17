@@ -1,9 +1,5 @@
 \section{Preliminaries}\label{sc:background}
-\subsection{Co-simulation}
 
-Instrumentation
-
-Design Space Exploration
 \subsection{Maude - Rewriting}
 \subsubsection{Model checking}
 
@@ -21,34 +17,12 @@ A scenario is simulated using an orchestrator - an algorithm - that computes the
 The orchestrator's goal is to find the communication points that minimize the co-simulation error and ensure that the SUs move in lockstep. 
 Studies \cite{Gomes2019,Oakes2021,Gomes2018f,Schweizer2015c,Gomes2018a} have shown that optimal communication points depend on the implementation of the SUs.
 
-\begin{definition}[Simulation Unit]\label{def:fmu}
-  An SU with identifier $c$ is represented by the tuple
-  $$\tuple{\stateset{c}, \inputs{c}, \outputs{c}, \fset{c}, \fget{c}, \fdoStep{c}},$$
-  where:
-  \begin{compactitem}
-    \item $\stateset{c}$ represents the state space.
-    \item $\inputs{c}$ and $\outputs{c}$ the set of input and output variables, respectively. 
-    \item $\fset{c} : \stateset{c} \times \inputs{c} \times \valuesExchanged \to \stateset{c}$ and $\fget{c}: \stateset{c} \times \outputs{c} \to \valuesExchanged$ are functions to set the inputs and get the outputs, respectively (we abstract the set of values exchanged between input/output variables as $\valuesExchanged$. The type of this set is the tuple $\tuple{t, \values}$, where $\values$ denotes the value obtained at a given output port and $t: \timebase$ denotes the timestamp of $c$ when the value was obtained by an action respecting the contracts).
-    \item $\fdoStep{c}: \stateset{c} \times \stepbase \to \stateset{c} \times \stepbase $ is a function that instructs the SU to compute its state after a given time duration. If an SU is in state $\stateafter{c}{t}$ at time $t$, $(\stateafter{c}{t+h}, h) = \fdoStep{c}(\stateafter{c}{t}, H)$ approximates the state $\stateafter{c}{t+h}$ of the corresponding model at time $t+h$, where $h \leq H$. 
-  \end{compactitem}
-\end{definition}
-\vspace{-0.5em}
-\Cref{def:fmu} is inspired by \cite{Broman2013,Gomes2019c,thrane2021} and represents a symbolic version of an SU. 
-The state of SU $A$ at time $t$ is denoted $\stateafter{A}{t}$.
-We assume the last value set on an input/output port can be inspected, for example, the value of input $\inputvar{x}$ could be $\inputvar{x} = \tuple{t, v_x}$, where $t$ is the timestamp when the value $v_x$ set on $\inputvar{x}$ was obtained.
-The function $\fdoStep{c}$ returns a step size because some SUs implement error estimation and may conclude that taking a step size of $H$ will result in an intolerable error meaning the SU takes a smaller step than planned.
+\subsubsection{Instrumentation}
+Describe the contracts
 
-\begin{definition}[Scenario]\label{def:cosim_scenario}
-  A scenario is a structure $\tuple{\fmus, \coupling, \mayReject, \allfeedthroughs, \allreactivity, \alldelayed}$ where each identifier $c \in \fmus$ is associated with an SU, as defined in \cref{def:fmu}, and $\coupling(u)=y$ means that the output $y$ is connected to input $u$.
-  Let $\allinputs = \bigcup_{c \in \fmus} \inputs{c}$ and $\alloutputs = \bigcup_{c \in \fmus} \outputs{c}$, then $\coupling : \allinputs \to \alloutputs$. 
-  $\mayReject \subseteq \fmus$ denotes the SUs that implement error estimation. 
-  The set of reactive components,
-  $\allreactivity = \bigcup_{c \in \fmus} \reactivity{c}$, where $\reactivity{c}(\inputvar{c}) = \true$ means the function $\fdoStep{c}$ assumes that the input $\inputvar{c}$ comes from an SU that has advanced forward relative to SU $c$.  
-The set of delayed components,
-  $\alldelayed = \bigcup_{c \in \fmus} \neg \reactivity{c}$, where $\reactivity{c}(\inputvar{c}) = \false$ means the function $\fdoStep{c}$ assumes that the input $\inputvar{c}$ comes from an SU that is at the same time as SU $c$. 
- Finally, the set of feed-through components, $\allfeedthroughs = \bigcup_{c \in \fmus} \feedthrough{c}$, where the input $\inputvar{c} \in \inputs{c}$ feeds through to output $\outputvar{c} \in \outputs{c}$, that is, $(\inputvar{c},\outputvar{c}) \in \feedthrough{c}$, when there exists $v_1, v_2 \in \valuesExchanged$ and $\state{c} \in \stateset{c}$, such that
-  $\fget{c} (\fset{c}(\state{c}, \inputvar{c}, v_1), \outputvar{c}) \neq \fget{c} (\fset{c}(\state{c}, \inputvar{c}, v_2), \outputvar{c}).$
-\end{definition}  
+\subsubsection{Design Space Exploration}
+Write this
+
 
 The syntax in \cref{fig:simpleexample} is used to graphically present co-simulation scenarios.
 A scenario can contain cyclic dependency between different ports, these are denoted algebraic loops.

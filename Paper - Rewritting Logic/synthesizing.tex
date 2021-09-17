@@ -1,4 +1,34 @@
-\section{Synthesizing Algorithm}
+\section{Synthesizing Co-simulation Algorithms}
+As previously explained, the used co-simulation algorithm affects the co-simulation result, and accurate simulation results can require an implementation-aware algorithm satisfying the contracts of the scenario (Citation).
+
+Rewriting logic allows one to synthesize the correct-by-construction algorithms using conditional rewriting rules.
+The conditional rewriting rules describe how a given action changes the symbolic state of the system; the preconditions described in (link to Verification paper and Claudio's paper) are encoded as a mix of state patterns and conditions of the rules.
+An example of this is the $\fget{c}$ shown in \ref{lst:get-action}.
+
+\begin{lstlisting}[caption={The get-action rewriting rule.},label={lst:get-action},language=Java]
+    get-
+\end{lstlisting}
+
+During the synthesizing, we store the algorithm .
+
+The co-simulation algorithm is finally synthesizing 
+
+Using the non-deterministic rewriting rules facilitates the ability to synthesize multiple implementation-aware algorithms of the same scenario potentially.
+The following section describes how we can show that all these algorithms lead to the same simulation result.
+However, the different algorithms naturally also have some different properties; most interesting is probably the time it takes to run the simulation using the algorithm. 
+In the future, it could be interesting to explore if there exists an optimal algorithm in the set of generated algorithms.
+
+The state-changing functions from the FMI standard \cite{FMI2014}, for example, the \textit{exitInitialization} are also rules moving all the simulation units in lockstep from one FMI-state to the next.
+
+\subsection{Complex Scenario}
+Complex scenarios subject to step negotiation or algebraic loops need to be simulated using an iterative algorithm that searches for correct configurations to simulate the scenario (see XX for more information).
+The scenario 
 
 
-All FMIs 
+%Synthesizing the step negotiation
+\subsubsection{Step negotiation}
+The step negotiation is a search for a step that all SUs accept.
+
+\subsubsection{Algebraic Loops}
+
+%Synthesizing the fixed-point iteration

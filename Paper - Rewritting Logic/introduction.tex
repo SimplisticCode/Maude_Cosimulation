@@ -20,14 +20,8 @@
     \begin{itemize}
       \item Rewriting Logic
       \item Co-simulation
-      \begin{itemize}
-        \item 
-      \end{itemize}
     \end{itemize}
     \item The Maude model
-    \begin{itemize}
-      \item 
-    \end{itemize}
     \item Analyses
     \begin{itemize}
       \item Confluent and deterministic algorithm
@@ -87,6 +81,7 @@
     \end{itemize}
   \end{itemize}
 
+% Motivation for co-simulation
 Cyber-physical systems (CPS) embody physical processes controlled by cyber elements. 
 CPSs are omnipresent and control more and more critical functions in our daily life.
 A CPS is typically developed in a distributed fashion using different tools and techniques. 
@@ -96,17 +91,18 @@ Co-simulation is one of these techniques. Co-simulation is the study of how to c
 An SU represents a sub-system. 
 The SU is responsible for computing the behavior of the sub-system, in order to compute their combined behavior, and therefore produce the global behavior of a system, as a discrete trace (see, e.g., \cite{Kubler2000,Gomes2018}).
 
-
 Co-simulation allows iterative integration of constituents to explore the global system behavior without violating the constituents' intellectual property. 
 The SUs are coupled by an orchestration algorithm that interacts with each SU through an interface.
 An example of such an SU is a Functional Mock-up Unit (FMU) defined by the Functional Mock-up Interface Standard~\cite{FMI2014} (FMI), which inspires the notion of an SU in this paper. FMI is a widely adopted standard used commercially and supported by many tools~\cite{Tools_FMI}.
 
+%How to test and verify an OA - need for correct by construction algorithm
 The overarching challenge of co-simulation is ensuring correct and deterministic simulation results. 
 Previous studies \cite{Gomes2019,Oakes2021,Gomes2018f,Schweizer2015c} show that obtaining a correct and deterministic co-simulation result requires an implementation-aware algorithm.
 The algorithm should be specifically tailored to the scenario to respect the SUs' input approximation functions.
 
-Not considering such details can lead to hard to debug errors in the co-simulation results as highlighted in \cite{Gomes2019,Oakes2021}. 
-They show how contracts on the co-simulation algorithm could be constructed based on the SUs. 
+Not considering such details can lead to inaccurate co-simulation results that can be hard to debug \cite{Gomes2019,Oakes2021}, which show how contracts on the co-simulation algorithm could be constructed based on the SUs. 
+However, the 
+
 Obeying such contracts leads to a substantial reduction of co-simulation errors (see also \cref{sc:related} for more related work). 
 Complex scenarios are an even more challenging class of scenarios to simulate.
 These scenarios are subject to either algebraic loops or adaptive steps. 
@@ -114,10 +110,15 @@ Complex scenarios are simulated using a specific iterative algorithm \cite{thran
 The iterative algorithm solves the algebraic loop (cyclic dependencies between the SUs) and ensures that all SUs agree on a step; the latter is referred to as step negotiation. 
 Step negotiation permits the SUs to implement error estimation and refuse specific future state evaluations to minimize the simulation error while ensuring that the SUs move in lockstep.
 
-We propose an approach that has been implemented as a tool. The tool lets users synthesize orchestration algorithms and perform various analyses of the system of interest within a formal framework.
+% Checking safety properties (possible to reach a bad state). - model checking might be needed because although each SU might have deterministic behavior, we might not know this - we have to consider a range of possible behaviors.
+
+We propose a model checking approach that allows a co-simulation practitioner to synthesize and verify co-simulation algorithms.
+Furthermore, the approach allows various analyses such as design space exploration of simulation parameters and various instrumentation of the scenario to see that will produce the most accurate simulation.
+
 
 \textit{Contribution:}
-This paper describes an executable Maude formalization for synthesizing co-simulation algorithms satisfying the contracts of the scenario.
+This paper describes an executable Maude formalization for synthesizing, verifying and executing co-simulation algorithms.
+The approach 
 The approach covers complex scenarios subject to algebraic loops and adaptive steps.
 
 The formalization enables multiple analyses of both the generated algorithm and the system of interest. 

@@ -33,9 +33,9 @@ load cosim
         if LOOPS := tarjan(INITSTATE)
       /\ SUIDsNE := getSUIDsOfScenario(INITSTATE)
       /\ CONF := calculateSNSet(INITSTATE initialOrchestrationData(1,1,LOOPS,SUIDsNE)) 
-      /\ {CONF} => { CONF1 } 
-      /\ ORCHESTRATOR := getOrchestrator(CONF1)
-      /\ allSUsinUnloaded(SUIDsNE, CONF1) .
+      /\ {CONF} => { FINALSTATE } 
+      /\ ORCHESTRATOR := getOrchestrator(FINALSTATE)
+      /\ allSUsinUnloaded(SUIDsNE, FINALSTATE) .
 
     ops findContacts findInstr : Configuration -> InstrumentationState [ctor] .
     subsort Configuration < InstrumentationState .
@@ -45,44 +45,41 @@ load cosim
     eq allConstraintsDefined(< SU1 : SU | inputs : (< INPUT : Input | contract : noContract > INPUTS) > CONF) = false .
     eq allConstraintsDefined(CONF) = true [owise] .
 
-    rl [insr-delayed]: findInstr(< SU1 : SU | inputs : (< INPUT : Input | contract : noContract > INPUTS) > CONF)
-                     =>
-                       findInstr(< SU1 : SU | inputs : (< INPUT : Input | contract : delayed > INPUTS) > CONF) .
+    rl [insr-delayed]: 
+        findInstr(< SU1 : SU | inputs : (< INPUT : Input | contract : noContract > INPUTS) > CONF)
+        =>
+        findInstr(< SU1 : SU | inputs : (< INPUT : Input | contract : delayed > INPUTS) > CONF) .
 
-    rl [insr-reactive]: findInstr(< SU1 : SU | inputs : (< INPUT : Input | contract : noContract > INPUTS) > CONF)
-                         =>
-                        findInstr(< SU1 : SU | inputs : (< INPUT : Input | contract : reactive > INPUTS) > CONF) .
+    rl [insr-reactive]: 
+        findInstr(< SU1 : SU | inputs : (< INPUT : Input | contract : noContract > INPUTS) > CONF)
+        =>
+        findInstr(< SU1 : SU | inputs : (< INPUT : Input | contract : reactive > INPUTS) > CONF) .
 
     crl [remove-findInstr]: findInstr(CONF) => CONF 
         if allConstraintsDefined(CONF) .
-
-    ***op findInst( )
-    ***ceq findInst()
         
-    *** Find an implementation such that when it runs the algortihm it satisfies the property X
-    ***op synthesizeInstrumentation : 
+    *** Find an implementation such that when it runs the algortihm it satisfies the property defined by the user
     crl [findInstrumentation]: findContacts(INITSTATE) => CONF
         if findInstr(INITSTATE) => CONF
-        /\ empty == tarjan(CONF)
-        /\ runAnyAlgorithm CONF => run: ORCHESTRATOR on: CONF1
-        /\ positive(CONF1) .
+        /\ empty == tarjan(CONF) *** We do not allow loops in the found configuration
+        /\ runAnyAlgorithm CONF => run: ORCHESTRATOR on: FINALSTATE
+        /\ positive(FINALSTATE) .
 
     op positive : Configuration -> Bool .
     eq positive(CONF < "ctrl" : SU | inputs : (< "waterlevel" : Input | value : < NATVALUE > > INPUTS) >) = NATVALUE > 0 .
 
+    *** Select the a value for parameter we want to do DSE on.
     op selectParams : [Configuration] -> [Configuration] .
-
     crl [dse] : selectParams(UNITIALIZEDCONF) => CONF 
     if UNITIALIZEDCONF => CONF
     /\ runAnyAlgorithm CONF => 
         run: < OCH : OrchestrationData | Initialization : emptyList, Algorithm : emptyList, Termination : emptyList, ATTS:AttributeSet > 
-        on: CONF1
-    /\ above10(CONF1) .
+        on: FINALSTATE
+    /\ above10(FINALSTATE) .
 
   op above10 : Configuration -> Bool .
   eq above10(CONF < "tank" : SU | localState : ( "waterlevel" |-> < NATVALUE >) >) = NATVALUE > 0 .
 
-        
   *** FMI-standard fmistate transition:
   rl [setExp] : run: < OCH : OrchestrationData | Initialization : ((fmiEvent: CreateExp SUs: SUIDsNE) ; RESTALGORITHM) > on: < SU1 : SU | fmistate : Instantiated > CONF  
                 => run: < OCH : OrchestrationData | Initialization : RESTALGORITHM > on: moveState(SUIDsNE, < SU1 : SU | > CONF, Instantiated, ExperimentSetup)  .
@@ -168,6 +165,7 @@ load cosim
                 /\ step(< SU1 : SU | >, STEPSIZE) => O:Object .
 
     *** Next step look at Complex scenarios
+    *** Right now we just ignore them in the simulation
     rl [step-negotiation] :
                 run:
                 < OCH : OrchestrationData | Algorithm : 

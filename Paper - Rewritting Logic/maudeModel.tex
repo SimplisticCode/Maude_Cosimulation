@@ -1,5 +1,6 @@
 \section{Formal model of co-simulation in Maude}
-This section describes the modelling of the domain of co-simulation in Maude. We start with describing the SUs before addressing their composition in a co-simulation.
+This section describes how co-simulation is modelled in Maude.
+We start with describing the SUs before addressing their composition in a co-simulation.
 
 \begin{definition}[Simulation Unit]\label{def:fmu}
   An SU with identifier $c$ is represented by the tuple
@@ -21,7 +22,7 @@ We assume the last value set on an input/output port can be inspected, for examp
 The function $\fdoStep{c}$ returns a step size because some SUs implement error estimation and may conclude that taking a step size of $H$ will result in an intolerable error meaning the SU takes a smaller step than planned.
 
 \subsubsection{Modeling SU behaviour}
-The behaviour of an SU is modelled by defining a custom version of the  $\fdoStep{C}$ for each of the SUs. 
+The behaviour of an SU is modelled by defining a custom version of the $\fdoStep{C}$ for each of the SUs. 
 The $\fdoStep{C}$ can be made both non-deterministic using rewriting rules and deterministic using equations.
 
 
@@ -38,3 +39,34 @@ The set of delayed components,
   $\fget{c} (\fset{c}(\state{c}, \inputvar{c}, v_1), \outputvar{c}) \neq \fget{c} (\fset{c}(\state{c}, \inputvar{c}, v_2), \outputvar{c}).$
 \end{definition}  
 
+We have decided to define inputs in Maude as something having a contract:
+
+The outputs contain the feedthrough information:
+
+The SUs are of the type 
+\begin{lstlisting}
+class SU |
+  path : String, 
+  time : Nat, 
+  inputs : Configuration, 
+  outputs : Configuration,
+  canReject : Bool, 
+  fmistate : fmiState,
+  parameters : LocalState,
+  localState : LocalState .
+\end{lstlisting}
+
+
+
+\subsection{Orchestrator}
+The orchestrator running the simulation needs to store some information to exchange values between the SUs, decide how fair the simulation units should step.
+This data is referred to as simulation data.
+
+\subsection{The co-simulation algorithm}
+The co-simulation algorithm is divided into three distinct components: 
+\begin{compactitem}
+  \item The initialization procedure
+  \item The cosim-step procedure 
+  \item The termination
+\end{compactitem}
+All the three components are of the type ActionList describing the actions to be performed in the co-simulation.

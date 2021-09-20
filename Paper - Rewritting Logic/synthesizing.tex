@@ -1,34 +1,68 @@
 \section{Synthesizing Co-simulation Algorithms}
 As previously explained, the used co-simulation algorithm affects the co-simulation result, and accurate simulation results can require an implementation-aware algorithm satisfying the contracts of the scenario (Citation).
 
-Rewriting logic allows one to synthesize the correct-by-construction algorithms using conditional rewriting rules.
+The co-simulation algorithm is in Maude formalised as an object containing the three different 
+
+The ActionList is a list type consisting of the different actions.
+
+Rewriting logic allows one to synthesise the correct-by-construction algorithms using conditional rewriting rules.
 The conditional rewriting rules describe how a given action changes the symbolic state of the system; the preconditions described in (link to Verification paper and Claudio's paper) are encoded as a mix of state patterns and conditions of the rules.
 An example of this is the $\fget{c}$ shown in \ref{lst:get-action}.
 
 \begin{lstlisting}[caption={The get-action rewriting rule.},label={lst:get-action},language=Java]
-    get-
+    crl [get-init] :
+    < SU1 : SU | fmistate : Initialize, inputs : INPUTS, 
+      outputs : (< OUTPUT : Output | status : Undef, value : VALUE, dependsOn : FEEDTHROUGH > OUTPUTS) > 
+    (SU1 ! OUTPUT ==> SU2 ! INPUT)
+    < OCH : SimulationData | values : PORTVALUES > 
+    < ALG : AlgorithmData | Initialization : ALGO >
+    => < SU1 : SU | outputs : (< OUTPUT : Output | status : Def > OUTPUTS) > 
+        (SU1 ! OUTPUT ==> SU2 ! INPUT)
+        < OCH : SimulationData | values : insert((SU2 ! INPUT), < 0 ; VALUE >, PORTVALUES) >  
+        < ALG : AlgorithmData | Initialization : (ALGO ; EVENT) >
+  if feedthroughSatisfied(FEEDTHROUGH, INPUTS, 0)
+    /\ EVENT := portEvent: Get SU: SU1 PId: OUTPUT . 
 \end{lstlisting}
 
-During the synthesizing, we store the algorithm .
+\begin{lstlisting}
+rl [setupExp] : { 
+    < SU1 : SU | fmistate : Instantiated > CONF
+    < OCH : SimulationData | suids : SUIDsNE > 
+    < ALG : AlgorithmData |  Initialization : ALGO > 
+   }
+ => { 
+   moveState(SUIDsNE, < SU1 : SU | > CONF, Instantiated, ExperimentSetup)
+   < ALG : AlgorithmData |  Initialization : (ALGO ; (fmiEvent: CreateExp SUs: SUIDsNE)) > 
+   < OCH : SimulationData | > 
+  } .
+\end{lstlisting}
 
-The co-simulation algorithm is finally synthesizing 
+We store the algorithm during the synthesising.
 
-Using the non-deterministic rewriting rules facilitates the ability to synthesize multiple implementation-aware algorithms of the same scenario potentially.
+Using the non-deterministic rewriting rules facilitates the ability to synthesise multiple implementation-aware algorithms of the same scenario potentially.
 The following section describes how we can show that all these algorithms lead to the same simulation result.
 However, the different algorithms naturally also have some different properties; most interesting is probably the time it takes to run the simulation using the algorithm. 
 In the future, it could be interesting to explore if there exists an optimal algorithm in the set of generated algorithms.
 
 The state-changing functions from the FMI standard \cite{FMI2014}, for example, the \textit{exitInitialization} are also rules moving all the simulation units in lockstep from one FMI-state to the next.
 
+The synthesizer terminated with a constructed co-simulation algorithm once no more rewriting can take place.
+
 \subsection{Complex Scenario}
-Complex scenarios subject to step negotiation or algebraic loops need to be simulated using an iterative algorithm that searches for correct configurations to simulate the scenario (see XX for more information).
-The scenario 
+Complex scenarios subject to step negotiation or algebraic loops need to be simulated using an iterative algorithm that searches for a correct configuration to simulate the scenario (see XX for more information).
 
-
-%Synthesizing the step negotiation
+% Synthesising the step negotiation
 \subsubsection{Step negotiation}
 The step negotiation is a search for a step that all SUs accept.
+This search requires that we use
+
 
 \subsubsection{Algebraic Loops}
+Algebraic loops indicating cyclic dependencies in the scenario are also problematic for the rewriting rules since these also generate cyclic dependencies between the rewriting rules. 
+We use the trick from \cite{thrane2021} to break the cyclic dependencies by first detecting the non-trivial strongly connected components in a graph we construct from the rules presented in (\simon{Add reference here}), which can be derived from the preconditions in \cref{sc:background}.
+When the non-trivial SCCs are detected, we categorize them into two categories, which we handle accordingly.
 
-%Synthesizing the fixed-point iteration
+
+
+
+% Synthesising the fixed-point iteration

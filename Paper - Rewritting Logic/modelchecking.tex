@@ -1,44 +1,90 @@
 \section{Model checking Analysis of co-simulation}
-The non-deterministic rewrites rule in Maude allows exploration multiple instrumentations, 
-
+This section describes the different model checking analysis we have performed using the framework.
+The different analyses are based on the non-deterministic rewrites rule in Maude, which enable exploration of different instrumentations, algorithms and parameters of the same co-simulation scenario.
 
 \subsection{Orchestration Algorithms}
-\begin{lemma}
+
+\subsubsection{Verification to show that the orchestration is implementation}
+To show that the a given orchestration algorithm is implementation-aware, meaning it satisfies all the contracts of the scenario.
+We need to perform a symbolic co-simulation using the algorithm. The simulation is 
+ where rewriting rules to 
+
+\subsubsection{Deterministic }
+
+\begin{lemma}[Deterministic Orchestration Algorithms]
+    All implementation-aware orchestration algorithms of an instrumented scenario produce the same deterministic co-simulation result.
 \end{lemma}
-All constructed orchestration algorithms of an instrumented scenario produce a deterministic co-simulation result.
 
 This is verified using the following search:
 \begin{lstlisting}
-search (runAnyAlgorithm SCENARIO)  =>! S:SimulationState .
+    search (runAnyAlgorithm SCENARIO)  =>! S:SimulationState .
 \end{lstlisting}
 
-The search command relies heavily on rewriting rules generating the different orchestration algorithms for the instrumented scenario which afterwards will be .  
+The search command relies heavily on rewriting rules, first generating the different orchestration algorithms for the instrumented scenario, which afterwards is executed either purely in Maude or using real FMUs.  
+
+\begin{lstlisting}
+crl [runAnyAlg] : runAnyAlgorithm INITSTATE => run: ORCHESTRATOR on: INITSTATE with: SIMULATIONDATA
+if LOOPS := tarjan(INITSTATE)
+    /\ SUIDsNE := getSUIDsOfScenario(INITSTATE)
+    /\ SIMULATIONDATA := initialOrchestrationData(1,LOOPS,SUIDsNE)
+    /\ ALGORITHMDATA := initialAlgorithmData(1)
+    /\ CONF := calculateSNSet(INITSTATE ALGORITHMDATA) SIMULATIONDATA 
+    /\ {CONF} => { FINALSTATE } 
+    /\ ORCHESTRATOR := getOrchestrator(FINALSTATE)
+    /\ allSUsinUnloaded(SUIDsNE, FINALSTATE) .
+\end{lstlisting}
 
 \subsection{Design Space Exploration}
-Design Space Exploration is the 
+Design space exploration is the .
+This work explores two different kinds of design space exploration for co-simulation.
+
 
 \subsubsection{Instrumentation of Scenario}
-The beginning adaption of contracts for input ports to achieve more accurate co-simulation results. 
-A prominent problem in this domain is that most tools used for generating SUs (FMUs) do not export this information.
+The beginning adaption of contracts for input ports to achieve more accurate co-simulation results is challenged by the lack of FMU-exporting tools not providing this information. 
+To explore different instrumentations of a scenario, we have defined the contract: \textit{noContract}, that can be used if the user does not know the contract of the input.
 
+In case the user wants to explore how a co-simulation scenario should be instrumented in order to obtain a desired co-simulation result.
+The following rewrite rule should be used. 
+\begin{lstlisting}
+crl [findInstrumentation]: findContacts(INITSTATE) => CONF
+    if findInstr(INITSTATE) => CONF
+    /\ empty == tarjan(CONF) *** We do not allow loops in the found configuration
+    /\ runAnyAlgorithm CONF => run: ORCHESTRATOR on: FINALSTATE with: SIMULATIONDATA
+    /\ shouldSatisfy(FINALSTATE) .
+\end{lstlisting}
 
-Find instrumentations leading to a desired co-simulation result - simple example. 
+The \textit{findInstr} tells Maude to explore all possible instrumentations of the scenario. 
+In this example we place several constraints on the instrumentations we are interested in.
+First, we do not allow instrumentations with algebraic loops. 
+And finally we encode the constraints on the co-simulation result using the predicate \textit{shouldSatisfy}.
 
+Using Maude's search command performs the search for instrumentations that leads to the desired co-simulation result.
 
+\begin{lstlisting}
+search findContacts(UninstrumentedScenario) =>! C:Configuration .
+\end{lstlisting}
 
-Furthermore, it is possible to restrict the explored instrumentations to a set satisfying specific properties such as no algebraic loops.
-This restriction is, in fact, desirable in many applications where the orchestration engine does support these and also for simulations of real-time systems.
+We believe that this is a natural and flexible way to explore how the different instrumentations affects the co-simulation result.
+It is possible to restrict the explored instrumentations, such that they themselves satisfy specific properties for example no algebraic loops and to place criteria on the co-simulation result itself. 
+The criteria on co-simulation result means that we can ensure that the instrumentation lead to a simulation result .
+
 
 \subsubsection{Parameters of the Simulation Units}
-A simulation unit has 
+A simulation unit may have different parameters affecting its behavior, so different parameters will lead to different simulation result.
+Design space exploration is the process of exploring how the different parameters affects the co-simulation result adn find the optimal parameters. 
+
+The Maude model allows to perform
+
+
+
 
 
 
 We can potentially use SMT-solving later to help us with the design space exploration.
 
-
+\subsection{Limitation of the approach}
 We have performed the analyses on different scenarios. 
 The state-space explosion is, of course, also applying to our work. 
-However, we have been able to find the correct instrumentation and the contracts on systems with XX SUs.
+However, we have been able to find the correct instrumentation and the contracts on systems with \simon{Create big scenario and test} SUs.
 
-Our test examples include the industrial case study original from Boeing presented in (Add reference to Gomes). 
+Our test examples include the industrial case study from Boeing presented in (Add reference to Gomes). 

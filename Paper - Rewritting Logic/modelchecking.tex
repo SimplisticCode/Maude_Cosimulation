@@ -2,29 +2,32 @@
 The non-deterministic rewrites rule in Maude allows exploration multiple instrumentations, 
 
 
-\begin{itemize}
-    \item We have small scenarios at the moment.
-    \item Test this on a bigger example - synthesize one with 6,8,10 SUs.
-\end{itemize}
-
-
 \subsection{Orchestration Algorithms}
-All constructed orchestration algorithms of a instrumented scenario produces a deterministic co-simulation result.
+\begin{lemma}
+\end{lemma}
+All constructed orchestration algorithms of an instrumented scenario produce a deterministic co-simulation result.
 
+This is verified using the following search:
+\begin{lstlisting}
+search (runAnyAlgorithm SCENARIO)  =>! S:SimulationState .
+\end{lstlisting}
 
-
+The search command relies heavily on rewriting rules generating the different orchestration algorithms for the instrumented scenario which afterwards will be .  
 
 \subsection{Design Space Exploration}
 Design Space Exploration is the 
 
 \subsubsection{Instrumentation of Scenario}
 The beginning adaption of contracts for input ports to achieve more accurate co-simulation results. 
-A prominent problem in this domain is that   
+A prominent problem in this domain is that most tools used for generating SUs (FMUs) do not export this information.
+
 
 Find instrumentations leading to a desired co-simulation result - simple example. 
 
-Furthermore, it is possible to restrict the set of explored instrumentations to a set satisfying specific properties such as no algebraic loops.
-This restriction is desireable in many applications where the orchestration engine does support for these and also for simulations of real-time systems.
+
+
+Furthermore, it is possible to restrict the explored instrumentations to a set satisfying specific properties such as no algebraic loops.
+This restriction is, in fact, desirable in many applications where the orchestration engine does support these and also for simulations of real-time systems.
 
 \subsubsection{Parameters of the Simulation Units}
 A simulation unit has 
@@ -34,7 +37,8 @@ A simulation unit has
 We can potentially use SMT-solving later to help us with the design space exploration.
 
 
-We have performed the different analyses on different scenarios. 
-The state space explosion is of course also applying to our work, however we have been able to find the correct instrumentation and the contracts on systems with XX SUs.
+We have performed the analyses on different scenarios. 
+The state-space explosion is, of course, also applying to our work. 
+However, we have been able to find the correct instrumentation and the contracts on systems with XX SUs.
 
 Our test examples include the industrial case study original from Boeing presented in (Add reference to Gomes). 

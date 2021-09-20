@@ -52,6 +52,13 @@ class AlgorithmData |
     Termination : ActionList,
     endTime : NzNat .
 
+class SearchingData | 
+    guesses : PortValueMap,
+    values : PortValueMap,
+    savedSUs : Configuration,
+    algorithm : ActionList,
+    actualStepSize : NzNat .
+
   op initialOrchestrationData : NzNat AlgebraicLoopSet NeOidSet -> Object .
   eq initialOrchestrationData(STEPSIZE, LOOPS, SUIDs) =
     < "Orchestrator" : SimulationData | 

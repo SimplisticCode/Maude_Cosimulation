@@ -8,6 +8,7 @@ This section describes the modelling of the domain of co-simulation in Maude. We
   \begin{compactitem}
     \item $\stateset{c}$ represents the state space.
     \item $\inputs{c}$ and $\outputs{c}$ the set of input and output variables, respectively. 
+    \item $\parameters{c}$ is the set of parameters.
     \item $\fset{c} : \stateset{c} \times \inputs{c} \times \valuesExchanged \to \stateset{c}$ and $\fget{c}: \stateset{c} \times \outputs{c} \to \valuesExchanged$ are functions to set the inputs and get the outputs, respectively. The set of values exchanged between the input/output variables is abstracted as $\valuesExchanged$, a set of type: $\tuple{t, \values}$, where $\values$ denotes the value obtained at a given output port and $t: \timebase$ denotes the timestamp of $c$ when the value was obtained.
     \item $\fdoStep{c}: \stateset{c} \times \stepbase \to \stateset{c} \times \stepbase $ is a function that instructs the SU to compute its state after a given time duration. If an SU is in state $\stateafter{c}{t}$ at time $t$, $(\stateafter{c}{t+h}, h) = \fdoStep{c}(\stateafter{c}{t}, H)$ approximates the state $\stateafter{c}{t+h}$ of the corresponding model at time $t+h$, where $h \leq H$. 
   \end{compactitem}
@@ -19,9 +20,10 @@ The state of SU $A$ at time $t$ is denoted $\stateafter{A}{t}$.
 We assume the last value set on an input/output port can be inspected, for example, the value of input $\inputvar{x}$ could be $\inputvar{x} = \tuple{t, v_x}$, where $t$ is the timestamp when the value $v_x$ set on $\inputvar{x}$ was obtained.
 The function $\fdoStep{c}$ returns a step size because some SUs implement error estimation and may conclude that taking a step size of $H$ will result in an intolerable error meaning the SU takes a smaller step than planned.
 
-\subsubsection{Modeling behavior}
+\subsubsection{Modeling SU behaviour}
+The behaviour of an SU is modelled by defining a custom version of the  $\fdoStep{C}$ for each of the SUs. 
+The $\fdoStep{C}$ can be made both non-deterministic using rewriting rules and deterministic using equations.
 
-Non-deterministic behavior
 
 
 \begin{definition}[Scenario]\label{def:cosim_scenario}
@@ -35,14 +37,4 @@ The set of delayed components,
  Finally, the set of feed-through components, $\allfeedthroughs = \bigcup_{c \in \fmus} \feedthrough{c}$, where the input $\inputvar{c} \in \inputs{c}$ feeds through to output $\outputvar{c} \in \outputs{c}$, that is, $(\inputvar{c},\outputvar{c}) \in \feedthrough{c}$, when there exists $v_1, v_2 \in \valuesExchanged$ and $\state{c} \in \stateset{c}$, such that
   $\fget{c} (\fset{c}(\state{c}, \inputvar{c}, v_1), \outputvar{c}) \neq \fget{c} (\fset{c}(\state{c}, \inputvar{c}, v_2), \outputvar{c}).$
 \end{definition}  
-
-
-
-
-\begin{itemize}
-  \item Inputs
-  \item Outputs
-  \item Local state
-  \item Parameters
-\end{itemize}
 

@@ -1,20 +1,21 @@
-load cosim 
+load Synthesizer 
 
 (omod AlgorithmVerifier is 
-    protecting COSIMULATION .
+    protecting SYNTHESIZER .
     sorts SimulationState InstrumentationState .
     vars SU1 SU2 ALG OUTPUT INPUT OCH : Oid .
     vars RESTALGO ALGO STEPNEGOALGO : ActionList .
-    vars OUTPUTS INPUTS CONF CONF1 INITSTATE STATE FINALSTATE : Configuration .
+    vars OUTPUTS INPUTS CONF SAVEDSUs INITSTATE STATE FINALSTATE : Configuration .
     vars STEPSIZE FUTURETIME NEGOTIATEDSTEPSIZE ENDTIME : NzNat .
     vars TIME SUTIME INPUTTIME NATVALUE ITERATION : Nat .
     var VALUE : FMIValue .
-    var PORTVALUES : PortValueMap .
+    vars PORTVALUES GUESSES : PortValueMap .
     vars FEEDTHROUGH SUIDs : OidSet .
     var SUIDsNE : NeOidSet . 
     var CONTRACT : Contract .
     vars SUINSTANCE ORCHESTRATOR SIMULATIONDATA ALGORITHMDATA : Object .
     var LOOPS : AlgebraicLoopSet .
+    var PORTSET : PortSet .
     var UNITIALIZEDCONF : [Configuration] .
 
     *** To run multiple step
@@ -213,8 +214,9 @@ rl [step-negotiation] :
     run: < ALG : AlgorithmData | CosimStep : RESTALGO > 
     on: CONF 
     with: SIMULATIONDATA .
+
     
-rl [fixed-point] :
+rl [algeraic-loop] :
     run: < ALG : AlgorithmData | CosimStep : 
             ((complexEvent: Loop SaveSUs: SUIDs RestoreSUs: SUIDs Actions: ALGO) ; RESTALGO) >
     on: CONF
@@ -223,6 +225,142 @@ rl [fixed-point] :
     run: < ALG : AlgorithmData | CosimStep : RESTALGO > 
     on: CONF 
     with: SIMULATIONDATA .
+
+endom)
+eof
+op stabilize:_using:_on:_with:_ : PortSet ActionList Configuration Object -> SimulationState [ctor] .
+op sus:_using:_on:_with:_  : NeOidSet ActionList Configuration Object -> SimulationState [ctor] .
+
+
+crl [step-negotiation-set] :
+    sus: SUIDsNE
+    using: ((portEvent: Set SU: SU1 PId: INPUT) ; RESTALGO)
+    on: CONF < SU1 : SU | time : SUTIME, fmistate : Simulation, inputs : (< INPUT : Input | contract :  CONTRACT, time : INPUTTIME > INPUTS) >
+    with: < OCH : SearchingData | values : (((SU1 ! INPUT) |-> < TIME ; VALUE >), PORTVALUES) >
+    => 
+    sus: SUIDsNE
+    using: RESTALGO
+    on: CONF
+    with: < OCH : SearchingData | values : PORTVALUES > 
+if ((CONTRACT == reactive and (TIME > INPUTTIME) and INPUTTIME == SUTIME) or (CONTRACT == delayed and TIME == SUTIME)) .
+
+crl [step-negotiation-get] :
+    sus: SUIDsNE
+    using: ((portEvent: Set SU: SU1 PId: INPUT) ; RESTALGO)
+    on: CONF
+        < SU1 : SU | outputs : (< OUTPUT : Output | time : TIME, value : VALUE, dependsOn : FEEDTHROUGH > OUTPUTS), inputs : INPUTS > 
+        ( SU1 ! OUTPUT ==> SU2 ! INPUT)
+    with: < OCH : SearchingData | values : PORTVALUES >
+    => 
+    sus: SUIDsNE
+    using: RESTALGO
+    on: CONF < SU1 : SU | outputs : (< OUTPUT : Output | status : Def > OUTPUTS) > 
+                ( SU1 ! OUTPUT ==> SU2 ! INPUT)
+    with: < OCH : SearchingData | values : insert((SU2 ! INPUT), < TIME ; VALUE >, PORTVALUES) > 
+if feedthroughSatisfied(FEEDTHROUGH, INPUTS, TIME) .
+
+crl [step-negotiation-dostep] :
+    sus: SUIDsNE
+    using: ((stepEvent: SU1 StepSize: STEPSIZE) ; RESTALGO)
+    on: CONF < SU1 : SU | time : TIME, inputs : INPUTS, outputs : OUTPUTS, fmistate : Simulation >
+    with: < OCH : SearchingData | actualStepSize : STEPSIZE >
+    => 
+    sus: SUIDsNE
+    using: RESTALGO
+    on: CONF O:Object
+    with: < OCH : SearchingData | > 
+if FUTURETIME := TIME + STEPSIZE
+/\ canStep(TIME, FUTURETIME, INPUTS, OUTPUTS) 
+/\ step(< SU1 : SU | >, STEPSIZE) => O:Object .
+
+crl [step-negotiation-success] :
+    sus: SUIDsNE
+    using: emptyList
+    on: CONF
+    with: < OCH : SearchingData | actualStepSize : STEPSIZE >
+    => STEPSIZE
+if commonTime(SUIDsNE, CONF, TIME) .
+
+*** Restart Search
+crl [step-negotiation-restart] :
+    sus: SUIDsNE
+    using: emptyList
+    on: CONF
+    with: < OCH : SearchingData | savedSUs : SAVEDSUs, algorithm : ALGO > 
+    =>
+    sus: SUIDsNE
+    using: ALGO
+    on: INITSTATE
+    with: < OCH : SearchingData | > 
+if not commonTime(SUIDsNE, CONF, TIME) 
+/\ INITSTATE := restoreSUs(SAVEDSUs, CONF) .
+
+crl [fixed-point-iteration-get] :
+    stabilize: PORTSET
+    using: ((portEvent: Get SU: SU1 PId: INPUT) ; RESTALGO)
+    on: CONF
+        < SU1 : SU | outputs : (< OUTPUT : Output | time : TIME, value : VALUE, dependsOn : FEEDTHROUGH > OUTPUTS), inputs : INPUTS > 
+        ( SU1 ! OUTPUT ==> SU2 ! INPUT)
+    with: < OCH : SearchingData | values : PORTVALUES >
+    =>
+    stabilize: PORTSET
+    using: RESTALGO
+    on: CONF < SU1 : SU | outputs : (< OUTPUT : Output | status : Def > OUTPUTS) > 
+                ( SU1 ! OUTPUT ==> SU2 ! INPUT)
+    with: < OCH : SearchingData | values : insert((SU2 ! INPUT), < TIME ; VALUE >, PORTVALUES) > 
+if feedthroughSatisfied(FEEDTHROUGH, INPUTS, TIME) .
+
+
+crl [fixed-point-iteration-set] :
+    stabilize: PORTSET
+    using: ((portEvent: Set SU: SU1 PId: INPUT) ; RESTALGO)
+    on: CONF < SU1 : SU | time : SUTIME, fmistate : Simulation, inputs : (< INPUT : Input | contract :  CONTRACT, time : INPUTTIME > INPUTS) >
+    with: < OCH : SearchingData | values : (((SU1 ! INPUT) |-> < TIME ; VALUE >), PORTVALUES) >
+    => 
+    stabilize: PORTSET
+    using: RESTALGO
+    on: CONF
+    with: < OCH : SearchingData | values : PORTVALUES > 
+if ((CONTRACT == reactive and (TIME > INPUTTIME) and INPUTTIME == SUTIME) or (CONTRACT == delayed and TIME == SUTIME)) .
+
+crl [fixed-point-iteration-step] :
+    stabilize: PORTSET
+    using: ((stepEvent: SU1 StepSize: STEPSIZE) ; RESTALGO)
+    on: CONF < SU1 : SU | time : TIME, inputs : INPUTS, outputs : OUTPUTS, fmistate : Simulation >
+    with: SIMULATIONDATA
+    =>
+    stabilize: PORTSET
+    using: RESTALGO
+    on: CONF O:Object
+    with: SIMULATIONDATA 
+if FUTURETIME := TIME + STEPSIZE
+/\ canStep(TIME, FUTURETIME, INPUTS, OUTPUTS) 
+/\ step(< SU1 : SU | >, STEPSIZE) => O:Object . 
+
+crl [fixed-point-iteration-converge] :
+    stabilize: PORTSET
+    using: emptyList
+    on: CONF
+    with: < OCH : SearchingData | values : PORTVALUES, guesses : GUESSES, savedSUs : SAVEDSUs, algorithm : ALGO > 
+    =>
+    stabilize: PORTSET
+    using: ALGO
+    on: CONF
+    with: < OCH : SearchingData | guesses : PORTVALUES >  
+if hasConverged(PORTSET, PORTVALUES, GUESSES) .
+
+crl [fixed-point-iteration-restart] :
+    stabilize: PORTSET
+    using: emptyList
+    on: CONF
+    with: < OCH : SearchingData | values : PORTVALUES, guesses : GUESSES, savedSUs : SAVEDSUs, algorithm : ALGO > 
+    =>
+    stabilize: PORTSET
+    using: ALGO
+    on: INITSTATE
+    with: < OCH : SearchingData | guesses : PORTVALUES >  
+if not hasConverged(PORTSET, PORTVALUES, GUESSES)
+/\ INITSTATE := restoreSUs(SAVEDSUs, CONF) .
 
 endom)
     eof

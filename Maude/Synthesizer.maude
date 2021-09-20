@@ -1,6 +1,6 @@
 load Scenario
 *** Do things to start
-(omod COSIMULATION is 
+(omod SYNTHESIZER is 
    protecting StepFinder + SCENARIO .
 
    op performStepNegotiation : Configuration -> Configuration .

@@ -1,0 +1,28 @@
+load socket
+
+mod FMI-CLIENT is 
+ inc SOCKET . 
+ op Client : -> Cid . 
+ op aClient : -> Oid . 
+ 
+ vars O CLIENT : Oid . 
+ var A : AttributeSet .
+ var DATA : String .
+
+ rl [createdSocket] : 
+   < O : Client | A > createdSocket(O, socketManager, CLIENT) 
+   => < O : Client | A > send(CLIENT, O, "6") . 
+ 
+ rl [sent] : 
+   < O : Client | A > sent(O, CLIENT) 
+   => < O : Client | A > receive(CLIENT, O) . 
+
+ rl [received] : 
+   < O : Client | A > received(O, CLIENT, DATA) 
+   => < O : Client | A > send(CLIENT, O, DATA) . 
+ 
+endm
+
+erew <> 
+         < aClient : Client | none > 
+         createClientTcpSocket(socketManager, aClient, "localhost", 8811) .

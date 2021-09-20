@@ -29,18 +29,21 @@ load Algorithm
    op setAction : Object OidSet FMIValue Nat -> Object .
    op stepAction : Object NzNat -> Object .
    ops getAllReactivePorts getAllPorts : Configuration PortSet -> PortSet .
+   op commonTime : OidSet Configuration NzNat -> Bool . 
 
    vars SU1 SU2 : SUID .
    vars PORTID INPUT OUTPUT : PortId .
    vars TIME SUTIME VALVESTATE WATERLEVEL : Nat .
-   vars CONF INPUTS OUTPUTS : Configuration .
+   vars CONF INPUTS OUTPUTS SAVEDSUs : Configuration .
    var VALUE : FMIValue .
+   var EVALUE : PortValueAndTime .
    var PORTSTATUS : PortStatus .
-   vars FEEDTHROUGH PORTS : OidSet .
+   vars FEEDTHROUGH PORTS SUIDs : OidSet .
    vars FUTURETIME STEP : NzNat .
    var PORTSET : PortSet .
-   var VALUEMAP : PortValueMap .
+   vars VALUEMAP PORTVALUES GUESSES : PortValueMap .
    var CONTRACT : Contract .
+   var EPORTID : EPortId .
 
    *** Get All ports in the scenario:
   ceq getAllPorts(< SU1 : SU | inputs : (< INPUT : Input | > INPUTS) > CONF, PORTSET) = 
@@ -52,6 +55,10 @@ load Algorithm
       if not (SU1 ! OUTPUT) in PORTSET .
 
   eq getAllPorts(CONF, PORTSET) = PORTSET [owise] . 
+
+  eq commonTime(empty, CONF, TIME) = true .
+  eq commonTime((SU1, SUIDs), < SU1 : SU | time : TIME > CONF, TIME) = commonTime(SUIDs, CONF, TIME) .
+  eq commonTime(SUIDs, CONF, TIME) = false [owise] .
 
   ceq getAllReactivePorts(< SU1 : SU | inputs : (< INPUT : Input | contract : reactive > INPUTS) > CONF, PORTSET) = getAllReactivePorts(< SU1 : SU | inputs : INPUTS > CONF, ((SU1 ! INPUT) , PORTSET))
     if not (SU1 ! INPUT) in PORTSET .
@@ -97,6 +104,22 @@ load Algorithm
   ceq stepAction(< SU1 : SU | time : TIME, outputs : OUTPUTS >, STEP) 
     = < SU1 : SU | time : FUTURETIME, outputs : undefPorts(OUTPUTS, FUTURETIME) > 
     if FUTURETIME := TIME + STEP .
+
+
+  *** Not done yet
+  op restoreSUs : Configuration Configuration -> Configuration .
+  eq restoreSUs(none, CONF) = CONF .
+  eq restoreSUs(< SU1 : SU | >  SAVEDSUs, < SU1 : SU | >  CONF) = restoreSUs(SAVEDSUs, CONF) .
+
+  op hasConverged : PortSet PortValueMap PortValueMap -> Bool . 
+  eq hasConverged(empty, PORTVALUES, GUESSES) = true .
+  eq hasConverged((EPORTID, PORTSET), ((EPORTID |-> EVALUE), PORTVALUES), ((EPORTID |-> EVALUE), GUESSES)) = hasConverged(PORTSET, PORTVALUES, GUESSES) .
+  eq hasConverged(PORTSET, PORTVALUES, GUESSES) = false [owise] .
+
+  op saveSUs : OidSet Configuration -> Configuration .
+  eq saveSUs(empty, CONF) = none .
+  eq saveSUs((SU1, SUIDs), < SU1 : SU | > CONF) = < SU1 : SU | > saveSUs(SUIDs, CONF) .
+
 
   op step : Object NzNat -> StepState [ctor] .
   subsort Object < StepState .

@@ -1,6 +1,7 @@
 \section{Preliminaries}\label{sc:background}
 \subsection{Maude /Rewriting Logic}
 Peter, I guess you have some text for this section. 
+
 \subsubsection{Model checking}
 
 
@@ -14,15 +15,12 @@ Interaction of the system with the external environment happens through inputs a
 SUs can be coupled through their inputs and outputs, indicating that the state of one SU is reliant on the state of another SU at all times - known as a coupling restriction. However, in practice, the coupling restrictions can only be satisfied at specific points in time, referred to as communication points. Furthermore, each SU makes assumptions about the evolution of the input values between the communication points, which can cause accumulable errors in the co-simulation~\cite{Arnold2014}. 
 
 A scenario is simulated using an orchestrator - an algorithm - that computes the behaviour trace of all SUs trying to satisfy their coupling restrictions by exchanging values. 
-The orchestrator aims to find the communication points that minimize the co-simulation error and ensure that the SUs move in lockstep. 
-Studies \cite{Gomes2019,Oakes2021,Gomes2018f,Schweizer2015c,Gomes2018a} have shown that optimal communication points depend on the implementation of the SUs.
+The orchestrator aims to find the communication points minimizing the co-simulation error while ensuring that the SUs move in lockstep. 
+Studies \cite{Gomes2019,Oakes2021,Gomes2018f,Schweizer2015c,Gomes2018a} show that optimal communication points depend on the implementation of the SUs.
 
 \subsubsection{Instrumentation}
+
 Describe the contracts
-
-\subsubsection{Design Space Exploration}
-Write this
-
 
 \subsection{Co-simulation algorithms}
 We give a brief presentation of the contracts from \cite{Gomes2019a} before describing how they can be used to verify a co-simulation algorithm.
@@ -85,7 +83,7 @@ The Hoare-triple of the co-simulation step $P$:
 
 A co-simulation step $P$ is a sequence of instructions of the SU's functions $\fset{c},\fget{c}$, and $\fdoStep{c}$. 
 Each index $i$ of the sequence $P[i]$ represents an action in the algorithm, for example, if $P$ is the co-simulation step in \cref{alg:algorithm_1} $P[0] = \fdoStep{A}(\stateafter{A}{0}, \dontcare)$. \Cref{fig:algorithms} shows three different co-simulation steps of the scenario in \cref{fig:simpleexample}. 
-\vspace{-1em}
+
 \begin{figure}[htb]
   \centering
   \begin{minipage}[t]{.325\textwidth}
@@ -134,10 +132,8 @@ Each index $i$ of the sequence $P[i]$ represents an action in the algorithm, for
     \end{algorithm}
     \vspace{4pt}
   \end{minipage}
-  \vspace{-2em}
   \caption{Three algorithms conforming to the FMI Standard (version 2.0) of the scenario in \cref{fig:simpleexample}.}
   \label{fig:algorithms}
-%  \vspace{-1em}
 \end{figure}
 
 Although the three algorithms in \cref{fig:algorithms} consist of the same actions, they are not equivalent, and simulating with one algorithm instead of one of the others could drastically change the co-simulation result as shown in \cite{Gomes2019c}. 
@@ -147,7 +143,6 @@ At the end of \cref{sec:correctcosim}, we show which of these algorithms is corr
 A co-simulation step $P$ is executed using a configuration $c$. The configuration $c \triangleq \tuple{H, guess}$ consists of the parameters of the co-simulation step $P$.  $H \in \stepbase$ defines the step size, and $guess : \inputs{algebraic} \to \valuesExchanged$ is a total function linking all inputs in $\inputs{algebraic}$ to a guess that tries to satisfy the algebraic loops. Using the example from \cref{alg:algorithm_1}, the action at index 0 in $P$ applied with the configuration $\tuple{1,\dontcare}$ is: $P[0](c) = \fdoStep{A}(\stateafter{A}{0}, 1)$. The configuration defines the step size $(1)$ of the step-action. 
 
 The set $\configuration$ denotes all the possible configurations of the co-simulation step for a given scenario. The execution of a co-simulation step $P$ is the execution of each action in $P$. We define such execution of $P$ using configuration $c$ as:
-\vspace{-1em}
 \begin{align}
   P(c) \triangleq \text{for each } i \in \dom{P} \ldotp P[i](c)
 \end{align}
@@ -160,7 +155,6 @@ The execution of a configuration $c: \tuple{H, guess}$ has converged if all SUs 
 The domain of $guess$ is all the inputs in $\inputs{algebraic}$ for the scenario; this means that all configurations of the same scenario have the same domain.
 \begin{definition}\label{def:convergent}
   Two configurations of the same scenario S $c_j:\tuple{H_1,guess_1} \in \configuration$ and $c_{j+1}: \tuple{H_2, guess_2} \in \configuration$ are convergent if:
-  \vspace{-1em}
   \begin{align*}
     c_j \approx c_{j+1} \triangleq H_1 = H_2 \land (\forall i \in \dom{guess} \ldotp guess_1[i] \approx guess_2[i])
   \end{align*}
@@ -192,18 +186,15 @@ To optimally simulate a co-simulation scenario using an algorithm $P$ requires m
 The sequence $\allcontracts$ is constructed by a function $\allcontracts = \mathit{contracts(P, \precondition)}$ that for each action in $P$ finds the corresponding precondition $pre \in \precondition$ and adds it to $\allcontracts$ such that for an arbitrary index $i$ in $P$, $\allcontracts[i]$ is the precondition of the action $P[i]$.
 
 If an action at index $i$ in $P$ satisfies its precondition $\allcontracts[i]$ using the configuration $c$, it is denoted as:
-\vspace{-1em}
 \begin{align}
   P[i](c) \models \allcontracts[i]
 \end{align}
 A co-simulation step $P$ using a configuration $c$ satisfies $\allcontracts$ if all actions satisfy its precondition. 
-\vspace{-1em}
 \begin{align}
   P(c) \models \allcontracts \triangleq \forall i \in \dom{P} \ldotp P[i](c) \models \allcontracts[i]
 \end{align}
 $P(c) \models \allcontracts$ means the algorithm respects the scenario's contracts.
 Based on previous studies it is well-known that a non-convergent configuration $c$ does not respect all the contracts:
-\vspace{-1em}
 \begin{align}\label{eq:incorrectConf}
   c_j \not\approx c_{j+1} \implies P(c_j) \not\models \allcontracts
 \end{align}
@@ -212,7 +203,6 @@ We can now describe what it means for an algorithm to be correct for a given sce
 
 \begin{definition}\label{def:correctalgo}
   An algorithm $P$ and configuration $c: \tuple{H, \dontcare}$ is correct if:
-  \vspace{-0.5em}
   \begin{align*}
      P(c) \models \allcontracts \quad \land \quad
      &\{\forall v \in \allinputs \cup \alloutputs \ldotp v = \tuple{t, \dontcare} \land \forall c \in \fmus \ldotp \ftime(\stateafter{c}{t}) = t\} \quad P(c) \\
@@ -220,7 +210,10 @@ We can now describe what it means for an algorithm to be correct for a given sce
   \end{align*}
   Meaning all preconditions are satisfied and all SUs and inputs have moved from time $t$ to time $t+H$ through the execution of $P(c)$.
 \end{definition}
-\vspace{-0.5em}
 
 Using \cref{def:correctalgo} we conclude that \cref{alg:algorithm_3} is correct while the others are incorrect since they break one or more of the defined preconditions. \Cref{alg:algorithm_1,alg:algorithm_2} violate the precondition of $\fdoStep{b}$ on line 2 by stepping it without having provided SU $b$ with a value on the reactive input $f$. 
 These definitions form the basis for describing the approach and implementation used to verify co-simulation algorithms in this work.
+
+
+\subsubsection{Design Space Exploration}
+Write this

@@ -6,17 +6,17 @@ This section walks through the different analyses types.
 The described techniques for synthesizing orchestration algorithms will not always lead to one unique orchestration algorithm.
 In fact, the rules often permit the synthesizing of multiple distinct orchestration algorithms that all respects the contracts of the scenario.
 
-However, using Maude we can show an essential property of the set of allowed - mainly that all of them leads to the same co-simulation result.
+However, using Maude, we can show a property of the set of allowed - mainly that all of them leads to the same co-simulation result.
 
 This analysis is carried out by Maude's built-in LTL model checker using the following command:
 $Add LTL expression$
-This checks that all possible allowed rewriting of the systems end to same unique final state.
+This checks that all possible allowed rewriting of the systems lead to the same final state or co-simulation result.
 
 \subsection{Checking Safety properties}
 The formalization enables a designer of a CPS to define their own $\fdoStep{}$-functions for the different SUs.  
 
-This allow early and iterative verification of a prototype of the system. 
-The perhaps most interesting verification is checking safety properties of the system using Maude's built in LTL-model checker. 
+This allows early and iterative verification of a prototype of the system. 
+The perhaps most interesting verification is checking safety properties of the system using Maude's built-in LTL-model checker. 
 
 \simon{Should we describe possible system and analysis here?}
 The Water tank example to show how model checking can be useful to do exploratory analysis of the system.

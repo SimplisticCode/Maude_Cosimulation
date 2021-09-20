@@ -106,7 +106,7 @@ load Algorithm
     if FUTURETIME := TIME + STEP .
 
 
-  *** Not done yet
+  *** Not done yet - need to specify all properties
   op restoreSUs : Configuration Configuration -> Configuration .
   eq restoreSUs(none, CONF) = CONF .
   eq restoreSUs(< SU1 : SU | >  SAVEDSUs, < SU1 : SU | >  CONF) = restoreSUs(SAVEDSUs, CONF) .

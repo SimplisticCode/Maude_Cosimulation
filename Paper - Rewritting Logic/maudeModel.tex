@@ -37,11 +37,10 @@ The set of delayed components,
   $\alldelayed = \bigcup_{c \in \fmus} \neg \reactivity{c}$, where $\reactivity{c}(\inputvar{c}) = \false$ means the function $\fdoStep{c}$ assumes that the input $\inputvar{c}$ comes from an SU that is at the same time as SU $c$. 
  Finally, the set of feed-through components, $\allfeedthroughs = \bigcup_{c \in \fmus} \feedthrough{c}$, where the input $\inputvar{c} \in \inputs{c}$ feeds through to output $\outputvar{c} \in \outputs{c}$, that is, $(\inputvar{c},\outputvar{c}) \in \feedthrough{c}$, when there exists $v_1, v_2 \in \valuesExchanged$ and $\state{c} \in \stateset{c}$, such that
   $\fget{c} (\fset{c}(\state{c}, \inputvar{c}, v_1), \outputvar{c}) \neq \fget{c} (\fset{c}(\state{c}, \inputvar{c}, v_2), \outputvar{c}).$
-\end{definition}  
+\end{definition}
 
-We have decided to define inputs in Maude as something having a contract:
-
-The outputs contain the feedthrough information:
+We place the delayed/reactive information on the Input ports in Maude. This is denoted as the \textit{Contract} of the input.
+Likewise, the feedthrough information is a property on the output ports.  
 
 The SUs are of the type 
 \begin{lstlisting}
@@ -58,8 +57,9 @@ class SU |
 
 
 
+
 \subsection{Orchestrator}
-The orchestrator running the simulation needs to store some information to exchange values between the SUs, decide how fair the simulation units should step.
+The orchestrator running the simulation stores some information to exchange values between the SUs, decide how far the simulation units should step.
 This data is referred to as simulation data.
 
 \subsection{The co-simulation algorithm}

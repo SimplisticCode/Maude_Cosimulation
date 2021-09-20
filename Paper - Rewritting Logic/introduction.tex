@@ -42,14 +42,7 @@
     \item Complex functions - Tarjan, fixed-point iteration.
   \end{itemize}
   
-  Contribution
-  \begin{itemize}
-    \item Address the problems - obtaining good co-simulation algorithm
-    \item Perform co-simulation in Maude
-    \item Step negotiation
-    \item Fixed-point iteration (Algebraic loop)
-    \item Complex functions - Tarjan, fixed-point iteration.
-  \end{itemize}
+
   
   Use of Maude:
   \begin{itemize}
@@ -117,12 +110,18 @@ Furthermore, the approach enables various analyses such as design space explorat
 
 
 \textit{Contribution:}
-This paper describes an executable Maude formalization for synthesizing, verifying and executing co-simulation algorithms.
-The approach 
+% \begin{itemize}
+%   \item Address the problems - obtaining good co-simulation algorithm
+%   \item Perform co-simulation in Maude
+%   \item Step negotiation
+%   \item Fixed-point iteration (Algebraic loop)
+%   \item Complex functions - Tarjan, fixed-point iteration.
+% \end{itemize}
+This paper describes an executable Maude formalization for synthesizing, verifying and executing co-simulation algorithms that can be used to explore the co-simulation algorithm affect on the co-simulation result.
 The approach covers complex scenarios subject to algebraic loops and adaptive steps.
-
-The formalization enables multiple analyses of both the generated algorithm and the system of interest. 
+Furthermore, the formalization enables multiple analyses of both the generated algorithm and the system of interest including various kinds of design space exploration using model checking. 
 
 \textit{Structure:}
-The paper starts with introducing rewriting logic, co-simulation and the verification challenge of co-simulation algorithms in \cref{sc:background}. Then, \Cref{sc:related} describes other approaches for obtaining reliable and deterministic co-simulation results. 
-Finally, \cref{sc:summary} concludes.
+The paper starts with introducing rewriting logic, co-simulation and the verification challenge of co-simulation algorithms in \cref{sc:background}. 
+%Then, \Cref{sc:related} describes other approaches for obtaining reliable and deterministic co-simulation results. 
+Finally, \cref{sc:summary} concludes and present future work.

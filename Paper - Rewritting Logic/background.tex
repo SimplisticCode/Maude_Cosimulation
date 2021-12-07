@@ -1,5 +1,5 @@
 \section{Preliminaries}\label{sc:background}
-This section describes the preliminaries to understand the work described in the paper.
+This section gives some background on Maude and co-simulation.
 
 \subsection{Maude /Rewriting Logic}
 \simon{Peter, I guess you have some text for this section.}
@@ -9,118 +9,125 @@ This section describes the preliminaries to understand the work described in the
 
 
 \subsection{Co-simulation}
-Co-simulation enables global simulation of a system consisting of multiple black-box SUs. 
-An SU has a dedicated solver calculating the behaviour trace of the dynamical system it represents. 
-A dynamical system represents a function from time and space into some often multi-dimensional and continuous space. 
-Examples include population growth, water flow, and pendulums. 
-Interaction of the system with the external environment happens through inputs and outputs~\cite{Gomes2019a,Kubler2000}.
+Co-simulation enables global simulation of a system consisting of multiple black-box simulation units (SUs). 
+An SU represents a dynamic system and can compute the behavior of that system using a dedicated solver. 
+A dynamic system represents a function from time and space into some often multi-dimensional and continuous state space. 
+Examples include population growth, water flow, and pendulums. \simon{More advanced examples}
+The SU interacts with an \emph{external environment} through inputs and outputs dynamic~\cite{Gomes2019a,Kubler2000}.
 
 SUs are coupled through their inputs and outputs.
 A coupling indicates that the state of one SU is reliant on the state of another SU.
-A coupling can be seen as an invariant saying that the value on a coupled input and output must be identical at all times - known as a coupling restriction. 
-However, in practice, the coupling restrictions can only be satisfied at specific points in time, referred to as communication points. 
-Therefore, each SU makes assumptions about the evolution of the input values between the communication points to satisfy the invariant.
-These assumptions cause accumulable errors in the co-simulation~\cite{Arnold2014}.
+\simon{example}
+The corresponding coupling restriction states that the value of a coupled input and output must be the same at all times.
+However, in practice, the coupling restrictions can only be satisfied at specific points in time called \emph{communication points}. 
+Therefore, each SU makes assumptions about the evolution of its' input values between the communication points.
+The assumptions can introduce errors in the co-simulation~\cite{Arnold2014}.
 
-The orchestrator computes the behavioural trace of all SUs and tries to satisfy their coupling restrictions by exchanging values. 
+\emph{The orchestrator} computes the behavioral trace of all SUs and tries to satisfy their coupling restrictions by exchanging values between the coupled ports. 
 The orchestrator aims to find the communication points minimizing the co-simulation error while ensuring that the SUs move in lockstep. 
-Studies \cite{Gomes2019,Oakes2021,Gomes2018f,Schweizer2015c,Gomes2018a} show that optimal communication points depend on the implementation of the SUs.
+The optimal communication points depend on the implementation of the SUs~\cite{Gomes2019,Oakes2021,Gomes2018f,Schweizer2015c,Gomes2018a}.
 
-We now introduce our definition of an SU in \cref{def:fmu}.
-The definition is based on \cite{Broman2013,Gomes2019c,thrane2021} and represents an abstract version of an SU.
+The following \cref{def:fmu} of an SU is based on \cite{Broman2013,Gomes2019c,thrane2021}.
 
 \begin{definition}[Simulation Unit]\label{def:fmu}
-  An SU with identifier $c$ is represented by the tuple
-  $$\tuple{\stateset{c}, \inputs{c}, \outputs{c}, \fset{c}, \fget{c}, \fdoStep{c}},$$
+  An SU with identifier $c$ is given by the tuple
+  $$ SU_c \triangleq \tuple{\stateset{c}, \inputs{c}, \outputs{c}, \fset{c}, \fget{c}, \fdoStep{c}, \values},$$
   where:
   \begin{compactitem}
-    \item $\stateset{c}$ represents the state space.
-    \item $\inputs{c}$ and $\outputs{c}$ the set of input and output variables, respectively.
-    The union of the inputs and outputs is called the variables of the SU:
-    $\variables{c} = \inputs{c} \cup \outputs{c}$ 
-    \item $\values$ is the set of values that a variable can hold and let $\valuesExchanged: \timebase \times \values$ be the set of abstract values exchanged between input and output variables.
+    \item $\stateset{c}$ is a set, denoting the state space of the SU.
+    \item $\inputs{c}$ and $\outputs{c}$ are sets, of input and output port, respectively.
+    The union $\variables{c} = \inputs{c} \cup \outputs{c}$ of the inputs and outputs is called the ports of the SU.
+    \item $\values$ is a set, intuitively denoting the values that a variable can hold.
+    Let $\valuesExchanged = \timebase \times \values$ be the set of timestamp values exchanged between input and output ports.
+    \item 
     The functions
-    $\fset{c} : \stateset{c} \times \inputs{c} \times \valuesExchanged \to \stateset{c}$ and $\fget{c}: \stateset{c} \times \outputs{c} \to \valuesExchanged$ respectively sets an inputs and gets an outputs. 
-    \item $\fdoStep{c}: \stateset{c} \times \stepbase \to \stateset{c} \times \stepbase $ is a function that instructs the SU to compute its state after a given time duration. If an SU is in state $\stateafter{c}{t}$ at time $t$, $(\stateafter{c}{t+h}, h) = \fdoStep{c}(\stateafter{c}{t}, H)$ approximates the state $\stateafter{c}{t+h}$ of the corresponding model at time $t+h$, where $h \leq H$. 
+    $\fset{c} : \stateset{c} \times \inputs{c} \times \valuesExchanged \to \stateset{c}$ and $\fget{c}: \stateset{c} \times \outputs{c} \to \valuesExchanged$ respectively sets an input and gets an output. 
+    \item $\fdoStep{c}: \stateset{c} \times \stepbase \to \stateset{c} \times \stepbase $ is a function; it instructs the SU to compute its state after a given duration. 
+    If an SU is in state $\stateafter{c}{t}$ at time $t$ then, $(\stateafter{c}{t+h}, h) = \fdoStep{c}(\stateafter{c}{t}, H)$ denotes the state $\stateafter{c}{t+h}$ of the corresponding SU at time $t+h$, where $h \leq H$. 
   \end{compactitem}
 \end{definition}
 
 The state of SU $A$ at time $t$ is denoted $\stateafter{A}{t}$.
-The function $\fdoStep{c}$ returns a step size because some SUs implement error estimation and may conclude that taking a step size of $H$ will result in an intolerable error meaning the SU takes a smaller step than planned.
+The function $\fdoStep{c}$ returns a state and a step size, since some SUs implement error estimation and may conclude that taking a step size $H$ will result in an intolerable error.
+Therefore, instead the SU takes a smaller step $h$ than planned.
 
-A collection of coupled SUs forms a scenario.
-We provide a formal description of a scenario in \cref{def:cosim_scenario}.
+A collection of coupled SUs forms a scenario:
+we provide a formal description of a scenario in \cref{def:cosim_scenario}.
 
 \begin{definition}[Scenario]\label{def:cosim_scenario}
-  A scenario is a structure $\tuple{\fmus, \coupling, \mayReject, \allfeedthroughs, \allreactivity, \alldelayed}$ where 
+  A scenario $\mathcal{S}$ is a tuple $\mathcal{S} \triangleq \tuple{\fmus, \{SU\}_{c \in \fmus}, \coupling, \mayReject, \allreactivity, \allfeedthroughs}$ where 
   \begin{compactitem}
-    \item Each identifier $c \in \fmus$ is associated with an SU, as defined in \cref{def:fmu}
-    \item $\coupling(u)=y$ means that the output $y$ is connected to input $u$.   
-    Let $\allinputs = \bigcup_{c \in \fmus} \inputs{c}$ and $\alloutputs = \bigcup_{c \in \fmus} \outputs{c}$, then $\coupling : \allinputs \to \alloutputs$. 
+    \item $\fmus$ is a finite set, of SU identifiers. 
+    \item $\{SU\}_{c \in \fmus}$ is a set of SUs.
+    \item The function 
+    $\coupling : \allinputs \to \alloutputs$ where $\allinputs = \bigcup_{c \in \fmus} \inputs{c}$ and $\alloutputs = \bigcup_{c \in \fmus} \outputs{c}$, intuitively 
+    $\coupling(u)=y$ means that the output $y$ is connected to input $u$.   
     \item $\mayReject \subseteq \fmus$ denotes the SUs that implement error estimation. 
-    \item The function
-    $\allreactivity : \allinputs \to \mathbb{B}$ is total and provide non-confidential information about the SUs' input approximation functions.
-    $\allreactivity(\inputvar{c}) = \true$ means that the function $\fdoStep{c}$ assumes that the timestamp $t_{SU}$ of the state of SU $c$ ($\stateafter{c}{t_{SU}}$) is less than the timestamp $t_v$ of the value $v = \tuple{t_V,\dontcare}$ set on the input $\inputvar{c}$.
-    \item  Finally, the set of feed-through components, $\allfeedthroughs = \bigcup_{c \in \fmus} \feedthrough{c}$, where the input $\inputvar{c} \in \inputs{c}$ feeds through to output $\outputvar{c} \in \outputs{c}$, that is, $(\inputvar{c},\outputvar{c}) \in \feedthrough{c}$, when there exists $v_1, v_2 \in \valuesExchanged$ and $\state{c} \in \stateset{c}$, such that
+    \item
+    $\allreactivity : \allinputs \to \mathbb{B}$ is a total function, intuitively it provides information about the SUs' input approximation functions.
+    $\allreactivity(\inputvar{c}) = \true$ means that the function $\fdoStep{c}$ assumes that the timestamp $t_{SU}$ of the state of $SU_c$ ($\stateafter{c}{t_{SU}}$) is smaller than the timestamp $t_v$ of the value $\tuple{t_v,v}$ set on the input $\inputvar{c}$.
+    \item $\allfeedthroughs$ is a family of functions $\{\feedthrough{c} : \outputs{c} \to \mathcal{P}(\inputs{c})\}_{c \in \fmus}$.
+    $\inputvar{c} \in \feedthrough{c}(\outputvar{c})$ means that the input $\inputvar{c}$ \emph{feeds through} to the output $\outputvar{c}$, such that there exists $v_1, v_2 \in \valuesExchanged$ and $\state{c} \in \stateset{c}$, such that
     $\fget{c} (\fset{c}(\state{c}, \inputvar{c}, v_1), \outputvar{c}) \neq \fget{c} (\fset{c}(\state{c}, \inputvar{c}, v_2), \outputvar{c}).$
   \end{compactitem}
 \end{definition}
 
-We have based \cref{def:cosim_scenario} on the FMI standard. 
-However, feed-through and reactivity are extensions of the standard, introduced to cover a broad class of co-simulation scenarios.
+We have based \cref{def:cosim_scenario} on the FMI 2.0 standard~\cite{FMI2014}. 
+However, feed-through and instrumentation are extensions of the standard, introduced to cover a broad class of co-simulation scenarios.
 We use the syntax in \cref{fig:simpleexample} to graphically present co-simulation scenarios.
 
 \begin{figure}[htb]
   \centering
   \includegraphics[width=0.7\textwidth]{images/simple_example.pdf}
-  \caption{A co-simulation scenario ($S1$).}
+  \caption{A co-simulation scenario, where the dashed arrows denote feed-through, $a$ and $b$ are SU identifiers, the small squares denoted $r$ and $d$ are .
+  The solid arrows $f$ and $g$ are the coupling.}
   \label{fig:simpleexample}  
 \end{figure}
 
 \subsubsection{Instrumentation}
-We refer to an input variable $\inputvar{c} \in \allinputs \land \neg \allreactivity(\inputvar{c})$ as a delayed input. 
-While an input variable $\inputvar{c}$ where $\inputvar{c} \in \allinputs \land \allreactivity(\inputvar{c})$ is referred to as a reactive input. 
+We call an input port $\inputvar{c}$ \emph{delayed} if $\neg \allreactivity(\inputvar{c})$ and \emph{reactive} if $\allreactivity(\inputvar{c})$. 
 
 The function $\allreactivity$ is the instrumentation of the scenario.
 The instrumentation describes the input approximation functions of the different SUs.
 %An example of the instrumentation function
 Changing the instrumentation of a scenario changes the algorithm used to simulate the scenario.
 We assume that the instrumentation of a scenario is constant through the simulation, which is the case for most commercially used SUs.
+\simon{Make citation}
 
-\subsection{Co-simulation algorithms}\label{sc:cosimalgo}
-The orchestrator simulates the scenario by interpreting/executing a co-simulation algorithm on the scenario.
+\subsection{Co-simulation Algorithms}\label{sc:cosimalgo}
+An \emph{orchestrator} simulates a scenario by executing the \emph{co-simulation algorithm}.
 
 A co-simulation algorithm consists of an initialization procedure, a co-simulation step, and some additional FMI functions changing the mode of an SU~\cite{FMI2014}.
-Our work concentrates in the paper on the co-simulation step, which we refer to as the algorithm throughout the paper. 
-The reason is that the other aspects of a co-simulation algorithm can be derived from the presented method.  
+This work focuses on on the co-simulation step, which we refer to as ``the algorithm'' throughout the paper. 
+The other aspects of a co-simulation algorithm can be derived from our method.  
 
 The algorithm changes the co-simulation state. 
-Our work is performed using an abstract co-simulation state, which is defined as the combination of the state of the individual SUs in \cref{def:cosimstate}.
+We use an abstract co-simulation state, which is defined as the combination of the state of the SUs.
 
-\Cref{def:runtime_state} defines the abstract state of an SU.
+The following \cref{def:runtime_state} defines the abstract state of an SU.
 
 \begin{definition}[Abstract State]\label{def:runtime_state}
-  Given an SU $c$ as defined in \cref{def:fmu}, the observable abstract state of $c$ is a member of the set $\runstate{c} = \timebase \times \runstate{\inputs{c}} \times \runstate{\outputs{c}} \times \runstate{V_c}$, where:
+  The observable abstract state of SU $SU_c$ is an element of the set $\runstate{c} = \timebase \times \runstate{\inputs{c}} \times \runstate{\outputs{c}} \times \runstate{V_c}$, where:
   \begin{compactitem}
-    \item $\timebase$ is the time of the SU meaning the state of the SU is $\stateafter{c}{t}$,
-    \item $\runstate{\inputs{c}} : \inputs{c} \to \timebase$ is a total function linking each input port with its timestamp.  
-    \item $\runstate{\outputs{c}} : \outputs{c} \to \timebase$ is a total function linking each output port with its timestamp.  
-    \item $\runstate{V_c} : \variables{c} \to \values$ is a total function linking each port with a its value.  
+    \item $\runstate{\inputs{c}} : \inputs{c} \to \timebase$ is a total function mapping each input port to a timestamp.  
+    \item $\runstate{\outputs{c}} : \outputs{c} \to \timebase$ is a total function mapping each output port to a timestamp.  
+    \item $\runstate{V_c} : \variables{c} \to \values$ is a total function mapping each port to a value.  
   \end{compactitem}
+  Intuitively the first components of the abstract state denotes the time of the SU.
 \end{definition}
 
-We use the abstract state $\runstate{c}$ of an SU $c$ instead of the internal state $\stateset{c}$ defined in \cref{def:fmu} because the orchestrator cannot observe the later.
+We use the abstract state $\runstate{c}$ of an SU $c$ instead of the internal state $\stateset{c}$ since the orchestrator cannot observe the latter.
 
 \begin{definition}[Abstract Co-simulation State]\label{def:cosimstate}
-  Given a co-simulation scenario $\tuple{\fmus, \coupling}$, as defined in \cref{def:cosim_scenario}, the abstract co-simulation state is a member of the set $\runstate{\fmus} = \prod_{c \in \fmus} \runstate{c}$. 
+  Given a co-simulation scenario $S$ with $C$ as the identifiers of the SUs the abstract co-simulation state is an element in the set $\runstate{\fmus} = \prod_{c \in \fmus} \runstate{c}$. 
 \end{definition}
 
-A co-simulation step $P$ is a sequence of the functions $\fset{c},\fget{c}$, and $\fdoStep{c}$ described in \cref{def:fmu}.
-It simulates the scenario by advancing all SUs $\fmus$ from an initial state at time $t$ to a final state at time $t+H, \textrm{ where } H > 0$.
+A co-simulation step $P$ is a sequence of the applications of the functions $\fset{c},\fget{c}$, and $\fdoStep{c}$.
+It simulates the scenario by advancing all SUs from an initial state at time $t$ to a final state at time $t+H, \textrm{ where } H > 0$.
 The co-simulation must ensure that the coupling restrictions are satisfied at both the initial and final state.
 
 \Cref{fig:algorithms} shows three different co-simulation steps of the scenario in \cref{fig:simpleexample}.
-The three different algorithms are all allowed by the FMI standard~\cite{FMI2014}. 
+All these three algorithms are allowed by the FMI standard 2.1~\cite{FMI2014}. 
 
 \begin{figure}[htb]
   \centering
@@ -171,24 +178,26 @@ The three different algorithms are all allowed by the FMI standard~\cite{FMI2014
     \vspace{4pt}
   \end{minipage}
   \vspace{-2em}
-  \caption{Three algorithms conforming to the FMI Standard (version 2.0) of the scenario in \cref{fig:simpleexample}.}
+  \caption{Three co-simulation algorithms of the scenario in \cref{fig:simpleexample} conforming to the FMI Standard (version 2.0).}
   \label{fig:algorithms}
 \end{figure}
 
 Although the three algorithms in \cref{fig:algorithms} consist of the same actions, they are not equivalent, and simulating with one algorithm instead of one of the others could drastically change the co-simulation result as shown in \cite{Gomes2019c,hansen_verification_2021}. 
-At the end of \cref{sec:correctcosim}, we show which of these algorithms is correct.
 
-The purpose of the co-simulation step $P$ is defined in \cref{def:comsim_step}.
+The co-simulation step $P$ should satisfy \cref{def:comsim_step}.
 
 \begin{definition}[Co-simulation Step]\label{def:comsim_step}
-  A co-simulation step $P$ is correct starting from the abstract state $\runstate{}$ if:
+  A co-simulation step $P$ must start an initial state $\runstate{}$ satisfying.
   \begin{align}
     &\fpreCoSimStep(\tuple{t,\runstate{\allinputs}, \runstate{\alloutputs},\runstate{V}}, t) \triangleq 
     \forall \inputvar{c} \in \allinputs
     \exists \outputvar{d} \in \alloutputs
     \cdot \coupling(\inputvar{c}) = \outputvar{d}  \nonumber \\
     &\qquad \qquad \qquad \qquad \qquad \implies
-    \runstate{V}(\inputvar{c}) = \runstate{V}(\outputvar{d}) \nonumber \\
+    \runstate{V}(\inputvar{c}) = \runstate{V}(\outputvar{d})
+  \end{align}
+  The co-simulation step $P$ must satisfy the following property: 
+  \begin{align}
     &[\fpreCoSimStep(\runstate{}, t), 
     \fpreCoSimStep(\after{\runstate{}}, t+H)] 
     \langle \after{\runstate{}} \gets P\rangle
@@ -199,12 +208,11 @@ $\runstate{} = \tuple{t, \runstate{\allinputs}, \runstate{\alloutputs}, \runstat
 \Cref{def:comsim_step} shows that the precondition and postcondition of the co-simulation step are the same ($\fpreCoSimStep$).
 It says that all SUs are synchronized and that all the coupling restrictions are satisfied.
 
-The three Algorithms in \cref{fig:algorithms} all satisfy the criteria of \label{eq:co_sim_step} even though they can result in utterly different simulation results.
-To discriminate between them, we need to look into the semantics of the different actions from \cref{def:fmu}, which we describe next in \cref{def:getout,def:setin,def:step}.
+All the three Algorithms in \cref{fig:algorithms} satisfy the property above even though they can result in different simulation results.
+To differentiate between them, we need to look into the semantics of the different actions described in \cref{def:fmu}, which we describe in \cref{def:getout,def:setin,def:step}.
 
-We base our semantic on \cite{Gomes2019a,hansen_verification_2021}.
+We base our semantics on \cite{Gomes2019a,hansen_verification_2021} to which we refer for more information.
 \simon{Make reference to }
-Due to space limitations we limitations we refer readers to these papers for a deeper explanation of the actions.
 
 \begin{definition}[Get Action]\label{def:getout}  
   For an SU $c$ at timestamp $t$ with the abstract state $\runstate{c} = \tuple{t,\runstate{\inputs{c}}, \runstate{\outputs{c}}, \runstate{V_c}}$ the effect of obtaining a value from an output $\outputvar{c}$ using the action $\fget{c}(\stateafter{c}{t},\outputvar{c})$ is described using the specification statement:
@@ -276,16 +284,8 @@ Due to space limitations we limitations we refer readers to these papers for a d
     \end{align}
   \end{definition}
 
-%   \cref{def:step} describes that to advance the state of an SU, all its inputs must have been correctly updated with respect to their contract since the last $\fdoStep{c}$ action. 
-%   By updating the inputs, we mean that their inputs have been properly advanced in time by the $\fset{c}$ action defined in \cref{def:setin}.   
-%   This is informally what $\fpredoStep{c}$ says.
 
-%   The effect of stepping an SU is that the SU's abstract state gets advanced with the duration $H$ this is defined by $\fpostdoStep{c}$.
-%   Note that we, for now, assume that an SU will accept all step duration. 
-%   Step rejection is described in \vref{sc:complex}.
-
-%   \cref{def:step,def:setin,def:getout} describe the semantics of the actions, both their precondition and effect on the co-simulation state.
-
+The following section introduces a special class of co-simulation scenarios.
 
 
 \subsection{Complex Scenarios}
@@ -305,26 +305,36 @@ Due to space limitations, we will not describe the process for finding a correct
 Interested readers are referred to \cite{thrane2021}.
 
 \subsection{Correct Co-simulation Algorithms}\label{sec:correctcosim}
-To optimally simulate a co-simulation scenario using an algorithm $P$ requires more than a correct valuation $v$. 
-An algorithm $P$ is correct if it satisfies \cref{def:comsim_step} and that $P$ changes the co-simulation state of the scenario such that only enabled actions are performed.
+To optimally simulate a co-simulation scenario using an algorithm $P$ requires more than a correct valuation. 
+The algorithm $P$ is correct if it satisfies \cref{def:comsim_step} and that $P$ changes the co-simulation state of the scenario such that only enabled actions are performed.
 
-We can now describe what it means for an algorithm to be correct for a given scenario in the following Hoare triple.
+We can use Dijkstra's weakest precondition calculus~\simon{Add reference} to check if all actions of $P$ is enabled.
+The weakest precondition calculus starts from the postcondition and uses backwards reasoning to calculate the weakest precondition using semantics of the actions in \cref{def:setin,def:step,def:getout}.
 
-\begin{definition}\label{def:correctalgo}
-  An algorithm $P$ and valuation $v: \tuple{H, \dontcare}$ is correct if:
-  \begin{align*}
-     \quad \land \quad
-     &\{\forall v \in \allinputs \cup \alloutputs \ldotp v = \tuple{t, \dontcare} \land \forall c \in \fmus \ldotp \ftime(\stateafter{c}{t}) = t\} \quad P(c) \\
-     & \{\forall v \in \allinputs \cup \alloutputs \ldotp v = \tuple{t+H, \dontcare} \land \forall c \in \fmus \ldotp \ftime(\stateafter{c}{t+H}) = t+H \}
-  \end{align*}
-  Meaning all preconditions are satisfied and all SUs and inputs have moved from time $t$ to time $t+H$ through the execution of $P(c)$.
+\cref{eq:termination} says that if we execute $P$ from an initial state $\runstate{}$ that satisfies $\fpreCoSimStep$ the algorithm $P$ terminates.
+
+\begin{align}\label{eq:termination}
+  \fpreCoSimStep(\runstate{}, t) \implies wp(P, \true)
+\end{align}
+
+The algorithm $P$ is tailored to the scenario if $P$ satisfies \cref{eq:termination}.
+We can see that \cref{alg:algorithm_2} violates the above property because the precondition $\fpredoStep{A}$ of $\fdoStep{A}$ on line 2 is violated.
+The precondition $\fpredoStep{A}$ is violated because the abstract state $\runstate{A} = \tuple{0,\{\inputvar{g} \to 0 \}, \{\outputvar{f} \to 0 \}, \dontcare}$ of SU $A$ does not contain $\{\inputvar{g} \to H \}$.
+Intuitively, we try to step SU $A$ without having provided it with a value on the reactive input $\inputvar{g}$ - an apparent violation of $\fpredoStep{A}$.
+
+A correct algorithm is therefore a combination of \cref{def:comsim_step,eq:termination}.
+The algorithm should satisfy all requirements of the actions while moving the scenario from the initial state $\runstate{}$ to the final state $\after{\runstate{}}$.
+The initial and final state must satisfy $\fpreCoSimStep$
+
+\begin{definition}[Co-simulation Step]\label{def:correctalgo}
+  A co-simulation step $P$ is correct starting from the abstract state $\runstate{}$ if:
+  \begin{align}
+    \fpreCoSimStep(\runstate{}, t) \implies &(wlp(P,\fpreCoSimStep(\after{\runstate{}}, t+H)) \nonumber \\ 
+    &\qquad \land wp(P, \true)) \land H > 0 \nonumber
+  \end{align}
 \end{definition}
-
-We use \cref{def:correctalgo} to conclude that \cref{alg:algorithm_3} is correct while the others are incorrect since they break one or more of the defined preconditions. 
-\Cref{alg:algorithm_1,alg:algorithm_2} violate the precondition of $\fdoStep{a}$ on line 2 by stepping it without having provided SU $a$ with a value on the reactive input $g$. 
-These definitions form the basis for describing the approach for synthesizing and verifying co-simulation algorithms in this work.
 
 \subsection{Design Space Exploration}
 Design space exploration is a technique for evaluating how different combinations of parameters (designs) affect the system's performance to determine which parameter combinations are ``optimal''~\cite{kang_approach_2011}.
 The process contains two phases a search and a design evaluation.
-The search find the different combinations of parameters (designs) while the design evaluation evaluates them.
+The search finds the different combinations of parameters (designs) while the design evaluation evaluates them.

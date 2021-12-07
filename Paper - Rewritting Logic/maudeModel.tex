@@ -8,6 +8,7 @@ However, the complete model can be found online \footnote{\simon{create link}}.
 We define an SU based on \cref{def:fmu} in Maude as the class.
 
 \begin{alltt}
+\small
 class SU |
   time : Nat, 
   inputs : Configuration, 
@@ -26,6 +27,7 @@ These methods operate on the abstract state space described in \cref{def:runtime
 An example is the $\fget{c}$ function shown below:
 
 \begin{alltt}
+  \small
   *** Updates the time and status of the outputs
   op getAction : Object OidSet -> Object .
   eq getAction(< SU1 : SU | >, empty) = < SU1 : SU | > .
@@ -42,13 +44,13 @@ This can be done using both non-deterministic rewriting rules or deterministic e
 Due to the expressiveness of Maude, it is possible to model quite complex behavior, as seen below.
 
 \begin{alltt}
+  \small
   eq step(< "tank" : SU | time : T, parameters : ("flow" |-> < FLOW >), 
                       inputs : < "valve" : Input | value : < STATE > >, 
                       outputs : < "wlevel" : Output | time : T >,
                       localState : ( "wlevel" |-> < LEVEL > ) >,
                       STEP) = 
   if STATE == 1 then 
-    *** Open goes to zero
       < "tank" : SU | time:(T+STEP), localState : ( "wlevel" |-> < 0 > ),
       outputs : < "wlevel" : Output | value : < 0 >, 
       time : (T + STEP), status : Undef > >
@@ -67,6 +69,7 @@ The scenario (defined in \cref{def:cosim_scenario}) is in Maude simply a collect
 The reactivity and feedthrough are, as earlier described, placed directly on the ports.
 We instantiate a scenario using the \emph{setup} equation that generates a \emph{GlobalState} that is defined as a scenario and orchestrator.
 \begin{alltt}
+  \small
   op setup : -> GlobalState .
   ceq setup = { CONF }
     if MODEL := scenario(externalConnection, simulationUnits)
@@ -107,6 +110,7 @@ This is done by defining the actions described in \simon{add definitions} as con
 Furthermore, we use the condition and the initial state to ensure that a rewriting is only possible if it satisfies its associated precondition.
 
 \begin{alltt}
+  \small
   crl [get-init] :
   < SU1 : SU | fmistate : Initialize, inputs : IS, 
     outputs : (< O : Output | status : Undef, value : V, dependsOn : FT > OS) > 
@@ -134,6 +138,7 @@ We synthesize all the algorithms of a given scenario using the following rewrite
 The Synthesizer terminates and returns the constructed co-simulation algorithm once no more rewriting can take place and all SUs are unloaded.
 
 \begin{alltt}
+  \small
 crl [getAlgortihm]: \{ INIT \} => \{ getOrchestrator(FINALSTATE) \}
 if isInitialState(INIT)
   \(\land\) LOOPS := tarjan(INIT)
@@ -180,6 +185,7 @@ The simulation result should not depend on the algorithm we happen to extract, t
 We can show this by defining a rule that extracts all algorithms for a scenario and afterwards run a simulation for each of the algorithms starting from the same initial state.
 
 \begin{alltt}
+  \small
 crl [runAlg] : runAnyAlgorithm INIT => run: ORC on: INIT with: SIMDATA
   if LOOPS := tarjan(INIT)
   \(\land\) SUIDsNE := getSUIDsOfScenario(INIT)
@@ -235,6 +241,7 @@ A scenario is instrumented if no input in the scenario has a contract defined to
 This allows Maude to play with different instrumentations of the scenario (different version of the function $\allreactivity$) such that for each input with the contract \textit{noContract} Maude tries to perform a simulation where the input is delayed and a simulation where the input is reactive.
 The rewriting rules for this is given below:
 \begin{alltt}
+  \small
 rl [instr-delayed]: 
 findInstr(< SU1 : SU | inputs : (< I : Input | contract : noContract > IS) > C)
 =>
@@ -252,6 +259,7 @@ crl [remove-findInstr]: findInstr(CONF) => CONF
 The co-simulation practitioner can using the rewriting rule below experiment with different instrumentations of the scenario.
 
 \begin{alltt}
+  \small
   crl [findInstrumentation]: findContacts(INIT) => CONF
       if findInstr(INIT) => CONF
       \(\land\) empty == tarjan(CONF) *** No loops
@@ -270,6 +278,7 @@ The constraints are above specified using the predicate \emph{shouldSatisfy}.
 The different instrumentations are explored using Maude's search command.
 
 \begin{alltt}
+  \small
   search findContacts(Scenario) =>! C:Configuration .
 \end{alltt}
   
@@ -283,6 +292,7 @@ Design space exploration can therefore be used to find the optimal valuation of 
 
 The Maude framework allows design space exploration by letting the user specify the valuation a parameter as a set of possible valuations inside the \emph{choose}-operator as we shown below.
 \begin{alltt}
+  \small
 < "tank" : SU | parameters : ("flow" |-> choose((< 1 >,< 2 >,< 30 >))) >
 \end{alltt}
 
@@ -291,6 +301,7 @@ The framework uses the model checker to try out to run a simulation using all th
 This is done using the following rewriting rule.
 
 \begin{alltt}
+  \small
   crl [dse] : selectParams(UNITIALIZEDCONF) => CONF 
   if UNITIALIZEDCONF => CONF
   \(\land\) runAnyAlgorithm CONF => 
@@ -306,6 +317,7 @@ In the above rule, the valuation must ensure that the simulation satisfies the p
 
 The parameters of the scenario can be found using a search command starting from a scenario with multiple valuations.
 \begin{alltt}
+  \small
   search selectParams(initConfDSE)  =>! C:Configuration .
 \end{alltt}
 

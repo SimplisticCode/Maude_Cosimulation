@@ -308,10 +308,10 @@ Interested readers are referred to \cite{thrane2021}.
 To optimally simulate a co-simulation scenario using an algorithm $P$ requires more than a correct valuation. 
 The algorithm $P$ is correct if it satisfies \cref{def:comsim_step} and that $P$ changes the co-simulation state of the scenario such that only enabled actions are performed.
 
-We can use Dijkstra's weakest precondition calculus~\simon{Add reference} to check if all actions of $P$ is enabled.
+We can use Dijkstra's weakest precondition calculus \cite{dijkstra_guarded_1975} to check if all actions of $P$ is enabled.
 The weakest precondition calculus starts from the postcondition and uses backwards reasoning to calculate the weakest precondition using semantics of the actions in \cref{def:setin,def:step,def:getout}.
 
-\cref{eq:termination} says that if we execute $P$ from an initial state $\runstate{}$ that satisfies $\fpreCoSimStep$ the algorithm $P$ terminates.
+\cref{eq:termination} says that if we execute $P$ from an initial state $\runstate{}$ that satisfies the predicate $\fpreCoSimStep$ the algorithm $P$ must terminate.
 
 \begin{align}\label{eq:termination}
   \fpreCoSimStep(\runstate{}, t) \implies wp(P, \true)

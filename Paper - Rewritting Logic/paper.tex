@@ -37,13 +37,13 @@
 \usepackage{listings}
 \usepackage{etoolbox}
 \usepackage{subcaption}
+\usepackage{alltt}
 
 \AtBeginEnvironment{algorithm}{\linespread{1.05}\selectfont}
 \AtBeginEnvironment{grammar}{\small}
 \AtBeginEnvironment{grammar}{\linespread{0.6}\selectfont}
 
 \input{commands}
-\input{HI-Maude_Listings}
 
 
 
@@ -56,15 +56,15 @@
 
 \begin{document}
 
-\title{Formal Framework for Synthesizing Co-simulation Algorithms, Analyzing and Executing abstract Co-Simulations
+\title{Formal Framework for Co-simulation in Maude
 \thanks{We are grateful to the Poul Due Jensen Foundation, which has supported the establishment of a new Centre for Digital Twin Technology at Aarhus University.}}
 
 \author{Simon Thrane Hansen\inst{1} \orcidID{0000-0002-3796-4319} 
-\and Peter Csaba Olveczky \inst{2} \orcidID{0000-0002-3796-4319}}
+\and Peter Csaba Olveczky \inst{2} \orcidID{0000-0002-0708-3721}}
 %
 %\authorrunning{S. Thrane et al.}
 
-\titlerunning{Formal Framework for Synthesizing Co-simulation algorithms, analyzing and executing co-simulations}
+\titlerunning{Formal Framework for Co-simulation in Maude}
 
 % First names are abbreviated in the running head.
 % If there are more than two authors, 'et al.' is used.
@@ -112,7 +112,7 @@ WRLA:\\
     \item Combination of finding the right configuration and parameters.
   \end{itemize}
   \item Big step simulation running multiple iterations
-  \item \textbf{Might} make the search space smaller than the small step semantics
+  \item \textbf{Might} make the search space smaller than the small-step semantics
 \end{itemize}
 
 \input{abstract.tex}
@@ -123,11 +123,9 @@ WRLA:\\
 
 \input{maudeModel.tex}
 
-\input{synthesizing.tex}
+%\input{synthesizing.tex}
 
-\input{modelchecking.tex}
-
-\input{maudeexternal.tex}
+%\input{modelchecking.tex}
 
 %\input{casestudy.tex}
 

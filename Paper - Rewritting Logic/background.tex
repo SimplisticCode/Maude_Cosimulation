@@ -1,4 +1,6 @@
 \section{Preliminaries}\label{sc:background}
+This section describes the preliminaries to understand the work described in the paper.
+
 \subsection{Maude /Rewriting Logic}
 \simon{Peter, I guess you have some text for this section.}
 
@@ -20,12 +22,12 @@ However, in practice, the coupling restrictions can only be satisfied at specifi
 Therefore, each SU makes assumptions about the evolution of the input values between the communication points to satisfy the invariant.
 These assumptions cause accumulable errors in the co-simulation~\cite{Arnold2014}.
 
-The orchestrator computes the behavioural trace of all SUs trying to satisfy their coupling restrictions by exchanging values. 
+The orchestrator computes the behavioural trace of all SUs and tries to satisfy their coupling restrictions by exchanging values. 
 The orchestrator aims to find the communication points minimizing the co-simulation error while ensuring that the SUs move in lockstep. 
 Studies \cite{Gomes2019,Oakes2021,Gomes2018f,Schweizer2015c,Gomes2018a} show that optimal communication points depend on the implementation of the SUs.
 
 We now introduce our definition of an SU in \cref{def:fmu}.
-It is based on \cite{Broman2013,Gomes2019c,thrane2021} and represents an abstract version of an SU.
+The definition is based on \cite{Broman2013,Gomes2019c,thrane2021} and represents an abstract version of an SU.
 
 \begin{definition}[Simulation Unit]\label{def:fmu}
   An SU with identifier $c$ is represented by the tuple
@@ -36,7 +38,7 @@ It is based on \cite{Broman2013,Gomes2019c,thrane2021} and represents an abstrac
     \item $\inputs{c}$ and $\outputs{c}$ the set of input and output variables, respectively.
     The union of the inputs and outputs is called the variables of the SU:
     $\variables{c} = \inputs{c} \cup \outputs{c}$ 
-    \item $\values$ is the set of values that a variable can hold and let $\valuesExchanged : \timebase \times \values$ be the set of abstract values exchanged between input and output variables.
+    \item $\values$ is the set of values that a variable can hold and let $\valuesExchanged: \timebase \times \values$ be the set of abstract values exchanged between input and output variables.
     The functions
     $\fset{c} : \stateset{c} \times \inputs{c} \times \valuesExchanged \to \stateset{c}$ and $\fget{c}: \stateset{c} \times \outputs{c} \to \valuesExchanged$ respectively sets an inputs and gets an outputs. 
     \item $\fdoStep{c}: \stateset{c} \times \stepbase \to \stateset{c} \times \stepbase $ is a function that instructs the SU to compute its state after a given time duration. If an SU is in state $\stateafter{c}{t}$ at time $t$, $(\stateafter{c}{t+h}, h) = \fdoStep{c}(\stateafter{c}{t}, H)$ approximates the state $\stateafter{c}{t+h}$ of the corresponding model at time $t+h$, where $h \leq H$. 
@@ -65,31 +67,60 @@ We provide a formal description of a scenario in \cref{def:cosim_scenario}.
 \end{definition}
 
 We have based \cref{def:cosim_scenario} on the FMI standard. 
-However, feed-through and reactivity are extensions of the standard, introduced to cover a broad class of simulation scenarios.
+However, feed-through and reactivity are extensions of the standard, introduced to cover a broad class of co-simulation scenarios.
+We use the syntax in \cref{fig:simpleexample} to graphically present co-simulation scenarios.
+
+\begin{figure}[htb]
+  \centering
+  \includegraphics[width=0.7\textwidth]{images/simple_example.pdf}
+  \caption{A co-simulation scenario ($S1$).}
+  \label{fig:simpleexample}  
+\end{figure}
 
 \subsubsection{Instrumentation}
 We refer to an input variable $\inputvar{c} \in \allinputs \land \neg \allreactivity(\inputvar{c})$ as a delayed input. 
 While an input variable $\inputvar{c}$ where $\inputvar{c} \in \allinputs \land \allreactivity(\inputvar{c})$ is referred to as a reactive input. 
 
-We describe the 
+The function $\allreactivity$ is the instrumentation of the scenario.
+The instrumentation describes the input approximation functions of the different SUs.
+%An example of the instrumentation function
+Changing the instrumentation of a scenario changes the algorithm used to simulate the scenario.
+We assume that the instrumentation of a scenario is constant through the simulation, which is the case for most commercially used SUs.
 
 \subsection{Co-simulation algorithms}\label{sc:cosimalgo}
-The orchestrator runs the co-simulation by interpreting/executing a co-simulation algorithm.
+The orchestrator simulates the scenario by interpreting/executing a co-simulation algorithm on the scenario.
 
-A co-simulation algorithm consists of an initialization procedure, a co-simulation step, and some additional FMI functions changing the mode of an SU.
+A co-simulation algorithm consists of an initialization procedure, a co-simulation step, and some additional FMI functions changing the mode of an SU~\cite{FMI2014}.
 Our work concentrates in the paper on the co-simulation step, which we refer to as the algorithm throughout the paper. 
-The reason for this is that the other aspects of a co-simulation algorithm can be derived from the presented method.  
+The reason is that the other aspects of a co-simulation algorithm can be derived from the presented method.  
 
-The co-simulation step is responsible for advancing all SUs $\fmus$, and all inputs and outputs $(\allinputs \cup \alloutputs)$, from the initial times $t$ to a future time $t+H, \textrm{ where } H > 0$.
+The algorithm changes the co-simulation state. 
+Our work is performed using an abstract co-simulation state, which is defined as the combination of the state of the individual SUs in \cref{def:cosimstate}.
 
-The purpose of the co-simulation step $P$ is defined using the Hoare-triple in.
+\Cref{def:runtime_state} defines the abstract state of an SU.
 
-\begin{align*}
-a
-\end{align*}
+\begin{definition}[Abstract State]\label{def:runtime_state}
+  Given an SU $c$ as defined in \cref{def:fmu}, the observable abstract state of $c$ is a member of the set $\runstate{c} = \timebase \times \runstate{\inputs{c}} \times \runstate{\outputs{c}} \times \runstate{V_c}$, where:
+  \begin{compactitem}
+    \item $\timebase$ is the time of the SU meaning the state of the SU is $\stateafter{c}{t}$,
+    \item $\runstate{\inputs{c}} : \inputs{c} \to \timebase$ is a total function linking each input port with its timestamp.  
+    \item $\runstate{\outputs{c}} : \outputs{c} \to \timebase$ is a total function linking each output port with its timestamp.  
+    \item $\runstate{V_c} : \variables{c} \to \values$ is a total function linking each port with a its value.  
+  \end{compactitem}
+\end{definition}
 
-A co-simulation step $P$ is a sequence of instructions of the SU's functions $\fset{c},\fget{c}$, and $\fdoStep{c}$. 
-Each index $i$ of the sequence $P[i]$ represents an action in the algorithm, for example, if $P$ is the co-simulation step in \cref{alg:algorithm_1} $P[0] = \fdoStep{A}(\stateafter{A}{0}, \dontcare)$. \Cref{fig:algorithms} shows three different co-simulation steps of the scenario in \cref{fig:simpleexample}. 
+We use the abstract state $\runstate{c}$ of an SU $c$ instead of the internal state $\stateset{c}$ defined in \cref{def:fmu} because the orchestrator cannot observe the later.
+
+\begin{definition}[Abstract Co-simulation State]\label{def:cosimstate}
+  Given a co-simulation scenario $\tuple{\fmus, \coupling}$, as defined in \cref{def:cosim_scenario}, the abstract co-simulation state is a member of the set $\runstate{\fmus} = \prod_{c \in \fmus} \runstate{c}$. 
+\end{definition}
+
+A co-simulation step $P$ is a sequence of the functions $\fset{c},\fget{c}$, and $\fdoStep{c}$ described in \cref{def:fmu}.
+It simulates the scenario by advancing all SUs $\fmus$ from an initial state at time $t$ to a final state at time $t+H, \textrm{ where } H > 0$.
+The co-simulation must ensure that the coupling restrictions are satisfied at both the initial and final state.
+
+\Cref{fig:algorithms} shows three different co-simulation steps of the scenario in \cref{fig:simpleexample}.
+The three different algorithms are all allowed by the FMI standard~\cite{FMI2014}. 
 
 \begin{figure}[htb]
   \centering
@@ -139,83 +170,161 @@ Each index $i$ of the sequence $P[i]$ represents an action in the algorithm, for
     \end{algorithm}
     \vspace{4pt}
   \end{minipage}
+  \vspace{-2em}
   \caption{Three algorithms conforming to the FMI Standard (version 2.0) of the scenario in \cref{fig:simpleexample}.}
   \label{fig:algorithms}
 \end{figure}
 
-Although the three algorithms in \cref{fig:algorithms} consist of the same actions, they are not equivalent, and simulating with one algorithm instead of one of the others could drastically change the co-simulation result as shown in \cite{Gomes2019c}. 
-They showed that the scenario would be simulated correctly by obeying the contracts. 
-We assume that the contracts in the scenario are constant through the simulation, which is the case for most commercially used SUs.
+Although the three algorithms in \cref{fig:algorithms} consist of the same actions, they are not equivalent, and simulating with one algorithm instead of one of the others could drastically change the co-simulation result as shown in \cite{Gomes2019c,hansen_verification_2021}. 
 At the end of \cref{sec:correctcosim}, we show which of these algorithms is correct.
 
-A co-simulation step $P$ is executed using a valuation $c$. The valuation $v \triangleq \tuple{H, guess}$ consists of the parameters of the co-simulation step $P$.  $H \in \stepbase$ defines the step size, and $guess : \inputs{algebraic} \to \valuesExchanged$ is a total function linking all inputs in $\inputs{algebraic}$ to a guess that tries to satisfy the algebraic loops. Using the example from \cref{alg:algorithm_1}, the action at index 0 in $P$ applied with the valuation $\tuple{1,\dontcare}$ is: $P[0](c) = \fdoStep{A}(\stateafter{A}{0}, 1)$. The valuation defines the step size $(1)$ of the step-action. 
+The purpose of the co-simulation step $P$ is defined in \cref{def:comsim_step}.
 
-The set $\valuation$ denotes all the possible configurations of the co-simulation step for a given scenario. The execution of a co-simulation step $P$ is the execution of each action in $P$. We define such execution of $P$ using valuation $c$ as:
-\begin{align}
-  P(c) \triangleq \text{for each } i \in \dom{P} \ldotp P[i](c)
-\end{align}
-An execution of $P(c_j)$ yields another valuation $c_{j+1} \in \valuation$ where $P(c_j) = c_{j+1}$. The valuation $c_{j+1}: \tuple{H_1, guess_1}$ is obtained from the algorithm $P$ and valuation $c_j: \tuple{H, guess}$ by updating $H_1$ to the smallest step accepted by an SU during the execution of $P(c_j)$. And the function $guess_1$ has the same domain as $guess$, but the range is updated to the new value of the output coupled to the associated input in the domain of $guess$ after executing $P(c_j)$.
-\vspace{-1em}
-\begin{align}
-  guess_{j+1}(u) = value(u,P(c_j)) \text{ and } H_1 = minStep(P(c_j))  
-\end{align}  
-The execution of a valuation $v: \tuple{H, guess}$ has converged if all SUs accept the step $H$, and all algebraic loops are stabilized (all values in the range of $guess$ are fixed-points). 
-The domain of $guess$ is all the inputs in $\inputs{algebraic}$ for the scenario; this means that all configurations of the same scenario have the same domain.
-\begin{definition}\label{def:convergent}
-  Two configurations of the same scenario S $c_j:\tuple{H_1,guess_1} \in \valuation$ and $c_{j+1}: \tuple{H_2, guess_2} \in \valuation$ are convergent if:
-  \begin{align*}
-    c_j \approx c_{j+1} \triangleq H_1 = H_2 \land (\forall i \in \dom{guess} \ldotp guess_1[i] \approx guess_2[i])
-  \end{align*}
-  Two values $v1_E: (v_1, t_1)$ and $v2_E: (v_2, t_2)$ of type $\valuesExchanged$ converge if:
+\begin{definition}[Co-simulation Step]\label{def:comsim_step}
+  A co-simulation step $P$ is correct starting from the abstract state $\runstate{}$ if:
   \begin{align}
-    v1_E \approx v2_E \triangleq \, \mid v_1 - v_2 \mid \ \leq \epsilon \land t_1 = t_2
+    &\fpreCoSimStep(\tuple{t,\runstate{\allinputs}, \runstate{\alloutputs},\runstate{V}}, t) \triangleq 
+    \forall \inputvar{c} \in \allinputs
+    \exists \outputvar{d} \in \alloutputs
+    \cdot \coupling(\inputvar{c}) = \outputvar{d}  \nonumber \\
+    &\qquad \qquad \qquad \qquad \qquad \implies
+    \runstate{V}(\inputvar{c}) = \runstate{V}(\outputvar{d}) \nonumber \\
+    &[\fpreCoSimStep(\runstate{}, t), 
+    \fpreCoSimStep(\after{\runstate{}}, t+H)] 
+    \langle \after{\runstate{}} \gets P\rangle
   \end{align}
 \end{definition}
 
-Formally an execution of a co-simulation step $P$ of a valuation $c_j$ is stable or has converged if $P(c_j) = c_{j+1} \implies c_j \approx c_{j+1}$.
+$\runstate{} = \tuple{t, \runstate{\allinputs}, \runstate{\alloutputs}, \runstate{V}}$ means that all SUs are at time $t$ and $\runstate{\allinputs} = \prod_{c \in \fmus}\runstate{\inputs{c}}$ and $\runstate{\alloutputs} = \prod_{c \in \fmus}\runstate{\outputs{c}}$.
+\Cref{def:comsim_step} shows that the precondition and postcondition of the co-simulation step are the same ($\fpreCoSimStep$).
+It says that all SUs are synchronized and that all the coupling restrictions are satisfied.
 
-A complex scenario is a scenario where not all configurations are stable. Such a scenario can only be correctly simulated by an algorithm $P$ if a convergent valuation exists:
+The three Algorithms in \cref{fig:algorithms} all satisfy the criteria of \label{eq:co_sim_step} even though they can result in utterly different simulation results.
+To discriminate between them, we need to look into the semantics of the different actions from \cref{def:fmu}, which we describe next in \cref{def:getout,def:setin,def:step}.
 
-\begin{align}
-  \exists c \in \valuation, \exists j \in \setnat \ldotp P(c_{j}) = c_{j+1} \implies c_{j} \approx c_{j+1}
-\end{align}
+We base our semantic on \cite{Gomes2019a,hansen_verification_2021}.
+\simon{Make reference to }
+Due to space limitations we limitations we refer readers to these papers for a deeper explanation of the actions.
 
-Some measures should be taken to handle cases where no convergent valuation exists.
+\begin{definition}[Get Action]\label{def:getout}  
+  For an SU $c$ at timestamp $t$ with the abstract state $\runstate{c} = \tuple{t,\runstate{\inputs{c}}, \runstate{\outputs{c}}, \runstate{V_c}}$ the effect of obtaining a value from an output $\outputvar{c}$ using the action $\fget{c}(\stateafter{c}{t},\outputvar{c})$ is described using the specification statement:
+  \begin{align}
+    &\fpreget{c}(\outputvar{c}, \tuple{t,\runstate{\inputs{c}}, \runstate{\outputs{c}}, \runstate{V_c}}) \triangleq
+    \runstate{\outputs{c}}(\outputvar{c}) < t \land \nonumber \\
+    & \qquad \qquad \qquad \qquad \qquad 
+    \forall \inputvar{c} \in \inputs{c} \cdot (\inputvar{c}, \outputvar{c}) \in \feedthrough{c} 
+    \implies \runstate{\inputs{c}}(\inputvar{c}) = t  \nonumber \\
+    &\fpostget{c}(\outputvar{c}, \tuple{t,\runstate{\inputs{c}}, \runstate{\outputs{c}}}, \tuple{t,\runstate{\inputs{c}}, \after{\runstate{\outputs{c}}}}, v) \triangleq 
+    \after{\runstate{\outputs{c}}}(\outputvar{c}) = t \nonumber \\
+    & \qquad \qquad \qquad \qquad \qquad 
+    \land 
+    \forall \outputvar{m} \in (\outputs{c} \setminus \outputvar{c}) \cdot 
+    \after{\runstate{\outputs{c}}}(\outputvar{m}) =
+    \runstate{\outputs{c}}(\outputvar{m})\nonumber\\
+    &\qquad \qquad \qquad \qquad \qquad \land
+    \after{\runstate{V_c}}(\outputvar{c})= v \nonumber\\
+    &[\fpreget{c}(\outputvar{c}, \runstate{c}), 
+    \fpostget{c}(\outputvar{c}, \runstate{c}, \after{\runstate{c}}, v)] 
+    \langle (v, \after{\runstate{c}}) \gets \fget{c}(\stateafter{c}{t},\outputvar{c}) \rangle \nonumber
+  \end{align}
+\end{definition}
+
+\begin{definition}[Set Action]\label{def:setin}
+  For an SU $c$ at timestamp $t$ with the abstract state $\runstate{c} = \tuple{t,\runstate{\inputs{c}}, \runstate{\outputs{c}}, \runstate{V_c}}$ the effect of 
+  setting a value $\inputV = \tuple{t_{V}, X}$ on the input $\inputvar{c}$ using the action $\fset{c}(\stateafter{c}{t}, \inputvar{c}, \inputV)$ is described using the specification statement:
+    \begin{align}
+      &\fpreset{c}(\inputvar{c}, \tuple{t_{V},X}, \tuple{t,\runstate{\inputs{c}}, \runstate{\outputs{c}}, \runstate{V_c}}) \triangleq 
+      let\; t_s = \runstate{\inputs{c}}(\inputvar{c}) \; in \; t_s < t_{V} \nonumber \\
+      & \qquad \qquad \qquad \qquad \qquad
+      \land 
+      ((\reactivity{c}(\inputvar{c}) \land t_s = t) 
+      \lor (\neg\reactivity{c}(\inputvar{c}) \land t_s < t)) \nonumber \\
+      &\fpostset{c}(\inputvar{c}, \tuple{t_{V},X}, \tuple{t,\runstate{\inputs{c}}, \runstate{\outputs{c}}, \runstate{V_c}}, 
+      \tuple{t, \after{\runstate{\inputs{c}}} \runstate{\outputs{c}}, \after{\runstate{V_c}}}) \triangleq 
+      t_{V} = \after{\runstate{\inputs{c}}}(\inputvar{c})
+      \nonumber\\
+      &\qquad \qquad \qquad \qquad \qquad \land
+      \forall \inputvar{m} \in (\inputs{c} \setminus \inputvar{c}) \cdot 
+      \after{\runstate{\inputs{c}}}(\inputvar{m}) =
+      \runstate{\inputs{c}}(\inputvar{m}) 
+      \nonumber \\
+      &\qquad \qquad \qquad \qquad \qquad \land
+      \after{\runstate{V_c}}(\inputvar{c}) = X \nonumber\\
+      &[\fpreset{c}(\inputvar{c}, \runstate{c}), 
+      \fpostset{c}(\inputvar{c}, \inputV, \runstate{c}, \after{\runstate{c}})] 
+      \langle \after{\runstate{c}} \gets \fset{c}(\stateafter{c}{t},\inputvar{c}, \inputV) \rangle \nonumber
+    \end{align}
+  \end{definition}
+
+
+  \begin{definition}[Step Computation]\label{def:step}
+    For an SU $c$ at timestamp $t_{SU}$ with the abstract state $\runstate{c} = \tuple{t_{SU},\runstate{\inputs{c}}, \runstate{\outputs{c}, \runstate{V_c}}}$ the effect of stepping it with the step duration $H$ using the action $\fdoStep{c}(\stateafter{c}{t}, H)$ is defined using the following specification statement:
+    \begin{align}
+      &\fpredoStep{c}(H, \tuple{t,\runstate{\inputs{c}}, \runstate{\outputs{c}, \runstate{V_c}}}) \triangleq 
+      \forall \inputvar{c} \in \inputs{c}
+      \cdot 
+      ((\reactivity{c}(\inputvar{c}) \land t_{SU} + H = \runstate{\inputs{c}}(\inputvar{c}))
+      \nonumber \\
+      &\qquad \qquad \qquad \qquad \qquad \qquad \qquad \qquad \qquad 
+      \lor 
+      (\neg \reactivity{c}(\inputvar{c}) \land t_{SU} = \runstate{\inputs{c}}(\inputvar{c})))
+      \nonumber \\
+      &\fpostdoStep{c}(H, \tuple{t,\runstate{\inputs{c}}, \runstate{\outputs{c}}, \runstate{V_c}}, \tuple{t',\runstate{\inputs{c}}, \runstate{\outputs{c}}, \after{\runstate{V_c}}}) \triangleq t + H = t' \nonumber \\
+      &[\fpredoStep{c}(H, \runstate{c}), 
+      \fpostdoStep{c}(H, \runstate{c}, \after{\runstate{c}})] 
+      \langle (\after{\runstate{c}}, H) \gets \fdoStep{c}(\stateafter{c}{t},H) \rangle \nonumber
+    \end{align}
+  \end{definition}
+
+%   \cref{def:step} describes that to advance the state of an SU, all its inputs must have been correctly updated with respect to their contract since the last $\fdoStep{c}$ action. 
+%   By updating the inputs, we mean that their inputs have been properly advanced in time by the $\fset{c}$ action defined in \cref{def:setin}.   
+%   This is informally what $\fpredoStep{c}$ says.
+
+%   The effect of stepping an SU is that the SU's abstract state gets advanced with the duration $H$ this is defined by $\fpostdoStep{c}$.
+%   Note that we, for now, assume that an SU will accept all step duration. 
+%   Step rejection is described in \vref{sc:complex}.
+
+%   \cref{def:step,def:setin,def:getout} describe the semantics of the actions, both their precondition and effect on the co-simulation state.
+
+
+
+\subsection{Complex Scenarios}
+Complex scenarios are subject to algebraic loops or step rejections.
+A complex scenario is simulated using an iterative orchestration algorithm.
+\simon{Add scenario /figure}
+
+The algorithm is iterative because the orchestrator needs to adapt to the behavior of the SUs to satisfy the constraints associated with each SU, account for possible step rejections, and solve algebraic loops. 
+The orchestrator achieves this by finding a correct valuation of all inputs and outputs in the scenario.
+The valuation defines the step duration and the values it uses to solve the scenario's algebraic loops. 
+A correct valuation ensures that all SUs agree on the step duration and solves all algebraic loops by finding a fixed point.
+A co-simulation can only be correctly simulated using a correct valuation.
+
+The orchestrator must find a correct valuation in every co-simulation step because it depends on the current internal state of the SUs, which varies from one co-simulation step to the next.
+
+Due to space limitations, we will not describe the process for finding a correct valuation. 
+Interested readers are referred to \cite{thrane2021}.
 
 \subsection{Correct Co-simulation Algorithms}\label{sec:correctcosim}
-To optimally simulate a co-simulation scenario using an algorithm $P$ requires more than a convergent valuation $c$. The algorithm $P$ should also successfully satisfy all the preconditions/contracts. To describe this, we introduce the sequence $\allcontracts$, which is a permutation of the set $\precondition$ (cf.\ \cref{def:precondition}).
-The sequence $\allcontracts$ is constructed by a function $\allcontracts = \mathit{contracts(P, \precondition)}$ that for each action in $P$ finds the corresponding precondition $pre \in \precondition$ and adds it to $\allcontracts$ such that for an arbitrary index $i$ in $P$, $\allcontracts[i]$ is the precondition of the action $P[i]$.
+To optimally simulate a co-simulation scenario using an algorithm $P$ requires more than a correct valuation $v$. 
+An algorithm $P$ is correct if it satisfies \cref{def:comsim_step} and that $P$ changes the co-simulation state of the scenario such that only enabled actions are performed.
 
-If an action at index $i$ in $P$ satisfies its precondition $\allcontracts[i]$ using the valuation $c$, it is denoted as:
-\begin{align}
-  P[i](c) \models \allcontracts[i]
-\end{align}
-A co-simulation step $P$ using a valuation $c$ satisfies $\allcontracts$ if all actions satisfy its precondition. 
-\begin{align}
-  P(c) \models \allcontracts \triangleq \forall i \in \dom{P} \ldotp P[i](c) \models \allcontracts[i]
-\end{align}
-$P(c) \models \allcontracts$ means the algorithm respects the scenario's contracts.
-Based on previous studies it is well-known that a non-convergent valuation $c$ does not respect all the contracts:
-\begin{align}\label{eq:incorrectConf}
-  c_j \not\approx c_{j+1} \implies P(c_j) \not\models \allcontracts
-\end{align}
-Therefore we only check the contracts of the scenario if the current valuation is convergent.
 We can now describe what it means for an algorithm to be correct for a given scenario in the following Hoare triple.
 
 \begin{definition}\label{def:correctalgo}
-  An algorithm $P$ and valuation $c: \tuple{H, \dontcare}$ is correct if:
+  An algorithm $P$ and valuation $v: \tuple{H, \dontcare}$ is correct if:
   \begin{align*}
-     P(c) \models \allcontracts \quad \land \quad
+     \quad \land \quad
      &\{\forall v \in \allinputs \cup \alloutputs \ldotp v = \tuple{t, \dontcare} \land \forall c \in \fmus \ldotp \ftime(\stateafter{c}{t}) = t\} \quad P(c) \\
      & \{\forall v \in \allinputs \cup \alloutputs \ldotp v = \tuple{t+H, \dontcare} \land \forall c \in \fmus \ldotp \ftime(\stateafter{c}{t+H}) = t+H \}
   \end{align*}
   Meaning all preconditions are satisfied and all SUs and inputs have moved from time $t$ to time $t+H$ through the execution of $P(c)$.
 \end{definition}
 
-Using \cref{def:correctalgo} we conclude that \cref{alg:algorithm_3} is correct while the others are incorrect since they break one or more of the defined preconditions. \Cref{alg:algorithm_1,alg:algorithm_2} violate the precondition of $\fdoStep{b}$ on line 2 by stepping it without having provided SU $b$ with a value on the reactive input $f$. 
-These definitions form the basis for describing the approach and implementation used to verify co-simulation algorithms in this work.
+We use \cref{def:correctalgo} to conclude that \cref{alg:algorithm_3} is correct while the others are incorrect since they break one or more of the defined preconditions. 
+\Cref{alg:algorithm_1,alg:algorithm_2} violate the precondition of $\fdoStep{a}$ on line 2 by stepping it without having provided SU $a$ with a value on the reactive input $g$. 
+These definitions form the basis for describing the approach for synthesizing and verifying co-simulation algorithms in this work.
 
-
-\subsubsection{Design Space Exploration}
-Design space exploration evaluates how different combinations of parameters (designs) affect the system's performance to determine which parameter combinations are 'optimal'.
-The process can be roughly divided into the search and the design evaluation.
+\subsection{Design Space Exploration}
+Design space exploration is a technique for evaluating how different combinations of parameters (designs) affect the system's performance to determine which parameter combinations are ``optimal''~\cite{kang_approach_2011}.
+The process contains two phases a search and a design evaluation.
+The search find the different combinations of parameters (designs) while the design evaluation evaluates them.

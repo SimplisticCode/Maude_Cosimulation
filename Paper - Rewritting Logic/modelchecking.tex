@@ -1,4 +1,4 @@
-\section{Model checking Analysis of co-simulation}
+\section{Analysising the co-simulation}
 This section describes the different model checking analysis we have performed using the framework.
 The different analyses are based on the non-deterministic rewrites rule in Maude, which enable exploration of different instrumentations, algorithms and parameters of the same co-simulation scenario.
 
@@ -10,9 +10,7 @@ The dynamic check is performed using a symbolic co-simulation with the algorithm
 The symbolic simulation is performed using conditional rewriting rules that interprets the algorithm and performs the actions changing the state of the co-simulation accordingly. 
 %The preconditions described in \cref{sc:background} is checked similarly to the method presented in \cref{} with pattern matching and conditions.
 
-\begin{lstlisting}
-    
-\end{lstlisting}
+
 
 The verification and synthesizing have many similarities, the conditions of the are the same, the effect of an actions is identical.
 The major difference between the two is that the algorithm is interpreted in the Verifier while it is constructed in .
@@ -24,33 +22,18 @@ In case the algorithm is incorrect and contains an action that does not satisfy 
 We can do more than verifying that the orchestration algorithm is implementation-aware, because we are not restricted to a symbolic version of the co-simulation.
 The SUs in Maude have a notion of state and behavior. 
 The behavioral aspect of the SUs enables analysis of the co-simulation result in Maude.
-One of these analysis is to show that all implementation-aware orchestration algorithms of the same instrumented scenario leads to the same co-simulation result. 
+One of analysis shows that all implementation-aware orchestration algorithms of the same instrumented scenario lead to the same co-simulation result. 
 
 \begin{lemma}[Deterministic Orchestration Algorithms]
     All implementation-aware orchestration algorithms of an instrumented scenario produce the same deterministic co-simulation result.
 \end{lemma}
 
 This property can be verified using the following search-command.
-\begin{lstlisting}
-    search (runAnyAlgorithm SCENARIO)  =>! S:SimulationState .
-\end{lstlisting}
 
-\simon{Can we add something that only one state should be in the result?}
 
-The search command uses the rewriting rules to first generate all the different orchestration algorithms for the instrumented scenario.
-The constructed algorithms are afterwards is executed either purely in Maude or using real FMUs.  
 
-\begin{lstlisting}
-crl [runAnyAlg] : runAnyAlgorithm INITSTATE => run: ORCHESTRATOR on: INITSTATE with: SIMULATIONDATA
-if LOOPS := tarjan(INITSTATE)
-    /\ SUIDsNE := getSUIDsOfScenario(INITSTATE)
-    /\ SIMULATIONDATA := initialOrchestrationData(1,LOOPS,SUIDsNE)
-    /\ ALGORITHMDATA := initialAlgorithmData(1)
-    /\ CONF := calculateSNSet(INITSTATE ALGORITHMDATA) SIMULATIONDATA 
-    /\ {CONF} => { FINALSTATE } 
-    /\ ORCHESTRATOR := getOrchestrator(FINALSTATE)
-    /\ allSUsinUnloaded(SUIDsNE, FINALSTATE) .
-\end{lstlisting}
+
+
 
 \subsection{Design Space Exploration}
 Design space exploration is the .
@@ -63,15 +46,15 @@ To explore different instrumentations of a scenario, we have defined the contrac
 
 In case the user wants to explore how a co-simulation scenario should be instrumented in order to obtain a desired co-simulation result.
 The following rewrite rule should be used. 
-\begin{lstlisting}
+\begin{alltt}
 crl [findInstrumentation]: findContacts(INITSTATE) => CONF
     if findInstr(INITSTATE) => CONF
     /\ empty == tarjan(CONF) *** We do not allow loops in the found configuration
     /\ runAnyAlgorithm CONF => run: ORCHESTRATOR on: FINALSTATE with: SIMULATIONDATA
     /\ shouldSatisfy(FINALSTATE) .
-\end{lstlisting}
+\end{alltt}
 
-The \textit{findInstr} tells Maude to explore all possible instrumentations of the scenario. 
+The \emph{findInstr} tells Maude to explore all possible instrumentations of the scenario. 
 In this example we place several constraints on the instrumentations we are interested in.
 First, we do not allow instrumentations with algebraic loops. 
 And finally we encode the constraints on the co-simulation result using the predicate \textit{shouldSatisfy}.

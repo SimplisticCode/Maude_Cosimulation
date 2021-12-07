@@ -92,7 +92,7 @@ An example of such an SU is a Functional Mock-up Unit (FMU) defined by the Funct
 
 %How to test and verify an OA - need for correct by construction algorithm
 The challenge of co-simulation is ensuring trustworthy simulation results~\cite{Gomes2018}. 
-A trustworthy result requires, among others, an implementation-aware orchestration algorithm~\cite{Gomes2019,Oakes2021,Gomes2018f,Schweizer2015c}.
+A trustworthy result requires, among others, an implementation-aware orchestration algorithm~\cite{Gomes2019,Oakes2021,Gomes2018f,Schweizer2015c,hansen_verification_2021}.
 The algorithm must respect the SUs' input approximation functions.
 
 Not considering such details can lead to inaccurate co-simulation results.
@@ -100,20 +100,20 @@ The nature of co-simulation allows iterative cooperation.
 However, it also makes it extremely difficult to debug and find the cause of an inaccurate co-simulation result.
 This problem was partly in \cite{Gomes2019,Oakes2021}.
 They showed how to construct requirements on how the orchestrator can interact with the SUs during a simulation. 
+Respecting the requirements leads to a substantial reduction of the co-simulation error.
 
-Respecting the requirements leads to a substantial reduction of co-simulation errors. 
+An even more challenging class of scenarios to simulate is complex scenarios.
+They are subject to either algebraic loops or step rejections. 
+Complex scenarios are simulated using an iterative algorithm that adapts to the behavior of the SUs~\cite{thrane2021}. 
+This enables the orchestrator to solve the algebraic loop (cyclic dependencies between the SUs) and to ensure that all SUs agree on a step; the latter is called step negotiation. 
+Step negotiation is a technique for simulating scenarios with SUs refusing specific future state evaluations because they implement error estimation.
+Step negotiation minimizes the simulation error while ensuring that the SUs move in lockstep.
 
-Complex scenarios are an even more challenging class of scenarios to simulate.
-These scenarios are subject to either algebraic loops or step rejections. 
-Complex scenarios are simulated using a specific iterative algorithm \cite{thrane2021}. 
-The iterative algorithm solves the algebraic loop (cyclic dependencies between the SUs) and ensures that all SUs agree on a step; the latter is called step negotiation. 
-Step negotiation permits the SUs to implement error estimation and refuse specific future state evaluations to minimize the simulation error while ensuring that the SUs move in lockstep.
-
-% Checking safety properties (possible to reach a bad state). - model checking might be needed because although each SU might have deterministic behavior, we might not know this - we have to consider a range of possible behaviors.
-
-We propose a model checking approach that allows a co-simulation practitioner to synthesize and verify co-simulation algorithms.
-Furthermore, the approach enables various analyses such as design space exploration of simulation parameters and various instrumentation of the scenario to find a suitable instrumentation of the system producing the most accurate simulation.
-
+We propose a model checking approach using rewriting logic in Maude that
+allows a co-simulation practitioner to synthesize and verify co-simulation algorithms of simple and complex scenarios.
+Furthermore, the approach enables various analyses such as design space exploration of the orchestration, scenario and co-simulation.
+The design space exploration lets a co-simulation practitioner explore the consequences of changing the contracts and simulation parameters.
+Moreover, the co-simulation practitioner can use their domain knowledge and, in Maude, place constraints on the co-simulation to let Maude find the parameters that lead to simulation with specific desirable properties. 
 
 \textit{Contribution:}
 % \begin{itemize}

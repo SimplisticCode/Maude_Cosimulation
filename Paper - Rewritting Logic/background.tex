@@ -4,10 +4,6 @@ This section gives some background on Maude and co-simulation.
 \subsection{Maude /Rewriting Logic}
 \simon{Peter, I guess you have some text for this section.}
 
-\subsubsection{Model checking}
-\simon{Is this section needed?}
-
-
 \subsection{Co-simulation}
 Co-simulation enables global simulation of a system consisting of multiple black-box simulation units (SUs). 
 An SU represents a dynamic system and can compute the behavior of that system using a dedicated solver. 
@@ -91,8 +87,7 @@ The function $\allreactivity$ is the instrumentation of the scenario.
 The instrumentation describes the input approximation functions of the different SUs.
 %An example of the instrumentation function
 Changing the instrumentation of a scenario changes the algorithm used to simulate the scenario.
-We assume that the instrumentation of a scenario is constant through the simulation, which is the case for most commercially used SUs.
-\simon{Make citation}
+We assume that the instrumentation of a scenario is constant through the simulation, which is the case for most commercially used SUs~\cite{Gomes2018a}.
 
 \subsection{Co-simulation Algorithms}\label{sc:cosimalgo}
 An \emph{orchestrator} simulates a scenario by executing the \emph{co-simulation algorithm}.
@@ -284,9 +279,7 @@ We base our semantics on \cite{Gomes2019a,hansen_verification_2021} to which we 
     \end{align}
   \end{definition}
 
-
 The following section introduces a special class of co-simulation scenarios.
-
 
 \subsection{Complex Scenarios}
 Complex scenarios are subject to algebraic loops or step rejections.

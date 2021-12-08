@@ -300,23 +300,22 @@ We base our semantics on \cite{Gomes2019a,hansen_verification_2021} to which we 
     \end{align*}
   \end{definition}
 
-The following section introduces a special class of co-simulation scenarios.
+The following section introduces a special class of co-simulation scenarios subject to algebraic loops or step rejections.
 
 \subsection{Complex Scenarios}
-Complex scenarios are subject to algebraic loops or step rejections.
+Complex scenarios are subject to algebraic loops~\cite{Kubler2000} or step rejections~\cite{thrane2021}.
 A complex scenario is simulated using an iterative orchestration algorithm.
 \simon{Add scenario /figure}
 
 The algorithm is iterative because the orchestrator needs to adapt to the behavior of the SUs to satisfy the constraints associated with each SU, account for possible step rejections, and solve algebraic loops. 
-The orchestrator achieves this by finding a correct valuation of all inputs and outputs in the scenario.
-The valuation defines the step duration and the values it uses to solve the scenario's algebraic loops. 
+The orchestrator achieves this by finding a correct valuation of all inputs and outputs in the scenario~\cite{thrane2021}.
+The valuation defines the step duration and the current attempt to solve the scenario's algebraic loops. 
 A correct valuation ensures that all SUs agree on the step duration and solves all algebraic loops by finding a fixed point.
-A co-simulation can only be correctly simulated using a correct valuation.
+A complex co-simulation scenario can only be correctly simulated using a correct valuation.
 
 The orchestrator must find a correct valuation in every co-simulation step because it depends on the current internal state of the SUs, which varies from one co-simulation step to the next.
 
-Due to space limitations, we will not describe the process for finding a correct valuation. 
-Interested readers are referred to \cite{thrane2021}.
+The process for finding a correct valuation is due to space limitations not covered here; we refer interested readers to \cite{thrane2021,Kubler2000}.
 
 \subsection{Correct Co-simulation Algorithms}\label{sec:correctcosim}
 To optimally simulate a co-simulation scenario using an algorithm $P$ requires more than a correct valuation. 

@@ -5,31 +5,28 @@ This section gives some background on Maude and co-simulation.
 \simon{Peter, I guess you have some text for this section.}
 
 \subsection{Co-simulation}
-Complex CPS are typically composed of multiple communicating sub-systems/simulation units (SUs) examples include autonomous vehicles. 
+Complex CPS are typically composed of multiple communicating sub-systems.
+For example an autonomous car consist of multiple subsystems such as suspension, braking and collision avoidance systems. 
 Such systems can be explored using co-simulation.
-Co-simulation is a technique enabling simulation of a complex CPS consisting of multiple black-box SUs. 
-An SU represents a dynamic system and can compute the behavior of that system using a dedicated solver. 
-A dynamic system represents a function from time and space into some often multi-dimensional and continuous state space. 
-Examples include water flow and pendulums. \simon{More advanced examples}
-The SU interacts with an \emph{external environment} through inputs and outputs dynamic~\cite{Gomes2019a,Kubler2000}.
+Co-simulation is a technique enabling the simulation of a complex CPS consisting of multiple black-box SUs, where each SU represents a subsystem and can compute the behavior of that system using a dedicated solver. 
+Each SU can interact with the external environment through input and output ports~\cite{Gomes2019a,Kubler2000}.
 
 SUs are coupled through their inputs and outputs.
-A coupling indicates that the state of one SU is reliant on the state of another SU.
-\simon{example}
-The corresponding coupling restriction states that the value of a coupled input and output must be the same at all times.
+A \emph{coupling} connects one input port to an output.
+The \emph{coupling restriction} states that the value of a coupled input and output must be the same at all times.
 However, in practice, the coupling restrictions can only be satisfied at specific points in time called \emph{communication points}. 
-Therefore, each SU makes assumptions about the evolution of its' input values between the communication points.
-The assumptions can introduce errors in the co-simulation~\cite{Arnold2014}.
+Therefore, each SU makes assumptions about the evolution of its input values between the communication points, which can introduce errors in the co-simulation~\cite{Arnold2014}.
 
-\emph{The orchestrator} computes the behavioral trace of all SUs and tries to satisfy their coupling restrictions by exchanging values between the coupled ports. 
-The orchestrator aims to find the communication points minimizing the co-simulation error while ensuring that the SUs move in lockstep. 
-The optimal communication points depend on the implementation of the SUs~\cite{Gomes2019,Oakes2021,Gomes2018f,Schweizer2015c,Gomes2018a}.
+A set of SUs can be composed into a scenario by coupling the SUs' input ports to an output port. 
+\emph{The orchestrator} computes the behavior of the scenario as a discrete trace while it tries to satisfy the coupling restrictions by exchanging values between the coupled ports. 
+The orchestrator aims to find the communication points that minimize the co-simulation error while ensuring that the SUs move in lockstep. 
+The optimal communication points depend on the SUs~\cite{Gomes2019,Oakes2021,Gomes2018f,Schweizer2015c,Gomes2018a}.
 
-The following \cref{def:fmu} of an SU is based on \cite{Broman2013,Gomes2019c,thrane2021}.
+The following definition of an SU is based on \cite{Broman2013,Gomes2019c,thrane2021}.
 
 \begin{definition}[Simulation Unit]\label{def:fmu}
-  An SU with identifier $c$ is given by the tuple
-  $$ SU_c \triangleq \tuple{\stateset{c}, \inputs{c}, \outputs{c}, \fset{c}, \fget{c}, \fdoStep{c}, \values},$$
+  An SU with identifier $c$ is a tuple
+  $$\mathcal{SU}_c \triangleq \tuple{\stateset{c}, \inputs{c}, \outputs{c}, \values, \fset{c}, \fget{c}, \fdoStep{c}},$$
   where:
   \begin{compactitem}
     \item $\stateset{c}$ is a set, denoting the state space of the SU.
@@ -46,7 +43,7 @@ The following \cref{def:fmu} of an SU is based on \cite{Broman2013,Gomes2019c,th
 \end{definition}
 
 The state of SU $A$ at time $t$ is denoted $\stateafter{A}{t}$.
-The function $\fdoStep{c}$ returns a state and a step size, since some SUs implement error estimation and may conclude that taking a step size $H$ will result in an intolerable error.
+The function $\fdoStep{c}$ returns a state and a step duration, since some SUs implement error estimation and may conclude that taking a step size $H$ will result in an intolerable error.
 Therefore, instead the SU takes a smaller step $h$ than planned.
 
 A collection of coupled SUs forms a scenario:
@@ -92,35 +89,42 @@ Changing the instrumentation of a scenario changes the algorithm used to simulat
 We assume that the instrumentation of a scenario is constant through the simulation, which is the case for most commercially used SUs~\cite{Gomes2018a}.
 
 \subsection{Co-simulation Algorithms}\label{sc:cosimalgo}
-An \emph{orchestrator} simulates a scenario by executing the \emph{co-simulation algorithm}.
+An \emph{orchestrator} simulates a scenario by executing a \emph{co-simulation algorithm}.
 
 A co-simulation algorithm consists of an initialization procedure, a co-simulation step, and some additional FMI functions changing the mode of an SU~\cite{FMI2014}.
-This work focuses on on the co-simulation step, which we refer to as ``the algorithm'' throughout the paper. 
+This work focuses on the co-simulation step, which we refer to as ``the algorithm'' in the paper. 
 The other aspects of a co-simulation algorithm can be derived from our method.  
 
 The algorithm changes the co-simulation state. 
 We use an abstract co-simulation state, which is defined as the combination of the state of the SUs.
 
-The following \cref{def:runtime_state} defines the abstract state of an SU.
+\cref{def:runtime_state} defines the abstract state of an SU.
 
 \begin{definition}[Abstract State]\label{def:runtime_state}
-  The observable abstract state of SU $SU_c$ is an element of the set $\runstate{c} = \timebase \times \runstate{\inputs{c}} \times \runstate{\outputs{c}} \times \runstate{V_c}$, where:
+  The observable abstract state of SU $SU_c$\simon{Maybe different notation} is an element of the indexed set $\runstate{c} = \timebase \times \runstate{\inputs{c}} \times \runstate{\outputs{c}} \times \runstate{V_c}$, where:
   \begin{compactitem}
     \item $\runstate{\inputs{c}} : \inputs{c} \to \timebase$ is a total function mapping each input port to a timestamp.  
     \item $\runstate{\outputs{c}} : \outputs{c} \to \timebase$ is a total function mapping each output port to a timestamp.  
     \item $\runstate{V_c} : \variables{c} \to \values$ is a total function mapping each port to a value.  
   \end{compactitem}
-  Intuitively the first components of the abstract state denotes the time of the SU.
+  Intuitively the first component of the abstract state denotes the time of the SU.
 \end{definition}
 
 We use the abstract state $\runstate{c}$ of an SU $c$ instead of the internal state $\stateset{c}$ since the orchestrator cannot observe the latter.
 
 \begin{definition}[Abstract Co-simulation State]\label{def:cosimstate}
-  Given a co-simulation scenario $S$ with $C$ as the identifiers of the SUs the abstract co-simulation state is an element in the set $\runstate{\fmus} = \prod_{c \in \fmus} \runstate{c}$. 
+  The abstract co-simulation state of a scenario $\mathcal{S}$ with $C$ as the identifiers of the SUs is an element of the set $\runstate{\fmus} = \timebase^{\mid \fmus \mid} \times \runstate{\allinputs} \times \runstate{\alloutputs} \runstate{V}$
+  where:
+  \begin{itemize}
+    \item $\timebase^{\mid \fmus \mid} : $
+    \item $\runstate{\allinputs} = \prod_{c \in \fmus} \runstate{\inputs{c}}$ mapping all inputs of the scenario to a timestamp. 
+    \item $\runstate{\alloutputs} = \prod_{c \in \fmus} \runstate{\outputs{c}}$ mapping all outputs of the scenario to a timestamp. 
+    \item $\runstate{V} =  \prod_{c \in \fmus} \runstate{V_c}$ mapping all ports of the scenario to a value. 
+  \end{itemize}
 \end{definition}
 
-A co-simulation step $P$ is a sequence of the applications of the functions $\fset{c},\fget{c}$, and $\fdoStep{c}$.
-It simulates the scenario by advancing all SUs from an initial state at time $t$ to a final state at time $t+H, \textrm{ where } H > 0$.
+A co-simulation step $P$ is a sequence of applications of the functions $\fset{c},\fget{c}$, and $\fdoStep{c}$ that satisfies \cref{def:comsim_step}.
+It must advance all SUs from an initial state at time $t$ to a final state at time $t+H, \textrm{ where } H > 0$.
 The co-simulation must ensure that the coupling restrictions are satisfied at both the initial and final state.
 
 \Cref{fig:algorithms} shows three different co-simulation steps of the scenario in \cref{fig:simpleexample}.
@@ -183,25 +187,32 @@ Although the three algorithms in \cref{fig:algorithms} consist of the same actio
 
 The co-simulation step $P$ should satisfy \cref{def:comsim_step}.
 
+We write $\langle S1 \rangle \xrightarrow[\text{}]{\text{P}} \langle S2 \rangle$ if executing the co-simulation step $P$ from the state $S1$ reaches the state $S2$.
+
+The co-simulation step $P$ takes 
+
 \begin{definition}[Co-simulation Step]\label{def:comsim_step}
-  A co-simulation step $P$ must start in an initial state satisfying.
+  A co-simulation step $P$ is a sequence of SUs actions that takes a consistent co-simulation state to another consistent  co-simulation. 
+  The state of the co-simulation is consistent if all input ports have a source, and that, and where coupled ports have the same value.
+  Formally:
   \begin{align}
+    \langle \fpreCoSimStep(\runstate{}, t) \rangle 
+    \xrightarrow[\text{}]{\text{P}} \langle \fpreCoSimStep(\after{\runstate{}}, t+H) \rangle
+  \end{align}
+  where consistent is defined as:
+  \begin{align*}
     &\fpreCoSimStep(\tuple{t,\runstate{\allinputs}, \runstate{\alloutputs},\runstate{V}}, t) \triangleq 
-    \forall \inputvar{c} \in \allinputs
-    \exists \outputvar{d} \in \alloutputs
-    \cdot \coupling(\inputvar{c}) = \outputvar{d}  \nonumber \\
-    &\qquad \qquad \qquad \qquad \qquad \implies
-    \runstate{V}(\inputvar{c}) = \runstate{V}(\outputvar{d})
-  \end{align}
-  The co-simulation step $P$ must satisfy the following property: 
-  \begin{align}
-    &[\fpreCoSimStep(\runstate{}, t), 
-    \fpreCoSimStep(\after{\runstate{}}, t+H)] 
-    \langle \after{\runstate{}} \gets P\rangle
-  \end{align}
+    (\forall \inputvar{c} \in \allinputs
+    \exists \outputvar{d} \in \alloutputs 
+    \cdot \coupling(\inputvar{c}) = \outputvar{d})  \nonumber \\
+    &\qquad \qquad \qquad \qquad \qquad \land
+    (\forall \inputvar{c}, \outputvar{d} \cdot \coupling(\inputvar{c}) = \outputvar{d} 
+    \implies
+    \runstate{V}(\inputvar{c}) = \runstate{V}(\outputvar{d}))
+  \end{align*}
 \end{definition}
 
-$\runstate{} = \tuple{t, \runstate{\allinputs}, \runstate{\alloutputs}, \runstate{V}}$ means that all SUs are at time $t$ and $\runstate{\allinputs} = \prod_{c \in \fmus}\runstate{\inputs{c}}$ and $\runstate{\alloutputs} = \prod_{c \in \fmus}\runstate{\outputs{c}}$.
+$\runstate{} = \tuple{t, \runstate{\allinputs}, \runstate{\alloutputs}, \runstate{V}}$ means that all SUs are at time.
 \Cref{def:comsim_step} shows that the precondition and postcondition of the co-simulation step are the same ($\fpreCoSimStep$).
 It says that all SUs are synchronized and that all the coupling restrictions are satisfied.
 

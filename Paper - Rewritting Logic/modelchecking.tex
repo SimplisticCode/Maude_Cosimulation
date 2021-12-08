@@ -1,9 +1,14 @@
 
 \section{Executing Orchestration Algorithms}
-This section describes how we run simulations using the generated algorithms.
+This section describes how we run simulations using the generated algorithms on the scenario.
 
-An algorithm is executed by systematically interpreting the algorithm by going through it and executing one action at a time using rewriting.
-Below we show the rule describing the $\fget{}$ action.
+The execution of an algorithm rewrites a state described by:
+\begin{alltt}
+    
+\end{alltt}
+The algorithm is sequentially executed on the scenario using simulation data.
+The rule below shows an execution of a $\fget{}$ action.
+
 \begin{alltt}
 \small
 crl [get] : 
@@ -21,12 +26,13 @@ with: < OCH : SimData | values : insert((SU2 ! INPUT), < T ; V >, PV) >
 if feedthroughSatisfied(FT, IS, T) .
 \end{alltt}
 
-We use the execution of an algorithm to perform different kinds of analysis of both the algorithms and the scenario itself.
+The execution/simulation in Maude enables different analysis of both the algorithms and the scenario itself.
 
-We explore the different tailored algorithms generated to simulate the same scenario.
-The simulation result should not depend on the algorithm we happen to extract. 
-Therefore we would like that all tailored produces the same simulation result.
-We can show this by defining a rule that extracts all algorithms for a scenario and afterwards runs a simulation for each algorithm starting from the same initial state.
+\subsection{Analyzing the Algorithm}
+An essential property of all the generated algorithms of the same scenario scenarios is that they result in the same simulation.
+The co-simulation practitioner would be in trouble if the simulation result depended on the algorithm that an arbitrary rewriting of the system produced.
+Therefore we would like to show that all tailored results in the same co-simulation result - a co-simulation practitioner should not be able to detect any difference between the different algorithms.
+We show this by defining a rule that extracts all scenario algorithms and afterward runs a simulation for each algorithm starting from the same initial state.
 
 \begin{alltt}
   \small
@@ -41,19 +47,18 @@ crl [runAlg] : runAnyAlgorithm INIT => run: ORC on: INIT with: SIMDATA
   \(\land\) allSUsinUnloaded(SUIDsNE, FINALSTATE) .
 \end{alltt}
 
-On top of this, we use Maude's search command to check if all the different allowed simulations are confluent such that they result in the same final state.
+The rule can be exhaustively checked using Maude's search command.
 
-\begin{lemma}[Deterministic Orchestration Algorithms]
-  All tailored orchestration algorithms of a scenario produce the same co-simulation result.
-\end{lemma}
 
-This property can be verified using the following search command.
+% \begin{lemma}[Deterministic Orchestration Algorithms]
+%   All tailored orchestration algorithms of a scenario produce the same co-simulation result.
+% \end{lemma}
 
 \begin{alltt}
   search (runAnyAlgorithm INIT)  =>! S:SimulationState . 
 \end{alltt}
-The search command uses the rewriting rules first to generate all the different orchestration algorithms for the scenario.
-After that, it executes each algorithm from the same initial state to check its final state.
+
+The search exhaustively checks if all the different allowed simulations are confluent such that they result in the same final state.
 
 The property ensures we do not need to care about which tailored algorithm we use since they all lead to the same simulation result.
 However, the different algorithms naturally have different properties; the most interesting is probably the algorithm's execution time. 
@@ -66,11 +71,11 @@ Using Maude's integrated LTL model checker, the Maude framework also allows two 
 This analysis enables a co-simulation practitioner to see how different model parameters change the co-simulation result.
 We describe the two independently even though they can be combined.
 We start by describing how one can explore different instrumentations of a scenario.
-Hereafter, we will describe how to explore different parameters for the simulation units.  
+Finally, we describe how to explore different parameters for the SUs.  
 
 \subsubsection{Instrumentation of a Scenario}
 As shown in \cite{Gomes2019,Oakes2021,hansen_verification_2021} contracts on the input ports can be used to achieve more accurate co-simulation results.
-However, it is challenging for co-simulation practitioners to adapt their scenarios, especially because none of the current FMU-exporting tools provide this information on the SUs.
+However, it is challenging for co-simulation practitioners to adapt their scenarios, mainly because none of the current FMU-exporting tools provide this information on the SUs.
 
 To ease the transition, we use Maude's model checker to explore the consequences of using different instrumentations of a scenario.
 
@@ -117,7 +122,7 @@ Hereafter it simulates the instrumented scenario ``CONF'' to check the resulting
 The user can limit the explored instrumentations in desired ways.
 For example, in the rule above, we have specified that we are not interested in instrumentations that generate algebraic loops in the scenario.
 
-Furthermore, the framework allows the co-simulation practitioner to specify concrete constraints on the simulation result result.
+Furthermore, the framework allows the co-simulation practitioner to specify concrete constraints on the simulation result.
 The constraints are above specified using the predicate \emph{shouldSatisfy}.
 
 The different instrumentations are explored using Maude's search command.
@@ -171,11 +176,10 @@ It is possible to combine the two searches to search both for the instrumentatio
 
 This is done by defining an uninstrumented scenario where some parameters can take different valuations.
 
+% \subsection{Limitation of the approach}
+% We have performed the analyses on different scenarios. 
+% The state-space explosion is, of course, also applying to our work. 
+% However, we have been able to find the correct instrumentation and the contracts on systems with \simon{Create big scenario and test} SUs.
 
-\subsection{Limitation of the approach}
-We have performed the analyses on different scenarios. 
-The state-space explosion is, of course, also applying to our work. 
-However, we have been able to find the correct instrumentation and the contracts on systems with \simon{Create big scenario and test} SUs.
-
-Also, we do not currently support adaptive co-simulations~\cite{Inci2021} where the instrumentation changes during the simulation. 
-However, this is our impression that this feature trivial can be added.
+% Also, we do not currently support adaptive co-simulations~\cite{Inci2021} where the instrumentation changes during the simulation. 
+% However, this is our impression that this feature trivial can be added.

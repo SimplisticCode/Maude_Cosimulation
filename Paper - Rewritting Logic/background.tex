@@ -5,10 +5,12 @@ This section gives some background on Maude and co-simulation.
 \simon{Peter, I guess you have some text for this section.}
 
 \subsection{Co-simulation}
-Co-simulation enables global simulation of a system consisting of multiple black-box simulation units (SUs). 
+Complex CPS are typically composed of multiple communicating sub-systems/simulation units (SUs) examples include autonomous vehicles. 
+Such systems can be explored using co-simulation.
+Co-simulation is a technique enabling simulation of a complex CPS consisting of multiple black-box SUs. 
 An SU represents a dynamic system and can compute the behavior of that system using a dedicated solver. 
 A dynamic system represents a function from time and space into some often multi-dimensional and continuous state space. 
-Examples include population growth, water flow, and pendulums. \simon{More advanced examples}
+Examples include water flow and pendulums. \simon{More advanced examples}
 The SU interacts with an \emph{external environment} through inputs and outputs dynamic~\cite{Gomes2019a,Kubler2000}.
 
 SUs are coupled through their inputs and outputs.
@@ -182,7 +184,7 @@ Although the three algorithms in \cref{fig:algorithms} consist of the same actio
 The co-simulation step $P$ should satisfy \cref{def:comsim_step}.
 
 \begin{definition}[Co-simulation Step]\label{def:comsim_step}
-  A co-simulation step $P$ must start an initial state $\runstate{}$ satisfying.
+  A co-simulation step $P$ must start in an initial state satisfying.
   \begin{align}
     &\fpreCoSimStep(\tuple{t,\runstate{\allinputs}, \runstate{\alloutputs},\runstate{V}}, t) \triangleq 
     \forall \inputvar{c} \in \allinputs
@@ -207,41 +209,52 @@ All the three Algorithms in \cref{fig:algorithms} satisfy the property above eve
 To differentiate between them, we need to look into the semantics of the different actions described in \cref{def:fmu}, which we describe in \cref{def:getout,def:setin,def:step}.
 
 We base our semantics on \cite{Gomes2019a,hansen_verification_2021} to which we refer for more information.
-\simon{Make reference to }
+\simon{Make reference to Journal}
 
 \begin{definition}[Get Action]\label{def:getout}  
   For an SU $c$ at timestamp $t$ with the abstract state $\runstate{c} = \tuple{t,\runstate{\inputs{c}}, \runstate{\outputs{c}}, \runstate{V_c}}$ the effect of obtaining a value from an output $\outputvar{c}$ using the action $\fget{c}(\stateafter{c}{t},\outputvar{c})$ is described using the specification statement:
-  \begin{align}
+  \begin{align*}
     &\fpreget{c}(\outputvar{c}, \tuple{t,\runstate{\inputs{c}}, \runstate{\outputs{c}}, \runstate{V_c}}) \triangleq
     \runstate{\outputs{c}}(\outputvar{c}) < t \land \nonumber \\
     & \qquad \qquad \qquad \qquad \qquad 
     \forall \inputvar{c} \in \inputs{c} \cdot (\inputvar{c}, \outputvar{c}) \in \feedthrough{c} 
-    \implies \runstate{\inputs{c}}(\inputvar{c}) = t  \nonumber \\
-    &\fpostget{c}(\outputvar{c}, \tuple{t,\runstate{\inputs{c}}, \runstate{\outputs{c}}}, \tuple{t,\runstate{\inputs{c}}, \after{\runstate{\outputs{c}}}}, v) \triangleq 
+    \implies \runstate{\inputs{c}}(\inputvar{c}) = t 
+  \end{align*}
+  The precondition intuitively states that a value from the output must not have been obtained since the last step of the SU.
+  Furthermore, it requires that all the inputs that feed through to the input have been updated.
+  The postcondition ensures the advancement of time of the input $\outputvar{c}$.
+  \begin{align*}
+    &\fpostget{c}(\outputvar{c}, \tuple{t,\runstate{\inputs{c}}, \runstate{\outputs{c}}, \runstate{V_c}}, 
+    \tuple{t,\runstate{\inputs{c}}, \after{\runstate{\outputs{c}}}, \runstate{V_c}}, v) \triangleq 
     \after{\runstate{\outputs{c}}}(\outputvar{c}) = t \nonumber \\
     & \qquad \qquad \qquad \qquad \qquad 
     \land 
     \forall \outputvar{m} \in (\outputs{c} \setminus \outputvar{c}) \cdot 
     \after{\runstate{\outputs{c}}}(\outputvar{m}) =
-    \runstate{\outputs{c}}(\outputvar{m})\nonumber\\
-    &\qquad \qquad \qquad \qquad \qquad \land
-    \after{\runstate{V_c}}(\outputvar{c})= v \nonumber\\
+    \runstate{\outputs{c}}(\outputvar{m})
+  \end{align*}
+  The $\fget{c}$ action satisfies the following property.
+  \begin{align*}
     &[\fpreget{c}(\outputvar{c}, \runstate{c}), 
     \fpostget{c}(\outputvar{c}, \runstate{c}, \after{\runstate{c}}, v)] 
     \langle (v, \after{\runstate{c}}) \gets \fget{c}(\stateafter{c}{t},\outputvar{c}) \rangle \nonumber
-  \end{align}
+  \end{align*}
 \end{definition}
 
 \begin{definition}[Set Action]\label{def:setin}
-  For an SU $c$ at timestamp $t$ with the abstract state $\runstate{c} = \tuple{t,\runstate{\inputs{c}}, \runstate{\outputs{c}}, \runstate{V_c}}$ the effect of 
-  setting a value $\inputV = \tuple{t_{V}, X}$ on the input $\inputvar{c}$ using the action $\fset{c}(\stateafter{c}{t}, \inputvar{c}, \inputV)$ is described using the specification statement:
-    \begin{align}
+  To set a value $\tuple{t_{V}, X}$ on the input $\inputvar{c}$ of SU $c$ using $\fset{c}(\stateafter{c}{t}, \inputvar{c}, \tuple{t_{V}, X})$ its abstract state must satisfy:
+    \begin{align*}
       &\fpreset{c}(\inputvar{c}, \tuple{t_{V},X}, \tuple{t,\runstate{\inputs{c}}, \runstate{\outputs{c}}, \runstate{V_c}}) \triangleq 
       let\; t_s = \runstate{\inputs{c}}(\inputvar{c}) \; in \; t_s < t_{V} \nonumber \\
       & \qquad \qquad \qquad \qquad \qquad
       \land 
-      ((\reactivity{c}(\inputvar{c}) \land t_s = t) 
-      \lor (\neg\reactivity{c}(\inputvar{c}) \land t_s < t)) \nonumber \\
+      ((\allreactivity(\inputvar{c}) \land t_s = t) 
+      \lor (\neg\allreactivity(\inputvar{c}) \land t_s < t))
+    \end{align*}
+    The precondition intuitively states that the input must not have been set since the last step of the SU.
+    Furthermore, it requires that the value set on the input should respect the instrumentation of the input.
+    The postcondition ensures the value of the input $\inputvar{c}$  is updated. In addition, the timestamp of the input must also be updated.
+    \begin{align*}
       &\fpostset{c}(\inputvar{c}, \tuple{t_{V},X}, \tuple{t,\runstate{\inputs{c}}, \runstate{\outputs{c}}, \runstate{V_c}}, 
       \tuple{t, \after{\runstate{\inputs{c}}} \runstate{\outputs{c}}, \after{\runstate{V_c}}}) \triangleq 
       t_{V} = \after{\runstate{\inputs{c}}}(\inputvar{c})
@@ -252,31 +265,39 @@ We base our semantics on \cite{Gomes2019a,hansen_verification_2021} to which we 
       \runstate{\inputs{c}}(\inputvar{m}) 
       \nonumber \\
       &\qquad \qquad \qquad \qquad \qquad \land
-      \after{\runstate{V_c}}(\inputvar{c}) = X \nonumber\\
+      \after{\runstate{V_c}}(\inputvar{c}) = X 
+    \end{align*}
+    The $\fset{c}$ action satisfies the following property.
+    \begin{align*}
       &[\fpreset{c}(\inputvar{c}, \runstate{c}), 
       \fpostset{c}(\inputvar{c}, \inputV, \runstate{c}, \after{\runstate{c}})] 
       \langle \after{\runstate{c}} \gets \fset{c}(\stateafter{c}{t},\inputvar{c}, \inputV) \rangle \nonumber
-    \end{align}
+    \end{align*}
   \end{definition}
 
-
   \begin{definition}[Step Computation]\label{def:step}
-    For an SU $c$ at timestamp $t_{SU}$ with the abstract state $\runstate{c} = \tuple{t_{SU},\runstate{\inputs{c}}, \runstate{\outputs{c}, \runstate{V_c}}}$ the effect of stepping it with the step duration $H$ using the action $\fdoStep{c}(\stateafter{c}{t}, H)$ is defined using the following specification statement:
-    \begin{align}
+    To step an SU $c$ using $\fdoStep{c}(\stateafter{c}{t}, H)$ its abstract state must satisfy:
+    \begin{align*}
       &\fpredoStep{c}(H, \tuple{t,\runstate{\inputs{c}}, \runstate{\outputs{c}, \runstate{V_c}}}) \triangleq 
       \forall \inputvar{c} \in \inputs{c}
       \cdot 
-      ((\reactivity{c}(\inputvar{c}) \land t_{SU} + H = \runstate{\inputs{c}}(\inputvar{c}))
+      ((\allreactivity(\inputvar{c}) \land t_{SU} + H = \runstate{\inputs{c}}(\inputvar{c}))
       \nonumber \\
       &\qquad \qquad \qquad \qquad \qquad \qquad \qquad \qquad \qquad 
       \lor 
-      (\neg \reactivity{c}(\inputvar{c}) \land t_{SU} = \runstate{\inputs{c}}(\inputvar{c})))
-      \nonumber \\
-      &\fpostdoStep{c}(H, \tuple{t,\runstate{\inputs{c}}, \runstate{\outputs{c}}, \runstate{V_c}}, \tuple{t',\runstate{\inputs{c}}, \runstate{\outputs{c}}, \after{\runstate{V_c}}}) \triangleq t + H = t' \nonumber \\
+      (\neg \allreactivity(\inputvar{c}) \land t_{SU} = \runstate{\inputs{c}}(\inputvar{c})))
+    \end{align*}
+    The precondition states that all the SU's inputs must be updated according to their instrumentation.  
+    The postcondition below ensures that the time of the SU advances by $H$.
+    \begin{align*}
+      &\fpostdoStep{c}(H, \tuple{t,\runstate{\inputs{c}}, \runstate{\outputs{c}}, \runstate{V_c}}, \tuple{t',\runstate{\inputs{c}}, \runstate{\outputs{c}}, \after{\runstate{V_c}}}) \triangleq t + H = t'
+    \end{align*}
+    The $\fdoStep{c}$ action satisfies the following property.
+    \begin{align*}
       &[\fpredoStep{c}(H, \runstate{c}), 
       \fpostdoStep{c}(H, \runstate{c}, \after{\runstate{c}})] 
       \langle (\after{\runstate{c}}, H) \gets \fdoStep{c}(\stateafter{c}{t},H) \rangle \nonumber
-    \end{align}
+    \end{align*}
   \end{definition}
 
 The following section introduces a special class of co-simulation scenarios.

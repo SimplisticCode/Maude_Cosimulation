@@ -209,7 +209,6 @@ All the three Algorithms in \cref{fig:algorithms} satisfy the property above eve
 To differentiate between them, we need to look into the semantics of the different actions described in \cref{def:fmu}, which we describe in \cref{def:getout,def:setin,def:step}.
 
 We base our semantics on \cite{Gomes2019a,hansen_verification_2021} to which we refer for more information.
-\simon{Make reference to Journal}
 
 \begin{definition}[Get Action]\label{def:getout}  
   For an SU $c$ at timestamp $t$ with the abstract state $\runstate{c} = \tuple{t,\runstate{\inputs{c}}, \runstate{\outputs{c}}, \runstate{V_c}}$ the effect of obtaining a value from an output $\outputvar{c}$ using the action $\fget{c}(\stateafter{c}{t},\outputvar{c})$ is described using the specification statement:

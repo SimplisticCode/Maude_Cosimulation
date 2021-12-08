@@ -5,130 +5,150 @@ This section gives some background on Maude and co-simulation.
 \simon{Peter, I guess you have some text for this section.}
 
 \subsection{Co-simulation}
-Complex CPS are typically composed of multiple communicating sub-systems.
-For example an autonomous car consist of multiple subsystems such as suspension, braking and collision avoidance systems. 
-Such systems can be explored using co-simulation.
-Co-simulation is a technique enabling the simulation of a complex CPS consisting of multiple black-box SUs, where each SU represents a subsystem and can compute the behavior of that system using a dedicated solver. 
-Each SU can interact with the external environment through input and output ports~\cite{Gomes2019a,Kubler2000}.
+Complex CPS are typically composed of multiple communicating subsystems.
+For example, an autonomous car consists of multiple subsystems, including suspension, braking and collision avoidance systems. 
+\emph{Co-simulation} is a technique enabling the simulation of a complex CPS consisting of multiple black-box simulation units (SUs), where each SU represents a subsystem and can compute the behavior of that system.
+Each SU can interact with its environment through input and output ports~\cite{Gomes2019a,Kubler2000}.
 
-SUs are coupled through their inputs and outputs.
-A \emph{coupling} connects one input port to an output.
-The \emph{coupling restriction} states that the value of a coupled input and output must be the same at all times.
-However, in practice, the coupling restrictions can only be satisfied at specific points in time called \emph{communication points}. 
-Therefore, each SU makes assumptions about the evolution of its input values between the communication points, which can introduce errors in the co-simulation~\cite{Arnold2014}.
+A set of SUs can be composed into a \emph{scenario} by \emph{coupling} the input ports to output ports. 
+A \emph{coupling} connects one input port of an SU to an output port of another SU.
+The \emph{coupling restriction} states that the value of an input and an output of a coupling must be the same at all times.
+However, in reality, the coupling restrictions can only be satisfied at specific points in time called \emph{communication points}. 
+Therefore, each SU makes its own assumptions about the evolution of its input values between the communication points, which can introduce errors in the co-simulation~\cite{Arnold2014}.
 
-A set of SUs can be composed into a scenario by coupling the SUs' input ports to an output port. 
-\emph{The orchestrator} computes the behavior of the scenario as a discrete trace while it tries to satisfy the coupling restrictions by exchanging values between the coupled ports. 
+\emph{The orchestrator} computes the behavior of a scenario as a discrete trace while it tries to satisfy the coupling restrictions by exchanging values between the coupled ports. 
 The orchestrator aims to find the communication points that minimize the co-simulation error while ensuring that the SUs move in lockstep. 
 The optimal communication points depend on the SUs~\cite{Gomes2019,Oakes2021,Gomes2018f,Schweizer2015c,Gomes2018a}.
 
-The following definition of an SU is based on \cite{Broman2013,Gomes2019c,thrane2021}.
+The following definition of an SU is based on \cite{Broman2013,Gomes2019c,thrane2021}:
 
 \begin{definition}[Simulation Unit]\label{def:fmu}
-  An SU with identifier $c$ is a tuple
-  $$\mathcal{SU}_c \triangleq \tuple{\stateset{c}, \inputs{c}, \outputs{c}, \values, \fset{c}, \fget{c}, \fdoStep{c}},$$
+  A Simulation Unit is a tuple
+  $$\mathcal{SU} \triangleq \tuple{\stateset{}, \inputs{}, \outputs{}, \values, \fset{}, \fget{}, \fdoStep{}},$$
   where:
   \begin{compactitem}
-    \item $\stateset{c}$ is a set, denoting the state space of the SU.
-    \item $\inputs{c}$ and $\outputs{c}$ are sets, of input and output port, respectively.
-    The union $\variables{c} = \inputs{c} \cup \outputs{c}$ of the inputs and outputs is called the ports of the SU.
+    \item $\stateset{}$ is a set, denoting the state space of the SU.
+    \item $\inputs{}$ and $\outputs{}$ are sets, of input and output ports, respectively.
+    The union $\variables{} = \inputs{} \cup \outputs{}$ of the inputs and outputs is called the ports of the SU.
     \item $\values$ is a set, intuitively denoting the values that a variable can hold.
-    Let $\valuesExchanged = \timebase \times \values$ be the set of timestamp values exchanged between input and output ports.
+    $\valuesExchanged = \timebase \times \values$ is the set of timestamped values exchanged between input and output ports.
     \item 
     The functions
-    $\fset{c} : \stateset{c} \times \inputs{c} \times \valuesExchanged \to \stateset{c}$ and $\fget{c}: \stateset{c} \times \outputs{c} \to \valuesExchanged$ respectively sets an input and gets an output. 
-    \item $\fdoStep{c}: \stateset{c} \times \stepbase \to \stateset{c} \times \stepbase $ is a function; it instructs the SU to compute its state after a given duration. 
-    If an SU is in state $\stateafter{c}{t}$ at time $t$ then, $(\stateafter{c}{t+h}, h) = \fdoStep{c}(\stateafter{c}{t}, H)$ denotes the state $\stateafter{c}{t+h}$ of the corresponding SU at time $t+h$, where $h \leq H$. 
+    $\fset{} : \stateset{} \times \inputs{} \times \valuesExchanged \to \stateset{}$ and $\fget{}: \stateset{} \times \outputs{} \to \valuesExchanged$ sets an input and gets an output, respectively. 
+    \item $\fdoStep{}: \stateset{} \times \stepbase \to \stateset{c} \times \stepbase $ is a function; it instructs the SU to compute its state after a given duration. 
+    If an SU is in state $\stateafter{}{t}$ at time $t$ then, $(\stateafter{}{t+h}, h) = \fdoStep{}(\stateafter{}{t}, H)$ denotes the state $\stateafter{c}{t+h}$ of the SU at time $t+h$, where $h \leq H$. 
   \end{compactitem}
 \end{definition}
 
-The state of SU $A$ at time $t$ is denoted $\stateafter{A}{t}$.
-The function $\fdoStep{c}$ returns a state and a step duration, since some SUs implement error estimation and may conclude that taking a step size $H$ will result in an intolerable error.
-Therefore, instead the SU takes a smaller step $h$ than planned.
+The state of an SU at time $t$ is denoted $\stateafter{}{t}$.
+The function $\fdoStep{}$ returns a state and a step duration, since some SUs implement error estimation and may conclude that taking a step size $H$ will result in an intolerable error.
+Therefore, instead, the SU takes a smaller step $h$ than planned.
 
 A collection of coupled SUs forms a scenario:
-we provide a formal description of a scenario in \cref{def:cosim_scenario}.
 
 \begin{definition}[Scenario]\label{def:cosim_scenario}
-  A scenario $\mathcal{S}$ is a tuple $\mathcal{S} \triangleq \tuple{\fmus, \{SU\}_{c \in \fmus}, \coupling, \mayReject, \allreactivity, \allfeedthroughs}$ where 
+  A \emph{scenario} $\mathcal{S}$ is a tuple $\mathcal{S} \triangleq \tuple{\fmus, \{\mathcal{SU}_c\}_{c \in \fmus}, \coupling, \mayReject, \allreactivity, \allfeedthroughs}$,where 
   \begin{compactitem}
-    \item $\fmus$ is a finite set, of SU identifiers. 
-    \item $\{SU\}_{c \in \fmus}$ is a set of SUs.
-    \item The function 
-    $\coupling : \allinputs \to \alloutputs$ where $\allinputs = \bigcup_{c \in \fmus} \inputs{c}$ and $\alloutputs = \bigcup_{c \in \fmus} \outputs{c}$, intuitively 
-    $\coupling(u)=y$ means that the output $y$ is connected to input $u$.   
+    \item $\fmus$ is a finite set (of SU identifiers). 
+    \item $\{\mathcal{SU}_c\}_{c \in \fmus}$ is a set of SUs, where each $\mathcal{SU}_c = \tuple{\stateset{c}, \inputs{c}, \outputs{c}, \values, \fset{c}, \fget{c}, \fdoStep{c}}$.
+    \item
+    $\coupling$ is a function $\coupling : \allinputs \to \alloutputs$, where $\allinputs = \bigcup_{c \in \fmus} \inputs{c}$ and $\alloutputs = \bigcup_{c \in \fmus} \outputs{c}$, and where 
+    $\coupling(u)=y$ means that the output $y$ is connected to the input $u$.   
     \item $\mayReject \subseteq \fmus$ denotes the SUs that implement error estimation. 
     \item
-    $\allreactivity : \allinputs \to \mathbb{B}$ is a total function, intuitively it provides information about the SUs' input approximation functions.
-    $\allreactivity(\inputvar{c}) = \true$ means that the function $\fdoStep{c}$ assumes that the timestamp $t_{SU}$ of the state of $SU_c$ ($\stateafter{c}{t_{SU}}$) is smaller than the timestamp $t_v$ of the value $\tuple{t_v,v}$ set on the input $\inputvar{c}$.
+    $\allreactivity : \allinputs \to \mathbb{B}$ is a predicate, which provides information about the SUs' input approximation functions.
+    $\allreactivity(\inputvar{c}) = \true$ means that the function $\fdoStep{c}$ assumes that the timestamp $t_{SU}$ of the SU of the $\inputvar{c}$ is smaller than the timestamp $t_v$ of the value $\tuple{t_v,v}$ set on the input $\inputvar{c}$.\simon{Check this}
     \item $\allfeedthroughs$ is a family of functions $\{\feedthrough{c} : \outputs{c} \to \mathcal{P}(\inputs{c})\}_{c \in \fmus}$.
-    $\inputvar{c} \in \feedthrough{c}(\outputvar{c})$ means that the input $\inputvar{c}$ \emph{feeds through} to the output $\outputvar{c}$, such that there exists $v_1, v_2 \in \valuesExchanged$ and $\state{c} \in \stateset{c}$, such that
+    $\inputvar{c} \in \feedthrough{c}(\outputvar{c})$ means that the input $\inputvar{c}$ \emph{feeds through} to the output $\outputvar{c}$ of the same SU.
+    It means that there exists $v_1, v_2 \in \valuesExchanged$ and $\state{c} \in \stateset{c}$, such that
     $\fget{c} (\fset{c}(\state{c}, \inputvar{c}, v_1), \outputvar{c}) \neq \fget{c} (\fset{c}(\state{c}, \inputvar{c}, v_2), \outputvar{c}).$
   \end{compactitem}
 \end{definition}
 
-We have based \cref{def:cosim_scenario} on the FMI 2.0 standard~\cite{FMI2014}. 
-However, feed-through and instrumentation are extensions of the standard, introduced to cover a broad class of co-simulation scenarios.
-We use the syntax in \cref{fig:simpleexample} to graphically present co-simulation scenarios.
-
-\begin{figure}[htb]
-  \centering
-  \includegraphics[width=0.7\textwidth]{images/simple_example.pdf}
-  \caption{A co-simulation scenario, where the dashed arrows denote feed-through, $a$ and $b$ are SU identifiers, the small squares denoted $r$ and $d$ are .
-  The solid arrows $f$ and $g$ are the coupling.}
-  \label{fig:simpleexample}  
-\end{figure}
-
-\subsubsection{Instrumentation}
-We call an input port $\inputvar{c}$ \emph{delayed} if $\neg \allreactivity(\inputvar{c})$ and \emph{reactive} if $\allreactivity(\inputvar{c})$. 
-
-The function $\allreactivity$ is the instrumentation of the scenario.
-The instrumentation describes the input approximation functions of the different SUs.
+The function $\allreactivity$ represents the \emph{instrumentation} of the scenario.
+We call an input port $\inputvar{c}$ \emph{reactive} if $\allreactivity(\inputvar{c})$,{delayed} otherwise. 
+%The instrumentation describes the input approximation functions of the different SUs.
 %An example of the instrumentation function
 Changing the instrumentation of a scenario changes the algorithm used to simulate the scenario.
 We assume that the instrumentation of a scenario is constant through the simulation, which is the case for most commercially used SUs~\cite{Gomes2018a}.
 
+\cref{def:cosim_scenario} is based on the FMI 2.0 standard~\cite{FMI2014}. 
+However, feed-through and instrumentation are extensions of the standard, introduced to cover a broad class of co-simulation scenarios. 
+\Cref{fig:simpleexample} shows a way to graphically present co-simulation scenarios.
+
+\begin{figure}[htb]
+  \centering
+  \includegraphics[width=0.7\textwidth]{images/simple_example.pdf}
+  \caption{A co-simulation scenario with two SUs $a$ and $b$. 
+  The dashed arrows denote feed-through connections, the ports are represented as small squares, the instrumentation of an input port is denoted by the letters $r$ (reactive) or $d$ (delayed).
+  The solid arrows $f$ and $g$ are the coupling.}
+  \label{fig:simpleexample}  
+\end{figure}
+
 \subsection{Co-simulation Algorithms}\label{sc:cosimalgo}
 An \emph{orchestrator} simulates a scenario by executing a \emph{co-simulation algorithm}.
+A co-simulation algorithm consists of an initialization procedure and a co-simulation step~\cite{FMI2014}.
+This work focuses on the co-simulation step, which we refer to as ``the algorithm'' in the paper.
 
-A co-simulation algorithm consists of an initialization procedure, a co-simulation step, and some additional FMI functions changing the mode of an SU~\cite{FMI2014}.
-This work focuses on the co-simulation step, which we refer to as ``the algorithm'' in the paper. 
-The other aspects of a co-simulation algorithm can be derived from our method.  
+The state of a co-simulation scenario is defined as the combination of the states of its subcomponents:
 
-The algorithm changes the co-simulation state. 
-We use an abstract co-simulation state, which is defined as the combination of the state of the SUs.
-
-\cref{def:runtime_state} defines the abstract state of an SU.
-
-\begin{definition}[Abstract State]\label{def:runtime_state}
-  The observable abstract state of SU $SU_c$\simon{Maybe different notation} is an element of the indexed set $\runstate{c} = \timebase \times \runstate{\inputs{c}} \times \runstate{\outputs{c}} \times \runstate{V_c}$, where:
+\begin{definition}[Abstract SU State]\label{def:runtime_state}
+  The observable abstract state $\runstate{}$ of an SU $\mathcal{SU}_c$ in a scenario $\mathcal{S}$ is an element of the set $\runstateset{c} = \timebase \times \runstateset{\inputs{c}} \times \runstateset{\outputs{c}} \times \runstateset{V_c}$, where:
   \begin{compactitem}
-    \item $\runstate{\inputs{c}} : \inputs{c} \to \timebase$ is a total function mapping each input port to a timestamp.  
-    \item $\runstate{\outputs{c}} : \outputs{c} \to \timebase$ is a total function mapping each output port to a timestamp.  
-    \item $\runstate{V_c} : \variables{c} \to \values$ is a total function mapping each port to a value.  
+    \item $\runstateset{\inputs{c}} : \inputs{c} \to \timebase$ is a function mapping each input port to a timestamp.  
+    \item $\runstateset{\outputs{c}} : \outputs{c} \to \timebase$ is a function mapping each output port to a timestamp.  
+    \item $\runstateset{V_c} : \variables{c} \to \values$ is a function mapping each port to a value.  
   \end{compactitem}
-  Intuitively the first component of the abstract state denotes the time of the SU.
+  The first component of the abstract state denotes the time of the SU.
 \end{definition}
 
-We use the abstract state $\runstate{c}$ of an SU $c$ instead of the internal state $\stateset{c}$ since the orchestrator cannot observe the latter.
+We use the abstract state $\runstate{c}$ of an SU $c$ instead of the internal state $\state{c}$ since the orchestrator cannot observe the latter.
 
 \begin{definition}[Abstract Co-simulation State]\label{def:cosimstate}
-  The abstract co-simulation state of a scenario $\mathcal{S}$ with $C$ as the identifiers of the SUs is an element of the set $\runstate{\fmus} = \timebase^{\mid \fmus \mid} \times \runstate{\allinputs} \times \runstate{\alloutputs} \runstate{V}$
+  The abstract co-simulation state $\runstate{\scenario}$ of a scenario $\scenario =\tuple{\fmus, \{\mathcal{SU}_c\}_{c \in \fmus}, \coupling, \mayReject, \allreactivity, \allfeedthroughs}$ is an element of the set $\runstateset{\scenario} = \ftime \times \runstateset{\allinputs} \times \runstateset{\alloutputs} \times \runstateset{V}$
   where:
   \begin{itemize}
-    \item $\timebase^{\mid \fmus \mid} : $
-    \item $\runstate{\allinputs} = \prod_{c \in \fmus} \runstate{\inputs{c}}$ mapping all inputs of the scenario to a timestamp. 
-    \item $\runstate{\alloutputs} = \prod_{c \in \fmus} \runstate{\outputs{c}}$ mapping all outputs of the scenario to a timestamp. 
-    \item $\runstate{V} =  \prod_{c \in \fmus} \runstate{V_c}$ mapping all ports of the scenario to a value. 
+    \item $\ftime : \fmus \to \timebase$ is a function, where $\ftime(c)$ denotes the current simulation time of $\mathcal{SU}_c$.
+    We denote by a time value $t \in \timebase$ the function $\lambda c.t$, which we use if all SUs are at the same time.
+    \item $\runstateset{\allinputs} = \prod_{c \in \fmus} \runstateset{\inputs{c}}$ maps all inputs of the scenario to a timestamp. 
+    \item $\runstateset{\alloutputs} = \prod_{c \in \fmus} \runstateset{\outputs{c}}$ maps all outputs of the scenario to a timestamp. 
+    \item $\runstateset{V} =  \prod_{c \in \fmus} \runstateset{V_c}$ maps all ports of the scenario to a value. 
   \end{itemize}
 \end{definition}
 
-A co-simulation step $P$ is a sequence of applications of the functions $\fset{c},\fget{c}$, and $\fdoStep{c}$ that satisfies \cref{def:comsim_step}.
-It must advance all SUs from an initial state at time $t$ to a final state at time $t+H, \textrm{ where } H > 0$.
-The co-simulation must ensure that the coupling restrictions are satisfied at both the initial and final state.
+A co-simulation step $P$ is a sequence of operations that takes a co-simulation from one consistent state to another consistent state.
+We write $ s \xrightarrow[\text{}]{\text{P}} s'$ if executing the co-simulation step $P$ from the initial state $s$ results in the final state $s'$.
 
-\Cref{fig:algorithms} shows three different co-simulation steps of the scenario in \cref{fig:simpleexample}.
-All these three algorithms are allowed by the FMI standard 2.1~\cite{FMI2014}. 
+\begin{definition}[Co-simulation Step]\label{def:comsim_step}
+  A \emph{co-simulation step} $P$ is a sequence of SU actions that takes a consistent co-simulation state to another consistent  co-simulation state. 
+  The state of the co-simulation is consistent if all input ports have a source, and all coupled ports have the same value.
+  Formally:
+  \begin{align*}
+    &\qquad \qquad \qquad \qquad \tuple{t,\runstate{\allinputs}, \runstate{\alloutputs},\runstate{V}}
+    \xrightarrow[\text{}]{\text{P}} \tuple{\after{t},\after{\runstate{\allinputs}}, \after{\runstate{\alloutputs}},\after{\runstate{V}}} \\
+    &\implies
+    (\fpreCoSimStep(\tuple{t,\runstate{\allinputs}, \runstate{\alloutputs},\runstate{V}}) 
+    \implies
+    (\fpreCoSimStep(\tuple{\after{t},\after{\runstate{\allinputs}}, \after{\runstate{\alloutputs}},\after{\runstate{V}}})
+    \land \after{t} > t))
+  \end{align*}
+  where consistent is defined as:
+  \begin{align*}
+    &\fpreCoSimStep(\tuple{t,\runstate{\allinputs}, \runstate{\alloutputs},\runstate{V}}) \triangleq 
+    (\forall \inputvar{c} \in \allinputs
+    \exists \outputvar{d} \in \alloutputs 
+    \cdot \coupling(\inputvar{c}) = \outputvar{d})  \nonumber \\
+    &\qquad \qquad \qquad \qquad \qquad \land
+    (\forall \inputvar{c}, \outputvar{d} \cdot \coupling(\inputvar{c}) = \outputvar{d} 
+    \implies
+    \runstate{V}(\inputvar{c}) = \runstate{V}(\outputvar{d}))
+  \end{align*}
+\end{definition}
+
+
+Informally, the co-simulation step advances the scenario from an initial state at time $t$ to a final state at time $t+H, \textrm{ where } H > 0$, and ensures that the coupling restrictions are satisfied at both the initial and the final state.
+
+\Cref{fig:algorithms} shows three different co-simulation steps of the scenario in \cref{fig:simpleexample} that are allowed by the FMI standard 2.0~\cite{FMI2014}. 
 
 \begin{figure}[htb]
   \centering
@@ -183,134 +203,131 @@ All these three algorithms are allowed by the FMI standard 2.1~\cite{FMI2014}.
   \label{fig:algorithms}
 \end{figure}
 
-Although the three algorithms in \cref{fig:algorithms} consist of the same actions, they are not equivalent, and simulating with one algorithm instead of one of the others could drastically change the co-simulation result as shown in \cite{Gomes2019c,hansen_verification_2021}. 
-
-The co-simulation step $P$ should satisfy \cref{def:comsim_step}.
-
-We write $\langle S1 \rangle \xrightarrow[\text{}]{\text{P}} \langle S2 \rangle$ if executing the co-simulation step $P$ from the state $S1$ reaches the state $S2$.
-
-The co-simulation step $P$ takes 
-
-\begin{definition}[Co-simulation Step]\label{def:comsim_step}
-  A co-simulation step $P$ is a sequence of SUs actions that takes a consistent co-simulation state to another consistent  co-simulation. 
-  The state of the co-simulation is consistent if all input ports have a source, and that, and where coupled ports have the same value.
-  Formally:
-  \begin{align}
-    \langle \fpreCoSimStep(\runstate{}, t) \rangle 
-    \xrightarrow[\text{}]{\text{P}} \langle \fpreCoSimStep(\after{\runstate{}}, t+H) \rangle
-  \end{align}
-  where consistent is defined as:
-  \begin{align*}
-    &\fpreCoSimStep(\tuple{t,\runstate{\allinputs}, \runstate{\alloutputs},\runstate{V}}, t) \triangleq 
-    (\forall \inputvar{c} \in \allinputs
-    \exists \outputvar{d} \in \alloutputs 
-    \cdot \coupling(\inputvar{c}) = \outputvar{d})  \nonumber \\
-    &\qquad \qquad \qquad \qquad \qquad \land
-    (\forall \inputvar{c}, \outputvar{d} \cdot \coupling(\inputvar{c}) = \outputvar{d} 
-    \implies
-    \runstate{V}(\inputvar{c}) = \runstate{V}(\outputvar{d}))
-  \end{align*}
-\end{definition}
-
-$\runstate{} = \tuple{t, \runstate{\allinputs}, \runstate{\alloutputs}, \runstate{V}}$ means that all SUs are at time.
-\Cref{def:comsim_step} shows that the precondition and postcondition of the co-simulation step are the same ($\fpreCoSimStep$).
-It says that all SUs are synchronized and that all the coupling restrictions are satisfied.
-
-All the three Algorithms in \cref{fig:algorithms} satisfy the property above even though they can result in different simulation results.
-To differentiate between them, we need to look into the semantics of the different actions described in \cref{def:fmu}, which we describe in \cref{def:getout,def:setin,def:step}.
+Although the three algorithms satisfy \cref{def:comsim_step} and consist of the same actions, they are not equivalent, and simulating with one algorithm instead of one of the others could change the co-simulation result as shown in \cite{Gomes2019c,hansen_verification_2021}. 
+To differentiate between them, we need to consider the semantics of the different actions described in \cref{def:fmu}, which we describe in \cref{def:getout,def:setin,def:step}.
 
 We base our semantics on \cite{Gomes2019a,hansen_verification_2021} to which we refer for more information.
 
-\begin{definition}[Get Action]\label{def:getout}  
-  For an SU $c$ at timestamp $t$ with the abstract state $\runstate{c} = \tuple{t,\runstate{\inputs{c}}, \runstate{\outputs{c}}, \runstate{V_c}}$ the effect of obtaining a value from an output $\outputvar{c}$ using the action $\fget{c}(\stateafter{c}{t},\outputvar{c})$ is described using the specification statement:
+\begin{definition}[Get Action]\label{def:getout}   
+  To obtain a value from an output port $\outputvar{}$ of an SU at times $t$ using the action $\fget{}(\stateafter{}{t},\outputvar{})$ changes the state of the SU according to:
   \begin{align*}
-    &\fpreget{c}(\outputvar{c}, \tuple{t,\runstate{\inputs{c}}, \runstate{\outputs{c}}, \runstate{V_c}}) \triangleq
-    \runstate{\outputs{c}}(\outputvar{c}) < t \land \nonumber \\
-    & \qquad \qquad \qquad \qquad \qquad 
-    \forall \inputvar{c} \in \inputs{c} \cdot (\inputvar{c}, \outputvar{c}) \in \feedthrough{c} 
-    \implies \runstate{\inputs{c}}(\inputvar{c}) = t 
+    \runstate{} 
+    \xrightarrow[\text{}]{\fget{}(\stateafter{}{t}, \outputvar{})} 
+    (v,\after{\runstate{}})
+    \implies 
+    \fpreget{}(\outputvar{}, \runstate{})
+    \land
+    \fpreget{}(\outputvar{}, \runstate{}, \after{\runstate{}}, v)
   \end{align*}
-  The precondition intuitively states that a value from the output must not have been obtained since the last step of the SU.
-  Furthermore, it requires that all the inputs that feed through to the input have been updated.
-  The postcondition ensures the advancement of time of the input $\outputvar{c}$.
+  Where:
   \begin{align*}
-    &\fpostget{c}(\outputvar{c}, \tuple{t,\runstate{\inputs{c}}, \runstate{\outputs{c}}, \runstate{V_c}}, 
-    \tuple{t,\runstate{\inputs{c}}, \after{\runstate{\outputs{c}}}, \runstate{V_c}}, v) \triangleq 
-    \after{\runstate{\outputs{c}}}(\outputvar{c}) = t \nonumber \\
+    &\fpreget{}(\outputvar{}, \tuple{t,\runstate{\inputs{}}, \runstate{\outputs{}}, \runstate{V}}) \triangleq
+    \runstate{\outputs{}}(\outputvar{}) < t 
+    \forall \inputvar{} \in \allfeedthroughs(\outputvar{}) \cdot \runstate{\inputs{}}(\inputvar{}) = t 
+  \end{align*}
+  The precondition (above) states that no value must have been obtained from the output $\outputvar{}$ since the SU was stepped.
+  Furthermore, it requires that all the inputs that feed through to $\outputvar{}$ have been updated.
+  The postcondition (below) ensures the advancement of time of the output $\outputvar{}$.
+  \begin{align*}
+    &\fpostget{}(\outputvar{}, \tuple{t,\runstate{\inputs{}}, \runstate{\outputs{}}, \runstate{V}}, 
+    \tuple{t,\runstate{\inputs{}}, \after{\runstate{\outputs{}}}, \runstate{V}}, v) \triangleq 
+    \after{\runstate{\outputs{}}}(\outputvar{}) = t \nonumber \\
     & \qquad \qquad \qquad \qquad \qquad 
     \land 
-    \forall \outputvar{m} \in (\outputs{c} \setminus \outputvar{c}) \cdot 
-    \after{\runstate{\outputs{c}}}(\outputvar{m}) =
-    \runstate{\outputs{c}}(\outputvar{m})
-  \end{align*}
-  The $\fget{c}$ action satisfies the following property.
-  \begin{align*}
-    &[\fpreget{c}(\outputvar{c}, \runstate{c}), 
-    \fpostget{c}(\outputvar{c}, \runstate{c}, \after{\runstate{c}}, v)] 
-    \langle (v, \after{\runstate{c}}) \gets \fget{c}(\stateafter{c}{t},\outputvar{c}) \rangle \nonumber
+    \forall \outputvar{m} \in (\outputs{} \setminus \outputvar{}) \cdot 
+    \after{\runstate{\outputs{}}}(\outputvar{m}) =
+    \runstate{\outputs{}}(\outputvar{m})
   \end{align*}
 \end{definition}
 
 \begin{definition}[Set Action]\label{def:setin}
-  To set a value $\tuple{t_{V}, X}$ on the input $\inputvar{c}$ of SU $c$ using $\fset{c}(\stateafter{c}{t}, \inputvar{c}, \tuple{t_{V}, X})$ its abstract state must satisfy:
+  Setting a value $\tuple{t_{v}, x}$ on the input port $\inputvar{}$ of an SU using $\fset{}(\stateafter{}{t}, \inputvar{}, \tuple{t_{v}, x})$ transforms the abstract state of the SU according to:
+  \begin{align*}
+    \runstate{} 
+    \xrightarrow[\text{}]{\fset{}(\stateafter{}{t}, \inputvar{}, \tuple{t_{v}, x})} 
+    \after{\runstate{}}
+    \implies 
+    \fpreset{}(\inputvar{}, \runstate{})
+    \land
+    \fpostset{}(\inputvar{}, \inputV, \runstate{}, \after{\runstate{}})
+  \end{align*}
+  Where:
     \begin{align*}
-      &\fpreset{c}(\inputvar{c}, \tuple{t_{V},X}, \tuple{t,\runstate{\inputs{c}}, \runstate{\outputs{c}}, \runstate{V_c}}) \triangleq 
-      let\; t_s = \runstate{\inputs{c}}(\inputvar{c}) \; in \; t_s < t_{V} \nonumber \\
+      &\fpreset{}(\inputvar{}, \tuple{t_{v},x}, \tuple{t,\runstate{\inputs{}}, \runstate{\outputs{}}, \runstate{V}}) \triangleq 
+      \runstate{\inputs{}}(\inputvar{}) < t_{v} \nonumber \\
       & \qquad \qquad \qquad \qquad \qquad
       \land 
-      ((\allreactivity(\inputvar{c}) \land t_s = t) 
-      \lor (\neg\allreactivity(\inputvar{c}) \land t_s < t))
+      ((\allreactivity(\inputvar{c}) \land \runstate{\inputs{}}(\inputvar{}) = t) 
+      \lor (\neg\allreactivity(\inputvar{c}) \land \runstate{\inputs{}}(\inputvar{}) < t))
     \end{align*}
-    The precondition intuitively states that the input must not have been set since the last step of the SU.
-    Furthermore, it requires that the value set on the input should respect the instrumentation of the input.
-    The postcondition ensures the value of the input $\inputvar{c}$  is updated. In addition, the timestamp of the input must also be updated.
+    The precondition says that the input must not have been assigned a new value since the SU was stepped.
+    Furthermore, it requires that the value $\tuple{t_{v},x}$ respects the instrumentation of the input.
+    The postcondition (defined below) ensures the value of the input $\inputvar{}$ is updated. 
+    In addition, the timestamp of the input is updated.
     \begin{align*}
-      &\fpostset{c}(\inputvar{c}, \tuple{t_{V},X}, \tuple{t,\runstate{\inputs{c}}, \runstate{\outputs{c}}, \runstate{V_c}}, 
-      \tuple{t, \after{\runstate{\inputs{c}}} \runstate{\outputs{c}}, \after{\runstate{V_c}}}) \triangleq 
-      t_{V} = \after{\runstate{\inputs{c}}}(\inputvar{c})
+      &\fpostset{}(\inputvar{}, \tuple{t_{v},x}, \tuple{t,\runstate{\inputs{}}, \runstate{\outputs{}}, \runstate{V}}, 
+      \tuple{t, \after{\runstate{\inputs{}}} \runstate{\outputs{}}, \after{\runstate{V}}}) \triangleq 
+      t_{v} = \after{\runstate{\inputs{}}}(\inputvar{})
       \nonumber\\
-      &\qquad \qquad \qquad \qquad \qquad \land
-      \forall \inputvar{m} \in (\inputs{c} \setminus \inputvar{c}) \cdot 
-      \after{\runstate{\inputs{c}}}(\inputvar{m}) =
-      \runstate{\inputs{c}}(\inputvar{m}) 
-      \nonumber \\
-      &\qquad \qquad \qquad \qquad \qquad \land
-      \after{\runstate{V_c}}(\inputvar{c}) = X 
-    \end{align*}
-    The $\fset{c}$ action satisfies the following property.
-    \begin{align*}
-      &[\fpreset{c}(\inputvar{c}, \runstate{c}), 
-      \fpostset{c}(\inputvar{c}, \inputV, \runstate{c}, \after{\runstate{c}})] 
-      \langle \after{\runstate{c}} \gets \fset{c}(\stateafter{c}{t},\inputvar{c}, \inputV) \rangle \nonumber
+      &\qquad \qquad \qquad \land
+      (\forall \inputvar{m} \in (\inputs{} \setminus \inputvar{}) \cdot 
+      \after{\runstate{\inputs{}}}(\inputvar{}) =
+      \runstate{\inputs{}}(\inputvar{})) \land
+      \after{\runstate{V}}(\inputvar{}) = x 
     \end{align*}
   \end{definition}
 
   \begin{definition}[Step Computation]\label{def:step}
-    To step an SU $c$ using $\fdoStep{c}(\stateafter{c}{t}, H)$ its abstract state must satisfy:
+    To step an SU using $\fdoStep{}(\stateafter{}{t}, H)$ changes the abstract state as:
     \begin{align*}
-      &\fpredoStep{c}(H, \tuple{t,\runstate{\inputs{c}}, \runstate{\outputs{c}, \runstate{V_c}}}) \triangleq 
-      \forall \inputvar{c} \in \inputs{c}
+      \runstate{} 
+      \xrightarrow[\text{}]{\fdoStep{}(\stateafter{}{t}, H)} 
+      \after{\runstate{}}
+      \implies 
+      \fpredoStep{}(H, \runstate{})
+      \land
+      \fpostdoStep{}(H, \runstate{}, \after{\runstate{}})
+    \end{align*}
+    Where:
+    \begin{align*}
+      &\fpredoStep{}(H, \tuple{t,\runstate{\inputs{}}, \runstate{\outputs{}, \runstate{V}}}) \triangleq 
+      \forall \inputvar{} \in \inputs{}
       \cdot 
-      ((\allreactivity(\inputvar{c}) \land t_{SU} + H = \runstate{\inputs{c}}(\inputvar{c}))
+      ((\allreactivity(\inputvar{}) \land t_{SU} + H = \runstate{\inputs{}}(\inputvar{}))
       \nonumber \\
       &\qquad \qquad \qquad \qquad \qquad \qquad \qquad \qquad \qquad 
       \lor 
-      (\neg \allreactivity(\inputvar{c}) \land t_{SU} = \runstate{\inputs{c}}(\inputvar{c})))
+      (\neg \allreactivity(\inputvar{}) \land t_{SU} = \runstate{\inputs{}}(\inputvar{})))
     \end{align*}
-    The precondition states that all the SU's inputs must be updated according to their instrumentation.  
-    The postcondition below ensures that the time of the SU advances by $H$.
+    The precondition (above) states that all the SU's inputs have been updated according to their instrumentation.  
+    The postcondition (below) ensures that the time of the SU advances by $H$.
     \begin{align*}
-      &\fpostdoStep{c}(H, \tuple{t,\runstate{\inputs{c}}, \runstate{\outputs{c}}, \runstate{V_c}}, \tuple{t',\runstate{\inputs{c}}, \runstate{\outputs{c}}, \after{\runstate{V_c}}}) \triangleq t + H = t'
-    \end{align*}
-    The $\fdoStep{c}$ action satisfies the following property.
-    \begin{align*}
-      &[\fpredoStep{c}(H, \runstate{c}), 
-      \fpostdoStep{c}(H, \runstate{c}, \after{\runstate{c}})] 
-      \langle (\after{\runstate{c}}, H) \gets \fdoStep{c}(\stateafter{c}{t},H) \rangle \nonumber
+      &\fpostdoStep{}(H, \tuple{t,\runstate{\inputs{}}, \runstate{\outputs{}}, \runstate{V}}, \tuple{t',\runstate{\inputs{c}}, \runstate{\outputs{}}, \after{\runstate{V_c}}}) \triangleq t + H = t'
     \end{align*}
   \end{definition}
 
-The following section introduces a special class of co-simulation scenarios subject to algebraic loops or step rejections.
+An algorithm $P$ must satisfy \cref{def:comsim_step} while respecting the defined semantics.
+  
+We use Dijkstra's weakest precondition calculus \cite{dijkstra_guarded_1975} to check if all actions of $P$ are enabled.
+The weakest precondition calculus takes a predicate/postcondition defining the final state and a program that must terminate in a state satisfying the predicate.
+The weakest precondition calculus uses backward reasoning and the semantics of the operations to calculate the weakest predicate/precondition that defines the initial state, such that all executions of the program from a state defined by the precondition results in a state defined by the postcondition.
+  
+We use the weakest precondition calculus to define that an algorithm $P$ respects the semantics of \cref{def:getout,def:setin,def:step} and \cref{def:comsim_step}:
+
+  \begin{definition}[Co-simulation Step]\label{def:correctalgo}
+    A co-simulation step $P$ if it takes the co-simulation state from one consistent state to another using only allowed actions. Formally:
+    \begin{align*}
+      \fpreCoSimStep(\runstate{\scenario}) \implies wp(P,\fpreCoSimStep(\after{\runstate{\scenario}}) \land H > 0
+    \end{align*}
+  \end{definition}
+
+An algorithm is tailored to the scenario if it respects the property above.
+For example, \cref{alg:algorithm_3} is a tailored algorithm.
+On the other hand, \cref{alg:algorithm_2} is not a tailored algorithm since it violates the property.
+The $\fdoStep{A}$ operation on line 2 is not enabled  since the precondition $\fpredoStep{A}$ is not respect by the state $\runstate{A} = \tuple{0,\{\inputvar{g} \to 0 \}, \{\outputvar{f} \to 0 \}, \dontcare}$ that does not contain $\{\inputvar{g} \to H \}$.
+Intuitively, we step SU $A$ without having provided it with a value on the reactive input $\inputvar{g}$; this is an apparent violation of $\fpredoStep{A}$.
+  
+The following section introduces a particular class of co-simulation scenarios subject to algebraic loops or step rejection.
 
 \subsection{Complex Scenarios}
 Complex scenarios are subject to algebraic loops~\cite{Kubler2000} or step rejections~\cite{thrane2021}.
@@ -327,37 +344,8 @@ The orchestrator must find a correct valuation in every co-simulation step becau
 
 The process for finding a correct valuation is due to space limitations not covered here; we refer interested readers to \cite{thrane2021,Kubler2000}.
 
-\subsection{Correct Co-simulation Algorithms}\label{sec:correctcosim}
-To optimally simulate a co-simulation scenario using an algorithm $P$ requires more than a correct valuation. 
-The algorithm $P$ is correct if it satisfies \cref{def:comsim_step} and that $P$ changes the co-simulation state of the scenario such that only enabled actions are performed.
-
-We can use Dijkstra's weakest precondition calculus \cite{dijkstra_guarded_1975} to check if all actions of $P$ is enabled.
-The weakest precondition calculus starts from the postcondition and uses backwards reasoning to calculate the weakest precondition using semantics of the actions in \cref{def:setin,def:step,def:getout}.
-
-\cref{eq:termination} says that if we execute $P$ from an initial state $\runstate{}$ that satisfies the predicate $\fpreCoSimStep$ the algorithm $P$ must terminate.
-
-\begin{align}\label{eq:termination}
-  \fpreCoSimStep(\runstate{}, t) \implies wp(P, \true)
-\end{align}
-
-The algorithm $P$ is tailored to the scenario if $P$ satisfies \cref{eq:termination}.
-We can see that \cref{alg:algorithm_2} violates the above property because the precondition $\fpredoStep{A}$ of $\fdoStep{A}$ on line 2 is violated.
-The precondition $\fpredoStep{A}$ is violated because the abstract state $\runstate{A} = \tuple{0,\{\inputvar{g} \to 0 \}, \{\outputvar{f} \to 0 \}, \dontcare}$ of SU $A$ does not contain $\{\inputvar{g} \to H \}$.
-Intuitively, we try to step SU $A$ without having provided it with a value on the reactive input $\inputvar{g}$ - an apparent violation of $\fpredoStep{A}$.
-
-A correct algorithm is therefore a combination of \cref{def:comsim_step,eq:termination}.
-The algorithm should satisfy all requirements of the actions while moving the scenario from the initial state $\runstate{}$ to the final state $\after{\runstate{}}$.
-The initial and final state must satisfy $\fpreCoSimStep$
-
-\begin{definition}[Co-simulation Step]\label{def:correctalgo}
-  A co-simulation step $P$ is correct starting from the abstract state $\runstate{}$ if:
-  \begin{align}
-    \fpreCoSimStep(\runstate{}, t) \implies &(wlp(P,\fpreCoSimStep(\after{\runstate{}}, t+H)) \nonumber \\ 
-    &\qquad \land wp(P, \true)) \land H > 0 \nonumber
-  \end{align}
-\end{definition}
-
 \subsection{Design Space Exploration}
 Design space exploration is a technique for evaluating how different combinations of parameters (designs) affect the system's performance to determine which parameter combinations are ``optimal''~\cite{kang_approach_2011}.
 The process contains two phases a search and a design evaluation.
 The search finds the different combinations of parameters (designs) while the design evaluation evaluates them.
+Design space exploration is often used in the context of co-simulation and digital twins, where it provides a cheap way to explore the consequence of different design decisions~\cite{gamble_design_2014,dse}.

@@ -1,14 +1,15 @@
 \section{Co-simulation in Maude}
-This section describes the framework for modeling co-simulation in Maude.
-The Maude model is based on the definitions from \cref{sc:background}. 
+This section describes the co-simulation framework in Maude.
+The framework is based on the definitions from \cref{sc:background}. 
 Initially, we describe how to model the individual SUs before addressing their composition in a co-simulation scenario. 
 Finally, we describe the orchestrator that synthesizes the orchestration algorithm and runs it.
 Due to space limitations, we cannot describe the entire model here. 
-In some places, we have shortened variable names and removed irrelevant parts to make the model more understandable.
-However, the complete model can be found online \footnote{\simon{create link}}.
+In some places, we have shortened variable names and removed distracting parts to make the model more understandable.
+Nevertheless, the complete model is available online \footnote{\simon{create link}}.
 
 \subsection{Simulation Unit}
-The SU representing a subsystem is defined as a class.
+The SU represents a subsystem with parameters, ports, a state, and a time:
+
 \begin{alltt}
   \small
   class SU |
@@ -20,17 +21,18 @@ The SU representing a subsystem is defined as a class.
     parameters : LocalState,
     localState : LocalState .
   \end{alltt}
-The class describes the properties of the subsystem. 
-Which ports does it have to interact this the other subsystems?
-The class Furthermore describes time, the parameters, and the local state of the SU.
-The parameters and local state is an extension of the SU from \cref{def:fmu}, the extension allows a co-simulation practitioner to perform different analyses of the system in Maude, which we will describe later. 
 
-The ports (inputs and outputs) are defined as two different classes that carry the port's abstract state (time and value).
-The instrumentation $\allreactivity$ is defined as a property of the input, while the feedthrough $\allfeedthroughs$ is placed inside the output class.
+The parameters are an extension of \cref{def:fmu}.
+They enable a co-simulation practitioner to perform design space exploration of a system in Maude; this will be described later.
 
-The behavior of an SU (the functions described in \cref{def:getout,def:setin,def:step}) is modelled using equations.
-The methods operate on the abstract state space described in \cref{def:runtime_state}.
-An example is the $\fget{}$ function shown that updates the state of an output:
+  %The subsystem can be coupled with other subsystems to form a scenario.
+Their respective classes describe the inputs and outputs; the class contains that abstract state of port (time and value).
+The input class also describes the instrumentation, while the output class defines feed-through.
+
+The behavior of an SU (the functions described in \cref{def:fmu}) is described using equational rewrite rules.
+The rewrite rules correspond to the semantics of the previous section.
+
+An example of such an equation rewrite rule is the $\fget{}$ operation that updates the state of an output (or in this case a set of output ports):
 
 \begin{alltt}
   \small
@@ -42,12 +44,12 @@ An example is the $\fget{}$ function shown that updates the state of an output:
     (< O : Output | time : T, status : Def > OS) >, P) .
 \end{alltt}
 
-The precondition ($\fpreget{}$) is omitted from the operation \emph{getAction} since it is include in the functions calling it.
-The definition of the functions $\fget{}$ and $\fset{}$ are defined in \cref{def:getout,def:setin} and are similar for all SUs described in the framework.
+The precondition ($\fpreget{}$) is omitted from the operation \emph{getAction} since it is included in the functions calling it.
+The functions $\fget{}$ and $\fset{}$ are similar for all SUs described in the framework.
 
-Nevertheless, it is possible to model the actual behavior of an SU by defining a custom version of the $\fdoStep{}$ function for each of the SUs. 
-Due to the expressiveness of Maude, it is possible to model quite complex behavior, as seen below.
-
+Nevertheless, one can describe the concrete behavior of an SU by defining a custom version of the $\fdoStep{}$ function.
+Due to the expressiveness of Maude, it is possible to define quite complex behavior, as seen below, where we define how the water level in a water tank changes according to time, the inflow, and the state of the valve (open/closed).
+\simon{Make reference}
 \begin{alltt}
   \small
   eq step(< "tank" : SU | time : T, parameters : ("flow" |-> < FLOW >), 
@@ -67,12 +69,11 @@ Due to the expressiveness of Maude, it is possible to model quite complex behavi
   fi .
 \end{alltt}
 
-The equation describes how the water level in the tank changes according to time, the inflow, and the state of the valve (open/closed).
+A complex CPS/scenario (defined in \cref{def:cosim_scenario}) is in Maude defined a collection of SUs composed using a set of connections/couplings.
 
-The SUs represent subsystems composed in a co-simulation scenario to represent a complex CPS.
-The scenario (defined in \cref{def:cosim_scenario}) is in Maude simply a collection of SUs that are connected using a set of connections.
-The reactivity and feedthrough are, as earlier described, placed directly on the ports.
-We instantiate a scenario using the \emph{setup} equation that generates a \emph{GlobalState} that is defined as a scenario and orchestrator.
+A simulation is instantiated using the equational rewrite rule \emph{setup}.
+It constructs a \emph{GlobalState}; defined as a scenario and an orchestrator.
+
 \begin{alltt}
   \small
   op setup : -> GlobalState .
@@ -83,19 +84,20 @@ We instantiate a scenario using the \emph{setup} equation that generates a \emph
     \(\land\) CONF := calculateSNSet(MODEL OData(1,LOOPS, NeSUIDs)) .
 \end{alltt}
 
-The operator \emph{setup} validates the scenario by checking the connections and other common mistakes.
+The rewrite rule validates the scenario by checking the connections and other common mistakes.
 Furthermore, it checks if the scenario is complex or not.
 It does so by looking for algebraic loops and checking if step negotiation should be applied.
 Algebraic loops are detected as non-trivial strongly connected components in the graph constructed by the rules described in \cite{Gomes2019c}. 
-Once a scenario is constructed, it is ready to be simulated by the orchestrator, which we will describe next. 
+
+We can, from a scenario, synthesize its orchestration algorithms and simulate it in Maude.
+The orchestrator responsible for the synthesizing and simulation is described in the following section.  
 
 \subsection{Orchestrator}
-The orchestrator is responsible for simulating the scenario.
-It does so by exchanging value and progressing all of the SUs.
+The orchestrator simulates the scenario by exchanging values between couplings and calculating new states for each of the SUs.
 
-To do this, it keeps track of the state of the scenario, the orchestration algorithm, and the simulation data that enables it to negotiate the step duration and exchange value between the SUs.
+To do this, it keeps track of the co-simulation state, the orchestration algorithm, and some extra data that enables step negotiation and exchange value between the SUs.
 
-The orchestrator is consequently divided into several classes to cover all of this.
+The orchestrator is divided into three different classes:
 \begin{compactitem}
   \item Simulation Data - Data used during the simulation the step duration, data to exchange, etc.
   \item Algorithm Data - The orchestration algorithm is divided into three subsequent parts. 
@@ -103,19 +105,18 @@ The orchestrator is consequently divided into several classes to cover all of th
 \end{compactitem}
 
 The orchestrator has two different functionalities.
-The first is to synthesize implementation-aware orchestration algorithms tailored to the specific scenario.
+The first is to synthesize tailored orchestration algorithms tailored to the specific scenario.
 The second is the execution of the orchestration algorithm. 
 
-\subsubsection{Synthesize Algorithms}
-Algorithms are represented as a list of the actions described in \cref{def:fmu}.
-The framework synthesizes orchestration algorithms of a scenario by rewriting it while keeping track of the performed rewritings.
-This way, we can synthesize correct-by-construction algorithms.
+\subsection{Synthesizing Orchestration Algorithms}
+Orchestration algorithms are in Maude represented as a list of the actions described in \cref{def:fmu}.
+The framework synthesizes orchestration algorithms of a scenario by rewriting the co-simulation state while it keeps track of the performed rewriting rules.
+%This way, we can synthesize correct-by-construction/tailored algorithms.
 
 Based on \cref{def:getout,def:setin,def:step}, we have defined the different SU actions as conditional rewrite rules.
+These rewrite rules are only enabled if the co-simulation state satisfies the respective precondition.
 
-The rewrite rules of an action is only enabled if we preconditions from \cref{def:setin,def:set,def:getout} can be established.
-
-An example of a rewrite rule is the rule below that describes what it means to perform a $\fget{}$ action in the initialization phase of the simulation.
+An example of a rewrite rule is the rule below; the rule describes the semantic of the $\fget{}$ operation in the initialization phase of the simulation.
 
 \begin{alltt}
   \small
@@ -133,26 +134,24 @@ if feedthroughSatisfied(FT, IS, 0)
   \(\land\) EVENT := portEvent: Get SU: SU1 PId: O . 
 \end{alltt}
 
-The above rule is only enabled if the precondition of \cref{def:getout} is satisfied.
-The precondition is not directly specified. 
-Instead, it is represented based on the feedthrough condition and state predicate defined on the lefthand side of the rewriting.
+The rewrite rule is only enabled if the co-simulation state satisfies the precondition $\fpreget{}$.
+The precondition is not directly specified; it is represented by the predicate $\mathit{feedthroughSatisfied}$ and state pattern defined on the left-hand side of the rewriting.
 
-The rewriting takes place at the orchestrator level.
-It means that the rewriting not only changes the state of $SU1$.
-A rewriting also changes the orchestrator's state by logging the chosen rewriting and saving the obtained value.
-The orchestrator saves the value to set it on the connected input later in the simulation.
-Logging the taken rewriting is performed to synthesize the orchestration algorithm. 
+These conditional rewriting rules are defined on the level of the orchestrator.
+It means that the above rule changes the SU's state and changes the orchestrator's state.
+The orchestrator logs the chosen rewriting/action and saves the output's value into a map.
+The saved value can be set on an input later in the simulation; the action is logged as a part of the synthesizing approach. 
 
-Therefore, an orchestration algorithm is synthesized by rewriting the scenario until a final state is reached. 
-This strategy ensures that we only generate an implementation-aware algorithm. 
-The argument is that we only perform valid rewritings.
-This can be seen as a type of forwarding reasoning compared to the weakest precondition presented earlier.
+As a result of this, an orchestration algorithm can be synthesized by rewriting the scenario until a final state is reached. 
 
-The rewriting starts from an initial state satisfying $\fpreCoSimStep$ and uses the rewriting rules to see if it can establish a final state such that the rewritings satisfy \cref{def:correctalgo}.
+The rewriting starts from a consistent initial state and uses the rewriting rules to see if it can establish a consistent final state.
 
-Since we explore all possible valid rewritings of the scenario, we often extract multiple implementation-aware algorithms of the same scenario.
+This strategy ensures that we only generate a tailored algorithm. 
+The argument is that all the rewriting rules are defined using the semantics of \cref{def:setin,def:getout,def:step}; we can therefore be sure that we only perform actions in which preconditions are satisfied.
 
-We synthesize all the algorithms of a given scenario using the following rewrite rule.
+Since we explore all possible valid rewriting of the scenario, we often extract multiple tailored algorithms.
+
+All the algorithms of a given scenario are synthesized using the following rewrite rule.
 \begin{alltt}
   \small
 crl [getAlgortihm]: \{ INIT \} => \{ getOrchestrator(FINALSTATE) \}
@@ -165,190 +164,11 @@ if isInitialState(INIT)
   \(\land\) allSUsinUnloaded(SUIDsNE, FINALSTATE) .
 \end{alltt}
 
-The rule constructs a GlobalState ``CONF'' from the initial state of the Scenario ``INIT''.
-Hereafter, it uses the nested \simon{Is this the correct name} rewriting rule to search for all the final states ``'FINALSTATE' that can be obtained by rewriting the initial state ``CONF'' such that all SUs are correctly simulated and unloaded.
-The rule terminates with a constructed algorithm once all SUs are unloaded.
+The rule constructs a GlobalState ``CONF'' from the initial consistent state of the Scenario ``INIT''.
+Hereafter, it uses the nested rewriting rule $\{CONF\} => \{ FINALSTATE\} $ to search for all the consistent final states ``'FINALSTATE' that can be obtained by rewriting the initial state ``CONF''.
+The rule terminates with a constructed algorithm once all SUs reaches the final state.
 
-The framework can synthesize algorithms for both simple and complex scenarios; however, we cannot go into details here due to space limitations.
+The framework can synthesize algorithms for both simple and complex scenarios; however, due to space limitations, we cannot go into details about the synthesis of complex orchestration algorithms.
 
-Once an algorithm has been synthesized, we can execute it to simulate a scenario.
+Once an algorithm has been synthesized, it can be executed in Maude to simulate a scenario.
 The simulation in Maude can be used to perform different kinds of design space exploration, and more concretely, it can check different properties of the extracted algorithms.
-
-\section{Executing Orchestraiton Algorithms}
-This section describes how we run simulations using the generated algorithms.
-
-An algorithm is executed by systematically interpreting the algorithm by going through it and executing one action at a time using rewriting.
-Below we show the rule describing the $\fget{}$ action.
-\begin{alltt}
-\small
-crl [get] : 
-run: < ALG : AlgoData | CosimStep : ((portEvent: Get SU: SU1 PId: O) ; ALGO) >
-on: CONF
-    < SU1 : SU | outputs : (< O : Output | time : T, 
-value : V, dependsOn : FT > OS), inputs : IS > 
-    ( SU1 ! O ==> SU2 ! INPUT)
-with: < OCH : SimData | values : PV >
-=> 
-run: < ALG : AlgoData | CosimStep : ALGO >
-on: CONF < SU1 : SU | outputs : (< O : Output | status : Def > OS) > 
-            ( SU1 ! O ==> SU2 ! INPUT)
-with: < OCH : SimData | values : insert((SU2 ! INPUT), < T ; V >, PV) > 
-if feedthroughSatisfied(FT, IS, T) .
-\end{alltt}
-
-We use the execution of an algorithm to perform different kids of analysis of both the algorithms and scenario itself.
-
-We start with exploring the different implementation-aware algorithms that can be generated to simulate the same scenario.
-The simulation result should not depend on the algorithm we happen to extract, therefore we would like that all implementation-aware produces the same simulation result.
-We can show this by defining a rule that extracts all algorithms for a scenario and afterwards run a simulation for each of the algorithms starting from the same initial state.
-
-\begin{alltt}
-  \small
-crl [runAlg] : runAnyAlgorithm INIT => run: ORC on: INIT with: SIMDATA
-  if LOOPS := tarjan(INIT)
-  \(\land\) SUIDsNE := getSUIDsOfScenario(INIT)
-  \(\land\) SIMDATA := initialOrchestrationData(1,LOOPS,SUIDsNE)
-  \(\land\) ALGO := initialAlgorithmData(1)
-  \(\land\) CONF := calculateSNSet(INIT ALGO) SIMDATA 
-  \(\land\) {CONF} => { FINALSTATE } 
-  \(\land\) ORC := getOrchestrator(FINALSTATE)
-  \(\land\) allSUsinUnloaded(SUIDsNE, FINALSTATE) .
-\end{alltt}
-
-On top of this we use Maude's search command to check if all the different allowed simulations are confluent such that they result in the same final state.
-
-\begin{lemma}[Deterministic Orchestration Algorithms]
-  All implementation-aware orchestration algorithms of a scenario produce the same co-simulation result.
-\end{lemma}
-
-This property can be verified using the following search command.
-
-\begin{alltt}
-  search (runAnyAlgorithm INIT)  =>! S:SimulationState . 
-\end{alltt}
-The search command uses the rewriting rules to first generate all the different orchestration algorithms for the scenario.
-The constructed algorithms are afterwards is executed.
-
-The property ensures we do not need to care about which implementation-aware algorithm we use since they all lead to the same simulation result.
-However, the different algorithms naturally have different properties; the most interesting is probably the algorithm's execution time. 
-We currently do not have the setup in place to explore this aspect.
-Nevertheless, it could be interesting to explore this in the future.
-
-
-\subsection{Design Space Exploration}
-The Maude framework does also allow two different kinds of design space exploration using the integrated model checker.
-This analysis enable a co-simulation practitioner to see how different model parameters changes the co-simulation result.
-We describe the two independently even though they can be combined.
-We start with describing how one can explore different instrumentations of a scenario.
-Hereafter, we will describe how to explore different parameters for the simulation units.  
-
-\subsubsection{Instrumentation of a Scenario}
-As shown in \cite{Gomes2019,Oakes2021,hansen_verification_2021} contracts on the input ports can be used to achieve more accurate co-simulation results.
-However, it is challenging for co-simulation practitioners to adapt their scenarios, especially because none of the current FMU-exporting tools provide this information on the SUs.
-
-To ease the transition, we use Maude's model checker to explore the consequences of using different instrumentations of a scenario.
-
-To explore different instrumentations of a scenario, we have defined the contract: \textit{noContract}.
-The contract can be used if the user does not know the input contract.
-We consider a scenario where the contract of at least one input is defined to be \textit{noContract} to be uninstrumented.
-
-A scenario can only be simulated if it is instrumented.
-A scenario is instrumented if no input in the scenario has a contract defined to be \textit{noContract}.
-
-
-This allows Maude to play with different instrumentations of the scenario (different version of the function $\allreactivity$) such that for each input with the contract \textit{noContract} Maude tries to perform a simulation where the input is delayed and a simulation where the input is reactive.
-The rewriting rules for this is given below:
-\begin{alltt}
-  \small
-rl [instr-delayed]: 
-findInstr(< SU1 : SU | inputs : (< I : Input | contract : noContract > IS) > C)
-=>
-findInstr(< SU1 : SU | inputs : (< I : Input | contract : delayed > IS) > C) .
-
-rl [instr-reactive]: 
-findInstr(< SU1 : SU | inputs : (< I : Input | contract : noContract > IS) > C)
-=>
-findInstr(< SU1 : SU | inputs : (< I : Input | contract : reactive > IS) > C) .
-
-crl [remove-findInstr]: findInstr(CONF) => CONF 
-  if allConstraintsDefined(CONF) .
-\end{alltt}
-
-The co-simulation practitioner can using the rewriting rule below experiment with different instrumentations of the scenario.
-
-\begin{alltt}
-  \small
-  crl [findInstrumentation]: findContacts(INIT) => CONF
-      if findInstr(INIT) => CONF
-      \(\land\) empty == tarjan(CONF) *** No loops
-      \(\land\) runAnyAlgorithm CONF => run: ORC on: FINAL with: SIMDATA
-      \(\land\) shouldSatisfy(FINAL) .
-  \end{alltt}
-
-The rule generates all the different instrumentations of the scenario that satisfy certain properties.
-It does so by first instrumenting the scenario to generate the instrumented scenario ``CONF''.
-Hereafter it simulates the instrumented scenario ``CONF'' to check the resulting simulation.
-The user can limit the explored instrumentations in desired ways in the above rule we for example specify that we are not interested instrumentations that generates algebraic loops.
-
-Furthermore, the framework allows the co-simulation practitioner to specify concrete constraints on the simulation result result.
-The constraints are above specified using the predicate \emph{shouldSatisfy}.
-
-The different instrumentations are explored using Maude's search command.
-
-\begin{alltt}
-  \small
-  search findContacts(Scenario) =>! C:Configuration .
-\end{alltt}
-  
-This returns all the configurations/instrumentations of the scenarios that satisfy the desired properties defined in the above rule.
-
-\subsubsection{Parameters of the Simulation Units}
-An SU may have different parameters affecting its behavior.
-This means that different parameters might lead to different simulation result.
-Design space exploration is the process of exploring how the different valuations of the parameters affects the co-simulation result.
-Design space exploration can therefore be used to find the optimal valuation of the parameters. 
-
-The Maude framework allows design space exploration by letting the user specify the valuation a parameter as a set of possible valuations inside the \emph{choose}-operator as we shown below.
-\begin{alltt}
-  \small
-< "tank" : SU | parameters : ("flow" |-> choose((< 1 >,< 2 >,< 30 >))) >
-\end{alltt}
-
-The \emph{choose}-operator non-deterministically picks a valuation in the set.
-The framework uses the model checker to try out to run a simulation using all the different combinations of valuations for the desired properties.
-This is done using the following rewriting rule.
-
-\begin{alltt}
-  \small
-  crl [dse] : selectParams(UNITIALIZEDCONF) => CONF 
-  if UNITIALIZEDCONF => CONF
-  \(\land\) runAnyAlgorithm CONF => 
-      run: < ALG : AlgData | Initialization : emptyList, 
-      CosimStep : emptyList, Termination : emptyList > 
-      on: FINALSTATE
-      with: SIMULATIONDATA
-  \(\land\) above10(FINALSTATE) .
-\end{alltt}
-
-The rule finds the valuations of the parameters that result in a simulation satisfying specific user-defined properties.
-In the above rule, the valuation must ensure that the simulation satisfies the predicate \emph{above10}.
-
-The parameters of the scenario can be found using a search command starting from a scenario with multiple valuations.
-\begin{alltt}
-  \small
-  search selectParams(initConfDSE)  =>! C:Configuration .
-\end{alltt}
-
-\subsubsection{Combining Instrumentation and Parameter Search}
-It is possible to combine the two searches to search both for the instrumentation and parameters of the scenario to obtain a given simulation.
-
-This is simply done defining an uninstrumented scenario where some of the parameters can take different valuations.
-
-
-\subsection{Limitation of the approach}
-We have performed the analyses on different scenarios. 
-The state-space explosion is, of course, also applying to our work. 
-However, we have been able to find the correct instrumentation and the contracts on systems with \simon{Create big scenario and test} SUs.
-
-Also, we do not currently support adaptive co-simulations~\cite{Inci2021} where the instrumentation changes during the simulation. 
-However, this is our impression that this feature trivial can be added.

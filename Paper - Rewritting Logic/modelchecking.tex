@@ -17,15 +17,15 @@ class AlgoData | CosimStep : ActionList, Initialization : ActionList,
 Termination : ActionList, endTime : NzNat .
 \end{alltt}
 
-The class \textit{SimData} describes different dynamic data structures that the orchestrator uses to simulate the system. 
-The attribute \textit{values} denotes a map linking a port with a value. 
+The class \texttt{SimData} describes different dynamic data structures that the orchestrator uses to simulate the system. 
+The attribute \texttt{values} denotes a map linking a port with a value. 
 The orchestrator uses the map to track which values it has obtained but not set on an input port. 
-The class \textit{AlgoData} denotes the co-simulation algorithm.
+The class \texttt{AlgoData} denotes the co-simulation algorithm.
 The co-simulation algorithm is divided into three subsequent parts.
-The attribute \textit{Initialization} denotes the initialization procedure that is responsible for making the scenario reading for simulation.
-The attribute \textit{CosimStep} denotes the co-simulation step procedure that the orchestrator applies until it reaches the end time of the simulation denoted by the attribute \textit{endTime}.
-The attribute \textit{Termination} denotes the actions to terminate and unload the SUs.
-The type \textit{ActionList} denotes as a list of SU operations.
+The attribute \texttt{Initialization} denotes the initialization procedure that is responsible for making the scenario reading for simulation.
+The attribute \texttt{CosimStep} denotes the co-simulation step procedure that the orchestrator applies until it reaches the end time of the simulation denoted by the attribute \texttt{endTime}.
+The attribute \texttt{Termination} denotes the actions to terminate and unload the SUs.
+The type \texttt{ActionList} denotes as a list of SU operations.
 
 Our orchestrator in Maude has two objectives.
 \begin{compactenum}
@@ -34,48 +34,45 @@ Our orchestrator in Maude has two objectives.
 \end{compactenum}
 
 \subsection{Synthesizing Co-simulation Algorithms}
-The framework synthesizes co-simulation algorithms of a scenario by rewriting the co-simulation state while it keeps track of the performed rewriting rules.
-%This way, we can synthesize correct-by-construction/tailored algorithms.
+The framework synthesizes co-simulation algorithms of a scenario by rewriting the \texttt{GlobalState} while it tracks the chosen rewritings.
 
-Based on \cref{def:getout,def:setin,def:step}, we have defined the different SU actions as conditional rewrite rules.
-These rewrite rules are only enabled if the co-simulation state satisfies the respective precondition.
+We have defined the different SU actions as rewrite rules.
+These rules are only enabled if the co-simulation state satisfies the precondition of the performed action.
 
-An example of a rewrite rule is the rule below; the rule describes the semantic of the $\fget{}$ operation in the initialization phase of the simulation.
+For example, the rule below describes when \texttt{GlobalState} can be rewritten by the $\fget{}$ operation as a part of the initialization procedure.
 
 \begin{alltt}
   \small
-  crl [get-init] :
-  < SU1 : SU | fmistate : Initialize, inputs : IS, 
-    outputs : (< O : Output | status : Undef, value : V, dependsOn : FT > OS) > 
+crl [get-init] :
+< SU1 : SU | fmistate : Initialize, inputs : IS, 
+  outputs : (< O : Output | status : Undef, value : V, dependsOn : FT > OS) > 
+(SU1 ! O ==> SU2 ! I)
+< OCH : SimData | values : PV > 
+< ALG : AlgoData | Initialization : ALGO >
+=> getAction(< SU1 : SU | >, SU1 ! O)
   (SU1 ! O ==> SU2 ! I)
-  < OCH : SimData | values : PV > 
-  < ALG : AlgoData | Initialization : ALGO >
-  => < SU1 : SU | outputs : (< O : Output | status : Def > OS) > 
-    (SU1 ! O ==> SU2 ! I)
-    < OCH : SimData | values : insert((SU2 ! I), < 0 ; V >, PV) >  
-    < ALG : AlgoData | Initialization : (ALGO ; EVENT) >
+  < OCH : SimData | values : insert((SU2 ! I), < 0 ; V >, PV) >  
+  < ALG : AlgoData | Initialization : (ALGO ; EVENT) >
 if feedthroughSatisfied(FT, IS, 0)
-  \(\land\) EVENT := portEvent: Get SU: SU1 PId: O . 
+\(\land\) EVENT := portEvent: Get SU: SU1 PId: O . 
 \end{alltt}
 
-The rewrite rule is only enabled if the co-simulation state satisfies the precondition $\fpreget{}$.
-The precondition is not directly specified; it is represented by the predicate $\mathit{feedthroughSatisfied}$ and state pattern defined on the left-hand side of the rewriting.
+We can get the value of the output \texttt{O} of SU \texttt{SU1} if the \texttt{GlobalState} satisfies $\fpreget{}$.
+It means that all inputs that feed through \texttt{FT} to the output \texttt{O} are defined, which is checked by equation \texttt{feedthroughSatisfied}.
+The output \texttt{O} should furthermore be \texttt{Undef}.
+The $\fget{}$ operation updates the output \texttt{O} and saves the value \texttt{V} in the map \texttt{values} such that it later can be set on the input \texttt{I} of SU \texttt{SU2} that is coupled to the output \texttt{O} of SU \texttt{SU1}.
+We also save that we did a $\fget{}$ operation on the output  output \texttt{O} of SU \texttt{SU1} in the \texttt{Initialization}.
 
-These conditional rewriting rules are defined on the level of the orchestrator.
-It means that the above rule changes the SU's state and changes the orchestrator's state.
-The orchestrator logs the chosen rewriting/action and saves the output's value into a map.
-The saved value can be set on an input later in the simulation; the action is logged as a part of the synthesizing approach. 
+All the rewrite rules that are part of the co-simulation algorithm synthesizing follow the pattern from the rule above.
+The rewrite the \texttt{GlobalState} while it adds the performed rewriting to the co-simulation algorithm, changes the state of the affected SU, and potentially updates the \texttt{SimData} class.
 
-As a result of this, an orchestration algorithm can be synthesized by rewriting the scenario until a final state is reached. 
+An algorithm is synthesized by starting from a consistent initial state, from where we use the rewrite rules to see if we can establish a consistent final state.
+The strategy ensures that we only generate correct algorithms respecting \cref{def:correctalgo}. 
 
-The rewriting starts from a consistent initial state and uses the rewriting rules to see if it can establish a consistent final state.
+It can ofter be the case that multiple rules are simultaneously enabled, which means that multiple algorithms can be synthesized for the same scenario.
 
-This strategy ensures that we only generate a tailored algorithm. 
-The argument is that all the rewriting rules are defined using the semantics of \cref{def:setin,def:getout,def:step}; we can therefore be sure that we only perform actions in which preconditions are satisfied.
+All the algorithms of a given scenario are synthesized using the following rule:
 
-Since we explore all possible valid rewriting of the scenario, we often extract multiple tailored algorithms.
-
-All the algorithms of a given scenario are synthesized using the following rewrite rule.
 \begin{alltt}
   \small
 crl [getAlgortihm]: \{ INIT \} => \{ getOrchestrator(FINALSTATE) \}
@@ -88,28 +85,34 @@ if isInitialState(INIT)
   \(\land\) allSUsinUnloaded(SUIDsNE, FINALSTATE) .
 \end{alltt}
 
-The rule constructs a GlobalState ``CONF'' from the initial consistent state of the Scenario ``INIT''.
-Hereafter, it uses the nested rewriting rule $\{CONF\} => \{ FINALSTATE\} $ to search for all the consistent final states ``'FINALSTATE' that can be obtained by rewriting the initial state ``CONF''.
-The rule terminates with a constructed algorithm once all SUs reaches the final state.
+The rule first checks if the scenario \texttt{INIT} is in an consistent state using the equational predicate \texttt{isInitialState}.
+After that, we construct a simulation as the GlobalState \texttt{CONF} from the consistent state \texttt{INIT} using the same strategy as defined in section 3.
+It rewrites the GlobalState \texttt{CONF} to \texttt{FINALSTATE} using the nested rewriting rule $\{CONF\} => \{ FINALSTATE\}$.
+The nested rewriting rule searches for all the final states \texttt{FINALSTATE} satisfying the equational predicate \texttt{allSUsinUnloaded}.
+The equation \texttt{allSUsinUnloaded} ensures that all SUs of the scenario has been properly simulated and unloaded.
+The rule uses the equation \emph{getOrchestrator} to obtain the synthesized co-simulation algorithm.
 
-The framework can synthesize algorithms for both simple and complex scenarios; however, due to space limitations, we cannot go into details about the synthesis of complex orchestration algorithms.
+The described strategy can synthesize algorithms for both simple and complex co-simulation scenarios; however, we cannot detail the synthesis of complex co-simulation algorithms due to space limitations.
 
 Once an algorithm has been synthesized, it can be executed in Maude to simulate a scenario.
-The simulation in Maude can be used to perform different kinds of design space exploration, and more concretely, it can check different properties of the extracted algorithms.
 
 \subsection{Executing}
 This section describes how we run simulations using the generated algorithms on the scenario.
 
 The execution of an algorithm rewrites a \emph{SimState}:
-\begin{alltt}
 \small
+\begin{alltt}
 op run:_on:_with:_ : Object Configuration Object -> SimState [ctor]. 
 \end{alltt}
-The first component is the sequentially executed algorithm, the second component is the co-simulation state, and the third component denotes the simulation data.
-The rewrite rule below shows an execution of the $\fget{}$ action.
+\normalsize
+The first component of type \texttt{Object} is the co-simulation algorithm, the second component of type \texttt{Configuration} is the co-simulation scenario, and the third component denotes the simulation data of type \texttt{SimState}.
 
-\begin{alltt}
+A co-simulation algorithm is executed by sequentially performing the actions of the co-simulation algorithm.
+We start by performing all actions in the \texttt{Initialization}, secondly we perform all actions of the \texttt{CoSimStep} before we finally execute all actions of the \texttt{Termination}. 
+
+The rewrite rule below shows an execution of the $\fget{}$ action.
 \small
+\begin{alltt}
 crl [get] : 
 run: < ALG : AlgoData | CosimStep : ((action: Get SU: SU1 PId: O) ; ALGO) >
 on: CONF
@@ -122,17 +125,26 @@ on: CONF getAction(< SU1 : SU | >, SU ! O) ( SU1 ! O ==> SU2 ! INPUT)
 with: < OCH : SimData | values : insert((SU2 ! INPUT), < T ; V >, PV) > 
 if feedthroughSatisfied(FT, IS, T) .
 \end{alltt}
+\normalsize
+The rule performs the first action (\texttt{(action: Get SU: SU1 PId: O)}) of the list \texttt{CosimStep}.
+The action state that we should get the value of output \texttt{O} of SU \texttt{SU1}.
+The rule ensures that all feed-through requirements are satisfied.
+The result of the rule is that the value \texttt{V} is saved in the map \texttt{values}, the output is updated, and that the performed action is removed from the list of actions defined by the \texttt{CoSimStep}.
 
-The simulation in Maude enables different analyses of both the algorithms and the scenario itself.
+The simulation finished when all the actions have been exhausted and no more rewritings can take place.
+
+The execution of an algorithm in Maude enables different kinds of analyses.
 
 \subsection{Analyzing the Algorithm}
-An essential property of all the generated algorithms of the same scenario scenarios is that they result in the same simulation.
-The co-simulation practitioner would be in trouble if the simulation result depended on the algorithm that an arbitrary rewriting of the system produced.
-Therefore we would like to show that all tailored results in the same co-simulation result - a co-simulation practitioner should not be able to detect any difference between the different algorithms.
-We show this by defining a rule that extracts all scenario algorithms and afterwards runs a simulation for each algorithm starting from the same initial state.
+All the generated algorithms of the same scenario must result in the same simulation result; otherwise, the co-simulation practitioner's faith is in the hand of Maude.
+The co-simulation practitioner would be in trouble if the simulation result depended on the algorithm that an arbitrary rewriting of the scenario produced.
 
+To show that this is not the case, we can use Maude's model checker to show that all generated co-simulation algorithms of a scenario result in the same co-simulation result.
+The co-simulation practitioner should not be able to detect any difference between the algorithms.
+
+We show that all algorithms of the scenario leads to the same state using the rule \texttt{runAlg}:
+\small
 \begin{alltt}
-  \small
 crl [runAlg] : runAnyAlgorithm INIT => run: ORC on: INIT with: SIMDATA
   if LOOPS := tarjan(INIT)
   \(\land\) SUIDsNE := getSUIDsOfScenario(INIT)
@@ -143,22 +155,26 @@ crl [runAlg] : runAnyAlgorithm INIT => run: ORC on: INIT with: SIMDATA
   \(\land\) ORC := getOrchestrator(FINALSTATE)
   \(\land\) allSUsinUnloaded(SUIDsNE, FINALSTATE) .
 \end{alltt}
+\normalsize
+The rule first instantiates a scenario from the initial state of the scenario \texttt{INIT} as previously described.
+It uses the nested rewrite rule to rewrite the initial GlobalState \texttt{CONF} to the final GlobalState \texttt{FINALSTATE}, extracts the co-simulation algorithm \texttt{ORC} and runs the simulation on the scenario \texttt{INIT} using the simulation data of the scenario that is generated by the equation \texttt{initialOrchestrationData}.
 
-The rule can be exhaustively checked using Maude's search command.
+Using Maude's search command, we can exhaustively check the rule \texttt{runAlg}:
 
-
-% \begin{lemma}[Deterministic Orchestration Algorithms]
-%   All tailored orchestration algorithms of a scenario produce the same co-simulation result.
-% \end{lemma}
-
+\small
 \begin{alltt}
-  search (runAnyAlgorithm INIT)  =>! S:SimulationState . 
+  search (runAnyAlgorithm SCENARIO)  =>! S:SimulationState . 
 \end{alltt}
+\normalsize
 
-The search exhaustively checks if all the different allowed simulations are confluent such that they result in the same final state.
+The search exhaustively synthesizes all co-simulation algorithms of the scenario \textit{SCENARIO}. Afterward, it rewrites the scenario using the algorithm until it reaches a final state \textit{S} of type \textit{SimulationState} that cannot be rewritten any further.
 
-The property ensures we do not need to care about which tailored algorithm we use since they all lead to the same simulation result.
-However, the different algorithms naturally have different properties; the most interesting is probably the algorithm's execution time. 
-We currently do not have the setup in place to explore this aspect.
-Nevertheless, it could be interesting to explore this in the future.
+We can use the search command above to check that all the different algorithms we can synthesize of a scenario from our semantics of \cref{sc:background} are confluent.
+
+\simon{Should I show an example here?}
+
+If the algorithms are confluent, we do not need to care about which algorithm we use since they all lead to the same simulation result.
+Even though all the algorithms are confluent, they could still possess different properties, such as memory overhead and execution time. 
+The framework does currently not allow us to explore this aspect.
+Nevertheless, we believe that this would be possible in a future version.ssible in a future version.
 

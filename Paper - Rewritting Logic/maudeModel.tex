@@ -1,174 +1,158 @@
-\section{Co-simulation in Maude}
-This section describes the co-simulation framework in Maude.
-The framework is based on the definitions from \cref{sc:background}. 
-Initially, we describe how to model the individual SUs before addressing their composition in a co-simulation scenario. 
-Finally, we describe the orchestrator that synthesizes the orchestration algorithm and runs it.
-Due to space limitations, we cannot describe the entire model here. 
-In some places, we have shortened variable names and removed distracting parts to make the model more understandable.
-Nevertheless, the complete model is available online \footnote{\simon{create link}}.
+\section{Modeling Co-simulation Scenarios in Maude}
+This section describes how we model the individual SUs and their composition in a co-simulation scenario.
 
-\subsection{Simulation Unit}
-The SU represents a subsystem with parameters, ports, a state, and a time:
+Due to space limitations, we cannot describe the entire model. 
+In some places, we have parts of Maude code with ``...'' to hide irrelevant code parts.
+The entire model, including synthesis and execution of co-simulation algorithms described in \cref{sc:synthesize} and the synthesize of instrumentations and parameters in section \cref{sc:DSE} is at is available online \footnote{\simon{create link}} and consist of \simon{find out}.
 
+We formalize the co-simulation in an object-oriented style.
+Where the global state \textit{GlobalState} of the system is denoted by:
+\begin{alltt}
+\small
+op `{_`} : Configuration -> GlobalState .
+\end{alltt}
+
+The \textit{GlobalState} consists of a collection of SUs composed into a scenario and its orchestrator.
+
+
+The formalization is described using a running example of a water tank system.
+The system is a controller-based system that controls the tank's water level with a permanent inflow of water by opening and closing a valve at the bottom of the tank.
+The system can be modeled using two SUs, and the scenario can be described by \cref{fig:simpleexample}. 
+
+\subsection{Simulation Units}
+An SU is modelled as an object instance of the following class.% a subsystem with parameters, ports, a state, and a time:
 \begin{alltt}
   \small
-  class SU |
-    time : Nat, 
-    inputs : Configuration, 
-    outputs : Configuration,
-    canReject : Bool, 
-    fmistate : fmiState,
-    parameters : LocalState,
-    localState : LocalState .
-  \end{alltt}
+class SU |
+time : Nat, inputs : Configuration, outputs : Configuration, canReject : Bool, 
+fmistate : fmiState, parameters : LocalState, localState : LocalState .
+\end{alltt}
 
-The parameters are an extension of \cref{def:fmu}.
-They enable a co-simulation practitioner to perform design space exploration of a system in Maude; this will be described later.
+The attribute \textit{time} denotes the time of the SU.
+\textit{Inputs} and \textit{outputs} denote the SU's input and output ports.
+The attribute \textit{canReject} declares if the SU implement error estimation and therefore is an element of the set $\mayReject$.
+The attribute \textit{fmistate} denotes the simulation mode defined in \cite{FMI2014} of the SU.
+The internal state $\state{}$ of the SU is denote by the attribute \textit{localState} and the attribute \textit{parameters} describes the configurable parts of the SU.
 
-  %The subsystem can be coupled with other subsystems to form a scenario.
-Their respective classes describe the inputs and outputs; the class contains that abstract state of port (time and value).
-The input class also describes the instrumentation, while the output class defines feed-through.
+Input and output ports are instances of the following classes:
+\begin{alltt}
+\small
+class Port | value : FMIValue, time : Nat, status : PortStatus, ``...''. 
+class Input | contract : Contract .
+class Output | dependsOn : OidSet .
+\end{alltt}
 
-The behavior of an SU (the functions described in \cref{def:fmu}) is described using equational rewrite rules.
-The rewrite rules correspond to the semantics of the previous section.
+The attributes \textit{value} and \textit{time} denote time and value of the port described by the functions: $\runstate{\inputs{}}$, $\runstate{\outputs{}}$, and $\runstate{V}$ from \cref{def:runtime_state}.
+The attribute \textit{status} denote if the port has been updated or not at the current timestamp.
+The attribute \textit{contract} of the input class describes the input's instrumentation/contract.
+The attribute \textit{dependsOn} denotes the set of inputs that feed through to the output.
 
-An example of such an equation rewrite rule is the $\fget{}$ operation that updates the state of an output (or in this case a set of output ports):
+The \textit{tank} SU of the water tank example is modelled as:
+\begin{alltt}
+  \small
+< "tank" : SU | parameters : ("flow" |-> < 5 >), localState : ( "waterlevel" |-> < 0 > ) , time : 0, 
+inputs : (< "valveState" : Input | value : < 0 >, time : 0, contract : delayed >), outputs : (< "waterlevel" : Output | value : < 0 >, time : 0, status : Undef, dependsOn : empty >)
+canReject : false >
+\end{alltt}
+
+The \textit{tank} has one delayed input and one output, and the local state says that the tank initially is empty. 
+The parameter \textit{flow} defines how many liters of water that flow into the tank per time instance.
+
+The behavior of an SU (the functions in \cref{def:fmu}) is described using equations.
+For example, the $\fget{}$ operation that updates the state of a set of output ports:
 
 \begin{alltt}
   \small
   op getAction : Object OidSet -> Object .
   eq getAction(< SU1 : SU | >, empty) = < SU1 : SU | > .
   eq getAction(< SU1 : SU | time : T, 
-    outputs : (< O : Output | > OS) >, (O , P)) = 
+                            outputs : (< O : Output | > OS) >, (O , P)) = 
     getAction(< SU1 : SU | outputs : 
     (< O : Output | time : T, status : Def > OS) >, P) .
 \end{alltt}
 
-The precondition ($\fpreget{}$) is omitted from the operation \emph{getAction} since it is included in the functions calling it.
-The functions $\fget{}$ and $\fset{}$ are similar for all SUs described in the framework.
+The operator iterates over a defined set of output ports.
+The \textit{time} and \textit{state} of the output port is update to the time $T$ and the input is marked as defined \textit{Def}.
 
-Nevertheless, one can describe the concrete behavior of an SU by defining a custom version of the $\fdoStep{}$ function.
-Due to the expressiveness of Maude, it is possible to define quite complex behavior, as seen below, where we define how the water level in a water tank changes according to time, the inflow, and the state of the valve (open/closed).
-\simon{Make reference}
-\begin{alltt}
-  \small
-  eq step(< "tank" : SU | time : T, parameters : ("flow" |-> < FLOW >), 
-                      inputs : < "valve" : Input | value : < STATE > >, 
-                      outputs : < "wlevel" : Output | time : T >,
-                      localState : ( "wlevel" |-> < LEVEL > ) >,
-                      STEP) = 
-  if STATE == 1 then 
-      < "tank" : SU | time:(T+STEP), localState : ( "wlevel" |-> < 0 > ),
-      outputs : < "wlevel" : Output | value : < 0 >, 
-      time : (T + STEP), status : Undef > >
-    else 
-      < "tank" : SU | time : (T + STEP), 
-      localState : ( "wlevel" |-> < LEVEL + (STEP * FLOW) > ), 
-      outputs :< "wlevel" : Output|value : < LEVEL + (STEP * FLOW) >, 
-      time : (T + STEP), status : Undef > > 
-  fi .
-\end{alltt}
+%The precondition ($\fpreget{}$) is omitted from the operation \emph{getAction} since it is included in the functions calling it.
+%The functions $\fget{}$ and $\fset{}$ are similar for all SUs described in the framework.
 
-A complex CPS/scenario (defined in \cref{def:cosim_scenario}) is in Maude defined a collection of SUs composed using a set of connections/couplings.
-
-A simulation is instantiated using the equational rewrite rule \emph{setup}.
-It constructs a \emph{GlobalState}; defined as a scenario and an orchestrator.
+One can describe the concrete behavior of an SU by defining its $\fdoStep{}$ function.
+It is possible to define quite complex behaviors, as seen below, where we define how the water level of the tank changes according to step duration \textit{STEP}, the parameter \textit{flow}, and the state (\textit{value}) of the input \textit{valve}.
 
 \begin{alltt}
   \small
-  op setup : -> GlobalState .
-  ceq setup = { CONF }
-    if MODEL := scenario(externalConnection, simulationUnits)
-    \(\land\) LOOPS := tarjan(MODEL)
-    \(\land\) NeSUIDs := getSUIDsOfScenario(MODEL)
-    \(\land\) CONF := calculateSNSet(MODEL OData(1,LOOPS, NeSUIDs)) .
+eq step(< "tank" : SU | time : T, parameters : ("flow" |-> < FLOW >), 
+                    inputs : < "valve" : Input | value : < STATE > >, 
+                    outputs : < "waterlevel" : Output | time : T >,
+                    localState : ( "waterlevel" |-> < LEVEL > ) >,
+                    STEP) = 
+if STATE == 1 then 
+  < "tank" : SU | time:(T + STEP), localState : ( "waterlevel" |-> < 0 > ),
+  outputs : < "waterlevel" : Output | value : < 0 >, 
+  time : (T + STEP), status : Undef > >
+  else 
+  < "tank" : SU | time : (T + STEP), 
+  localState : ( "waterlevel" |-> < LEVEL + (STEP * FLOW) > ), 
+  outputs : < "waterlevel" : Output | value : < LEVEL + (STEP * FLOW) >, 
+  time : (T + STEP), status : Undef > > 
+fi .
 \end{alltt}
 
-The rewrite rule validates the scenario by checking the connections and other common mistakes.
-Furthermore, it checks if the scenario is complex or not.
-It does so by looking for algebraic loops and checking if step negotiation should be applied.
-Algebraic loops are detected as non-trivial strongly connected components in the graph constructed by the rules described in \cite{Gomes2019c}. 
+A scenario is a collection of SUs composed using a set of couplings/connections.
+An connection connects an output with an input:
+\begin{alltt}
+  \small
+op _==>_ : EPortId EPortId -> Connection [ctor] .
+subsort Connection < Configuration .
+\end{alltt}
 
-We can, from a scenario, synthesize its orchestration algorithms and simulate it in Maude.
+The SUs of the water tank example are defined as the following multiset:
+\begin{alltt}
+  \small
+eq simulationUnits = 
+< "tank" : SU | parameters : ("flow" |-> < 100 >),
+ localState : ( "waterlevel" |-> < 0 > ) , time : 0, 
+ inputs : (< "valveState" : Input | value : < 0 >, type : integer, time : 0, contract : delayed, status : Undef  >), 
+ outputs : (< "waterlevel" : Output | value : < 0 >, type : integer, time : 0, status : Undef, dependsOn : empty >), 
+ fmistate : Instantiated, canReject : false >
+
+< "ctrl" : SU | parameters : (("high" |-> < 5 >) , ("low" |-> < 0 >)), 
+localState : ( "valve" |-> < false > ), time : 0, 
+inputs : (< "waterlevel" : Input | value : < 0 >, type : integer, time : 0, contract : reactive, status : Undef  >), 
+outputs : (< "valveState" : Output | value : < 0 >, type : integer, time : 0, status : Undef, dependsOn : empty >), 
+fmistate : Instantiated, canReject : false > .
+\end{alltt}
+
+The couplings of the system are the multiset of connections.
+The couplings of the water tank example is shown below:
+\begin{alltt}
+  \small
+eq externalConnection = ('tank ! 'waterlevel ==> 'ctrl ! 'waterlevel) 
+  ('ctrl ! 'valveState ==> 'tank ! 'valveState)  .
+\end{alltt}
+
+
+A scenario is described as a multiset of SUs and connections linking the ports.
+A simulation is instantiated as a \textit{GlobalState} using the equation:
+\begin{alltt}
+\small
+op setup : -> GlobalState .
+ceq setup = { CONF }
+  if MODEL := scenario(externalConnection, simulationUnits)
+  \(\land\) LOOPS := tarjan(MODEL)
+  \(\land\) NeSUIDs := getSUIDsOfScenario(MODEL)
+  \(\land\) CONF := calculateSNSet(MODEL OData(1,LOOPS, NeSUIDs)) .
+\end{alltt}
+
+The property \textit{simulationUnits} defines the SUs of the scenario as a multiset.
+The couplings are described as a multiset denoted by \textit{externalConnection}.
+The equation \textit{scenario} constructs a scenario and validates that all couplings of the system.
+It ensures that all inputs are coupled and that no input has two sources.
+
+The equation \textit{tarjan} checks for algebraic loops in the scenario by searching for non-trivial strongly connected components in the graph constructed by the rules described in \cite{Gomes2019c}.  
+The equation \textit{getSUIDsOfScenario} gets the set identifiers represented in the scenario.
+The last equation \textit{calculateSNSet} checks if step negotiation should be applied in the simulation of the scenario.
+
+We can, from a scenario, synthesize its co-simulation algorithms and simulate it in Maude.
 The orchestrator responsible for the synthesizing and simulation is described in the following section.  
-
-\subsection{Orchestrator}
-The orchestrator simulates the scenario by exchanging values between couplings and calculating new states for each of the SUs.
-
-To do this, it keeps track of the co-simulation state, the orchestration algorithm, and some extra data that enables step negotiation and exchange value between the SUs.
-
-The orchestrator is divided into three different classes:
-\begin{compactitem}
-  \item Simulation Data - Data used during the simulation the step duration, data to exchange, etc.
-  \item Algorithm Data - The orchestration algorithm is divided into three subsequent parts. 
-  \item Searching Data - Data used to solve algebraic loops and perform step negotiation.
-\end{compactitem}
-
-The orchestrator has two different functionalities.
-The first is to synthesize tailored orchestration algorithms tailored to the specific scenario.
-The second is the execution of the orchestration algorithm. 
-
-\subsection{Synthesizing Orchestration Algorithms}
-Orchestration algorithms are in Maude represented as a list of the actions described in \cref{def:fmu}.
-The framework synthesizes orchestration algorithms of a scenario by rewriting the co-simulation state while it keeps track of the performed rewriting rules.
-%This way, we can synthesize correct-by-construction/tailored algorithms.
-
-Based on \cref{def:getout,def:setin,def:step}, we have defined the different SU actions as conditional rewrite rules.
-These rewrite rules are only enabled if the co-simulation state satisfies the respective precondition.
-
-An example of a rewrite rule is the rule below; the rule describes the semantic of the $\fget{}$ operation in the initialization phase of the simulation.
-
-\begin{alltt}
-  \small
-  crl [get-init] :
-  < SU1 : SU | fmistate : Initialize, inputs : IS, 
-    outputs : (< O : Output | status : Undef, value : V, dependsOn : FT > OS) > 
-  (SU1 ! O ==> SU2 ! I)
-  < OCH : SimData | values : PV > 
-  < ALG : AlgoData | Initialization : ALGO >
-  => < SU1 : SU | outputs : (< O : Output | status : Def > OS) > 
-    (SU1 ! O ==> SU2 ! I)
-    < OCH : SimData | values : insert((SU2 ! I), < 0 ; V >, PV) >  
-    < ALG : AlgoData | Initialization : (ALGO ; EVENT) >
-if feedthroughSatisfied(FT, IS, 0)
-  \(\land\) EVENT := portEvent: Get SU: SU1 PId: O . 
-\end{alltt}
-
-The rewrite rule is only enabled if the co-simulation state satisfies the precondition $\fpreget{}$.
-The precondition is not directly specified; it is represented by the predicate $\mathit{feedthroughSatisfied}$ and state pattern defined on the left-hand side of the rewriting.
-
-These conditional rewriting rules are defined on the level of the orchestrator.
-It means that the above rule changes the SU's state and changes the orchestrator's state.
-The orchestrator logs the chosen rewriting/action and saves the output's value into a map.
-The saved value can be set on an input later in the simulation; the action is logged as a part of the synthesizing approach. 
-
-As a result of this, an orchestration algorithm can be synthesized by rewriting the scenario until a final state is reached. 
-
-The rewriting starts from a consistent initial state and uses the rewriting rules to see if it can establish a consistent final state.
-
-This strategy ensures that we only generate a tailored algorithm. 
-The argument is that all the rewriting rules are defined using the semantics of \cref{def:setin,def:getout,def:step}; we can therefore be sure that we only perform actions in which preconditions are satisfied.
-
-Since we explore all possible valid rewriting of the scenario, we often extract multiple tailored algorithms.
-
-All the algorithms of a given scenario are synthesized using the following rewrite rule.
-\begin{alltt}
-  \small
-crl [getAlgortihm]: \{ INIT \} => \{ getOrchestrator(FINALSTATE) \}
-if isInitialState(INIT)
-  \(\land\) LOOPS := tarjan(INIT)
-  \(\land\) SUIDsNE := getSUIDsOfScenario(INIT)
-  \(\land\) SIMDATA := initialOrchestrationData(1,LOOPS,SUIDsNE)
-  \(\land\) CONF := calculateSNSet(INIT) SIMDATA initialAlgorithmData(1)
-  \(\land\) \{CONF\} => \{ FINALSTATE\} 
-  \(\land\) allSUsinUnloaded(SUIDsNE, FINALSTATE) .
-\end{alltt}
-
-The rule constructs a GlobalState ``CONF'' from the initial consistent state of the Scenario ``INIT''.
-Hereafter, it uses the nested rewriting rule $\{CONF\} => \{ FINALSTATE\} $ to search for all the consistent final states ``'FINALSTATE' that can be obtained by rewriting the initial state ``CONF''.
-The rule terminates with a constructed algorithm once all SUs reaches the final state.
-
-The framework can synthesize algorithms for both simple and complex scenarios; however, due to space limitations, we cannot go into details about the synthesis of complex orchestration algorithms.
-
-Once an algorithm has been synthesized, it can be executed in Maude to simulate a scenario.
-The simulation in Maude can be used to perform different kinds of design space exploration, and more concretely, it can check different properties of the extracted algorithms.

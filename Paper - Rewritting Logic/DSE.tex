@@ -1,0 +1,116 @@
+
+\section{Synthesize of instrumentations and Parameters}\label{sc:DSE}
+Using Maude's integrated LTL model checker, the Maude framework enables different kinds of design space exploration.
+Design space exploration allows the co-simulation practitioner to explore how different model parameters/designs change the behavior of the system/simulation result.
+The framework enables a co-simulation practitioner to experiment with different valuations of the scenario's instrumentation and model parameters.
+We describe the two independently even though they can be combined.
+
+
+\subsection{Instrumentation of a Scenario}
+The instrumentation of the input ports is used to achieve more accurate co-simulation results as shown in \cite{Gomes2019,Oakes2021,hansen_verification_2021}.
+However, finding the instrumentation that results in the most accurate simulation can be challenging since none of the existing tools to export FMUs/SUs provide this information.
+
+To ease the transition, we use Maude's model checker to explore the consequences of using different instrumentations of a scenario.
+
+To explore different instrumentations of a scenario, we define the contract: \emph{noContract}.
+The contract can be used if the user does not know the input's contract.
+A scenario where at least one of the input's contracts are annotated with \emph{noContract} is called \emph{uninstrumented}.
+A scenario is \emph{instrumented} if no input in the scenario has a contract defined to be \emph{noContract}.
+
+A scenario can only be simulated if it is instrumented since the rewrite rules only cover inputs with \emph{delayed} or \emph{reactive} contracts.
+
+This allows Maude to play with different instrumentations of the scenario such that for each input with the contract \textit{noContract} Maude tries to perform a simulation where the input is delayed and a simulation where the input is reactive.
+The rewriting rules for this is given below:
+\begin{alltt}
+  \small
+rl [instr-delayed]: 
+findInstr(< SU1 : SU | inputs : (< I : Input | contract : noContract > IS) > C)
+=>
+findInstr(< SU1 : SU | inputs : (< I : Input | contract : delayed > IS) > C) .
+
+rl [instr-reactive]: 
+findInstr(< SU1 : SU | inputs : (< I : Input | contract : noContract > IS) > C)
+=>
+findInstr(< SU1 : SU | inputs : (< I : Input | contract : reactive > IS) > C) .
+
+crl [remove-findInstr]: findInstr(CONF) => CONF 
+  if allConstraintsDefined(CONF) .
+\end{alltt}
+
+The co-simulation practitioner can use the rewriting rule below to experiment with different instrumentations of the scenario.
+
+\begin{alltt}
+  \small
+  crl [findInstrumentation]: findContacts(INIT) => CONF
+      if findInstr(INIT) => CONF
+      \(\land\) empty == tarjan(CONF) *** No loops
+      \(\land\) runAnyAlgorithm CONF => run: ORC on: FINAL with: SIMDATA
+      \(\land\) shouldSatisfy(FINAL) .
+  \end{alltt}
+
+The rule generates all the different instrumentations of the scenario that satisfy specific properties.
+It does so by first instrumenting the scenario to generate the instrumented scenario ``CONF''.
+Hereafter it simulates the instrumented scenario ``CONF'' to check the resulting simulation.
+The user can limit the explored instrumentations in desired ways by defining specific properties of the instrumentation.
+For example, in the rule above, it is specified that none of the instrumentations must generate a complex scenario with algebraic loops.
+
+The co-simulation practitioner can also specify concrete constraints on the simulation result.
+The constraints are above specified using the predicate \emph{shouldSatisfy}.
+
+The different instrumentations are explored using Maude's search command.
+
+\begin{alltt}
+  \small
+  search findContacts(Scenario) =>! C:Configuration .
+\end{alltt}
+  
+This returns all the configurations/instrumentations of the scenarios that satisfy the desired properties defined in the above rule.
+
+\subsubsection{Parameters of the Simulation Units}
+An SU may have different parameters affecting its behavior; an example is the desired temperature of an incubator.
+This means that different parameters potentially lead to different simulation results.
+Design space exploration explores how different valuations of the parameters affect the co-simulation result to find the optimal design of the system. 
+
+The Maude framework allows design space exploration by letting the user specify the valuation a parameter as a set of possible valuations inside the \emph{choose}-operator as we shown below.
+\begin{alltt}
+  \small
+< "tank" : SU | parameters : ("flow" |-> choose((< 1 >,< 2 >,< 30 >))) >
+\end{alltt}
+
+The \emph{choose}-operator non-deterministically picks an element of the defined set.
+Using the \emph{choose}-operator and the model checker enables one to explore all the combinations of different valuations for the parameters.
+The combinations are explored using the following rewriting rule:
+
+\begin{alltt}
+  \small
+  crl [dse] : selectParams(UNITIALIZEDCONF) => CONF 
+  if UNITIALIZEDCONF => CONF
+  \(\land\) runAnyAlgorithm CONF => 
+      run: < ALG : AlgData | Initialization : emptyList, 
+      CosimStep : emptyList, Termination : emptyList > 
+      on: FINALSTATE
+      with: SIMULATIONDATA
+  \(\land\) above10(FINALSTATE) .
+\end{alltt}
+
+The rule selects a parameter valuation and uses the valuation to perform a simulation.
+After a simulation, we evaluate the design by checking the simulation's final state to ensure it satisfies specific user-defined properties.
+In the above rule, the valuation must ensure that the simulation satisfies the predicate \emph{above10}.
+
+The search of the design space exploration is in Maude performed using the search command starting from a scenario with multiple valuations.
+\begin{alltt}
+  \small
+  search selectParams(ScenarioDSE)  =>! C:Configuration .
+\end{alltt}
+
+\subsubsection{Combining Design Space Exploration of the Instrumentation and Parameters}
+The two searches described above can be combined. A co-simulation practitioner can simultaneously experiment with the instrumentation and the parameters to obtain the most accurate simulation while searching for the optimal system design.
+
+This is concretely done by defining an uninstrumented scenario with changeable parameters.
+% \subsection{Limitation of the approach}
+% We have performed the analyses on different scenarios. 
+% The state-space explosion is, of course, also applying to our work. 
+% However, we have been able to find the correct instrumentation and the contracts on systems with \simon{Create big scenario and test} SUs.
+
+% Also, we do not currently support adaptive co-simulations~\cite{Inci2021} where the instrumentation changes during the simulation. 
+% However, this is our impression that this feature trivial can be added.

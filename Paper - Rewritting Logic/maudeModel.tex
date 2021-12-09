@@ -1,158 +1,229 @@
+
 \section{Modeling Co-simulation Scenarios in Maude}
-This section describes how we model the individual SUs and their composition in a co-simulation scenario.
+\label{sec:model}
 
-Due to space limitations, we cannot describe the entire model. 
-In some places, we have parts of Maude code with ``...'' to hide irrelevant code parts.
-The entire model, including synthesis and execution of co-simulation algorithms described in \cref{sc:synthesize} and the synthesize of instrumentations and parameters in section \cref{sc:DSE} is at is available online \footnote{\simon{create link}} and consist of \simon{find out}.
+This section describes how we model  individual SUs and their
+composition in a co-simulation scenario in Maude.
+%
+Due to space limitations, we only provide fragments of our Maude
+model. 
+The entire model, including the synthesis and execution of co-simulation
+algorithms (\cref{sc:synthesize}) and the synthesis of
+instrumentations and parameters (\cref{sc:DSE})  is
+available at \url{URL-HERE} \simon{create link} and consists of around 
+\simon{find out} LOC. 
 
-We formalize the co-simulation in an object-oriented style.
-Where the global state \textit{GlobalState} of the system is denoted by:
-\begin{alltt}
+We formalize  co-simulation scenarios in an object-oriented style. The
+ state is a term
+ \texttt{\char123}$\mathit{SUs}\;\mathit{connections}\;\mathit{orchObjects}$\texttt{\char125}, 
+ of sort \texttt{GlobalState}, 
+ where $\mathit{SUs}$ is set of objects modeling simulation units,
+$\mathit{connections}$ denote the port couplings, and
+$\mathit{orchObjects}$ are two additional (orchestration) objects used
+during synthesis and execution of co-simulation algorithms (see
+Section~\ref{sec:executing-alg}). 
+
+We illustrate our  framework using a system where a
+\emph{controller} 
+controls the water level of a \emph{water tank} with  constant inflow
+of water,  by opening and closing a valve
+at the bottom of the tank. 
+The system can be modeled using  one SU for the tank and one for
+the controller, and has the architecture shown in
+\cref{fig:simpleexample}.
+
+%\subsection{Simulation Units}
+An simulation unit  is modeled as an object instance of the following
+class: % a
+                                % subsystem with parameters, ports, a
+% state, and a time: 
 \small
-op `{_`} : Configuration -> GlobalState .
-\end{alltt}
-
-The \textit{GlobalState} consists of a collection of SUs composed into a scenario and its orchestrator.
-
-
-The formalization is described using a running example of a water tank system.
-The system is a controller-based system that controls the tank's water level with a permanent inflow of water by opening and closing a valve at the bottom of the tank.
-The system can be modeled using two SUs, and the scenario can be described by \cref{fig:simpleexample}. 
-
-\subsection{Simulation Units}
-An SU is modelled as an object instance of the following class.% a subsystem with parameters, ports, a state, and a time:
 \begin{alltt}
-  \small
-class SU |
-time : Nat, inputs : Configuration, outputs : Configuration, canReject : Bool, 
-fmistate : fmiState, parameters : LocalState, localState : LocalState .
+class SU | time\,\,: Nat,                inputs\,\,: Configuration,
+           outputs\,\,: Configuration,   canReject\,\,: Bool,
+           fmistate\,\,: fmiState,       parameters\,\,: LocalState,
+           localState\,\,: LocalState .
 \end{alltt}
+\normalsize
 
-The attribute \textit{time} denotes the time of the SU.
-\textit{Inputs} and \textit{outputs} denote the SU's input and output ports.
-The attribute \textit{canReject} declares if the SU implement error estimation and therefore is an element of the set $\mayReject$.
-The attribute \textit{fmistate} denotes the simulation mode defined in \cite{FMI2014} of the SU.
-The internal state $\state{}$ of the SU is denote by the attribute \textit{localState} and the attribute \textit{parameters} describes the configurable parts of the SU.
+\noindent The attribute \texttt{time} denotes the time of the SU; 
+\texttt{inputs} and \texttt{outputs} denote the objects modeling the
+SU's input and output 
+ports; \texttt{canReject}  is \texttt{true} if  the SU
+implements error estimation (i.e., is an element of the set
+$\mayReject$);  
+\texttt{fmistate} denotes the \emph{simulation mode}
+(see~\cite{FMI2014}) of the SU; \texttt{localState} denotes the SU's internal
+state; and \texttt{parameters} denotes the values of the SU's
+parameters. 
 
-Input and output ports are instances of the following classes:
-\begin{alltt}
+Input and output ports are modeled as  instances of the following
+classes:
+
 \small
-class Port | value : FMIValue, time : Nat, status : PortStatus, ``...''. 
+\begin{alltt}
+class Port | value\,:\,\,FMIValue, time\,:\,\,Nat, status\,:\,\,PortStatus, type\,:\,\,FMIType\,. 
 class Input | contract : Contract .
-class Output | dependsOn : OidSet .
+class Output | dependsOn : OidSet .     
+subclasses Input Output < Port .
 \end{alltt}
+\normalsize
 
-The attributes \textit{value} and \textit{time} denote time and value of the port described by the functions: $\runstate{\inputs{}}$, $\runstate{\outputs{}}$, and $\runstate{V}$ from \cref{def:runtime_state}.
-The attribute \textit{status} denote if the port has been updated or not at the current timestamp.
-The attribute \textit{contract} of the input class describes the input's instrumentation/contract.
-The attribute \textit{dependsOn} denotes the set of inputs that feed through to the output.
+\noindent The attributes \texttt{value} and \texttt{time} denote, respectively, the
+value of the port and the time of its last set/get operation; 
+\texttt{status} is \texttt{true}  if the port has been
+updated  at the current time;   \texttt{contract} denotes the
+input port's instrumentation/contract (\texttt{delayed} or
+\texttt{reactive}); and 
+\texttt{dependsOn} denotes the set of inputs that feed
+through to the output port. 
 
-The \textit{tank} SU of the water tank example is modelled as:
+\begin{example}
+The initial state of the tank in our  example is modeled as an object
+  
+\scriptsize
 \begin{alltt}
-  \small
-< "tank" : SU | parameters : ("flow" |-> < 5 >), localState : ( "waterlevel" |-> < 0 > ) , time : 0, 
-inputs : (< "valveState" : Input | value : < 0 >, time : 0, contract : delayed >), outputs : (< "waterlevel" : Output | value : < 0 >, time : 0, status : Undef, dependsOn : empty >)
-canReject : false >
+< "tank" : SU | parameters : ("flow" |-> <\,5\,>),  localState : ("waterlevel" |-> <\,0\,>),
+                inputs : (< "valveState" : Input | value\,\,:\,\,<\,0\,>, time\,\,:\,\,0, contract\,\,:\,\,delayed >),
+                outputs : (< "waterlevel" : Output | value : <\,0\,>, time : 0,
+                                                     status : Undef, dependsOn : empty >)
+                time : 0,  canReject : false >
 \end{alltt}
+\normalsize
 
-The \textit{tank} has one delayed input and one output, and the local state says that the tank initially is empty. 
-The parameter \textit{flow} defines how many liters of water that flow into the tank per time instance.
+\noindent The \texttt{tank} has one delayed input port and one output
+port, and the local state indicates that the tank  is empty.  
+The parameter \texttt{flow} defines the amount of  water that  flows
+into the tank per time unit.
+\end{example}
 
-The behavior of an SU (the functions in \cref{def:fmu}) is described using equations.
-For example, the $\fget{}$ operation that updates the state of a set of output ports:
+To formalize the behaviors of an SU we formalize the functions
+\texttt{set}, \texttt{get}, and \texttt{step} in
+\cref{def:fmu}. 
+For example, the $\fget{}$ operation that updates the \texttt{time}
+and \texttt{status}  of a set
+of output ports is formalized as follows:\footnote{We do not show
+  variable declarations, but follow the convention that variables are
+  written with capital letters.} 
 
+\small
 \begin{alltt}
-  \small
   op getAction : Object OidSet -> Object .
   eq getAction(< SU1 : SU | >, empty) = < SU1 : SU | > .
   eq getAction(< SU1 : SU | time : T, 
                             outputs : (< O : Output | > OS) >, (O , P)) = 
-    getAction(< SU1 : SU | outputs : 
-    (< O : Output | time : T, status : Def > OS) >, P) .
+     getAction(< SU1 : SU | outputs : 
+                     (< O : Output | time : T, status : Def > OS) >, P) .
 \end{alltt}
+\normalsize
 
-The operator iterates over a defined set of output ports.
-The \textit{time} and \textit{state} of the output port is update to the time $T$ and the input is marked as defined \textit{Def}.
+% The operator iterates over a defined set of output ports.
+% The \textit{time} and \textit{state} of the output port is update to
+% the time $T$ and the input is marked as defined \textit{Def}. 
 
-%The precondition ($\fpreget{}$) is omitted from the operation \emph{getAction} since it is included in the functions calling it.
-%The functions $\fget{}$ and $\fset{}$ are similar for all SUs described in the framework.
+%The precondition ($\fpreget{}$) is omitted from the operation
+%\emph{getAction} since it is included in the functions calling it. 
+%The functions $\fget{}$ and $\fset{}$ are similar for all SUs
+%described in the framework. 
 
-One can describe the concrete behavior of an SU by defining its $\fdoStep{}$ function.
-It is possible to define quite complex behaviors, as seen below, where we define how the water level of the tank changes according to step duration \textit{STEP}, the parameter \textit{flow}, and the state (\textit{value}) of the input \textit{valve}.
+The concrete behavior of an SU is given by defining its $\fdoStep{}$
+function:
 
+\begin{example}
+The following definition of the \texttt{step} function in our running
+example says that  the water level of the tank changes according to
+step \emph{duration} \texttt{STEP}, the parameter \texttt{flow}, and the
+state (\texttt{value}) of the input \texttt{valve}:
+
+\scriptsize
 \begin{alltt}
-  \small
-eq step(< "tank" : SU | time : T, parameters : ("flow" |-> < FLOW >), 
-                    inputs : < "valve" : Input | value : < STATE > >, 
-                    outputs : < "waterlevel" : Output | time : T >,
-                    localState : ( "waterlevel" |-> < LEVEL > ) >,
-                    STEP) = 
-if STATE == 1 then 
-  < "tank" : SU | time:(T + STEP), localState : ( "waterlevel" |-> < 0 > ),
-  outputs : < "waterlevel" : Output | value : < 0 >, 
-  time : (T + STEP), status : Undef > >
-  else 
-  < "tank" : SU | time : (T + STEP), 
-  localState : ( "waterlevel" |-> < LEVEL + (STEP * FLOW) > ), 
-  outputs : < "waterlevel" : Output | value : < LEVEL + (STEP * FLOW) >, 
-  time : (T + STEP), status : Undef > > 
-fi .
+eq step(< "tank" : SU | time : T, parameters : ("flow" |-> <\,FLOW\,>), 
+                        inputs : < "valve" : Input | value : <\,STATE\,> >, 
+                        outputs : < "waterlevel" : Output | time : T >,
+                        localState : ("waterlevel" |-> <\,LEVEL\,>) >,
+        STEP) = 
+  if STATE == 1 then    \emph{--- valve is open}
+    < "tank" : SU | time : (T\,+\,STEP), localState : ("waterlevel" |-> <\,0\,>),
+          outputs : < "waterlevel" : Output | value\,\,:\,\,<\,0\,>, time\,\,:\,\,(T\,+\,STEP), status\,\,:\,\,Undef > >
+  else                  \emph{--- valve is closed}
+    < "tank" : SU | time : (T\,+\,STEP),  localState : ("waterlevel" |-> <\,LEVEL\,+\,(STEP\,*\,FLOW)\,>), 
+                    outputs : < "waterlevel" : Output | value : < LEVEL + (STEP * FLOW) >, 
+                                                        time : (T + STEP), status : Undef > > 
+  fi .
 \end{alltt}
+\normalsize
+\end{example}
 
-A scenario is a collection of SUs composed using a set of couplings/connections.
-An connection connects an output with an input:
-\begin{alltt}
-  \small
-op _==>_ : EPortId EPortId -> Connection [ctor] .
-subsort Connection < Configuration .
-\end{alltt}
+%A scenario is a collection of SUs composed using a set of couplings/connections.
+A connection/coupling connecting the output port $o$ of SU $\mathit{su}_1$ to
+the input port $i$ of SU $\mathit{su}_2$ is represented by the term
+\texttt{'}$\mathit{su}_1\,\,$\texttt{!} \texttt{'}$o$ \texttt{==>}
+\texttt{'}$\mathit{su}_2\,\,$\texttt{!} \texttt{'}$i$ of a subsort
+\texttt{Connection} of sort \texttt{Configuration}.  \peter{why not
+  use the object names are they are???}
 
-The SUs of the water tank example are defined as the following multiset:
+
+% ports connects an output with an input:
+% \begin{alltt}
+%   \small
+% op _==>_ : EPortId EPortId -> Connection [ctor] .
+% subsort Connection < Configuration .
+% \end{alltt}
+
+We define scenarios by defining   constants \texttt{simulationUnits}
+and \texttt{externalConnection} that denote, resp.,  the
+simulation unit objects and  their connections. 
+
+\begin{example}
+The SUs and the couplings in our  example are defined as
+follows:
+
+\scriptsize
 \begin{alltt}
-  \small
 eq simulationUnits = 
-< "tank" : SU | parameters : ("flow" |-> < 100 >),
- localState : ( "waterlevel" |-> < 0 > ) , time : 0, 
- inputs : (< "valveState" : Input | value : < 0 >, type : integer, time : 0, contract : delayed, status : Undef  >), 
- outputs : (< "waterlevel" : Output | value : < 0 >, type : integer, time : 0, status : Undef, dependsOn : empty >), 
- fmistate : Instantiated, canReject : false >
+   < "tank" : SU | parameters : ("flow" |-> <\,100\,>),  localState : ("waterlevel" |-> <\,0\,>),
+                   time : 0,  fmistate : Instantiated, canReject : false, 
+                   inputs : (< "valveState" : Input | value : <\,0\,>, type : integer, time : 0,
+                                                      contract : delayed, status : Undef >), 
+                   outputs : (< "waterlevel" : Output | value : <\,0\,>, type : integer, time : 0,
+                                                        status : Undef, dependsOn : empty >) >
 
-< "ctrl" : SU | parameters : (("high" |-> < 5 >) , ("low" |-> < 0 >)), 
-localState : ( "valve" |-> < false > ), time : 0, 
-inputs : (< "waterlevel" : Input | value : < 0 >, type : integer, time : 0, contract : reactive, status : Undef  >), 
-outputs : (< "valveState" : Output | value : < 0 >, type : integer, time : 0, status : Undef, dependsOn : empty >), 
-fmistate : Instantiated, canReject : false > .
-\end{alltt}
+   < "ctrl" : SU | parameters : (("high" |-> <\,5\,>) , ("low" |-> <\,0\,>)), canReject : false, 
+                   localState : ("valve" |-> <\,false\,>), fmistate : Instantiated, time : 0, 
+                   inputs : (< "waterlevel" : Input | value : <\,0\,>, type : integer, time : 0,
+                                                      contract : reactive, status : Undef >), 
+                   outputs : (< "valveState" : Output | value : <\,0\,>, type : integer, time : 0,
+                                                        status : Undef, dependsOn : empty >) > .
 
-The couplings of the system are the multiset of connections.
-The couplings of the water tank example is shown below:
-\begin{alltt}
-  \small
 eq externalConnection = ('tank ! 'waterlevel ==> 'ctrl ! 'waterlevel) 
-  ('ctrl ! 'valveState ==> 'tank ! 'valveState)  .
+                        ('ctrl ! 'valveState ==> 'tank ! 'valveState) .
 \end{alltt}
+\normalsize
+\end{example}
 
+%A scenario is described as a multiset of SUs and connections linking the ports.
+%A simulation is instantiated as a \textit{GlobalState} using the equation:
+The constant \texttt{setup} defines the initial state, and adds
+appropriate initialized orchestration objects to the scenario:
 
-A scenario is described as a multiset of SUs and connections linking the ports.
-A simulation is instantiated as a \textit{GlobalState} using the equation:
-\begin{alltt}
 \small
+\begin{alltt}
 op setup : -> GlobalState .
-ceq setup = { CONF }
-  if MODEL := scenario(externalConnection, simulationUnits)
-  \(\land\) LOOPS := tarjan(MODEL)
-  \(\land\) NeSUIDs := getSUIDsOfScenario(MODEL)
-  \(\land\) CONF := calculateSNSet(MODEL OData(1,LOOPS, NeSUIDs)) .
+ceq setup = \char123INIT\char125
+  if SCENARIO := externalConnection simulationUnits
+  /\char92 validScenario(SCENARIO)
+  /\char92 LOOPS := tarjan(SCENARIO)
+  /\char92 NeSUIDs := getSUIDsOfScenario(SCENARIO)
+  /\char92 INIT := calculateSNSet(SCENARIO OData(1,LOOPS, NeSUIDs)) .
 \end{alltt}
+\normalsize
 
-The property \textit{simulationUnits} defines the SUs of the scenario as a multiset.
-The couplings are described as a multiset denoted by \textit{externalConnection}.
-The equation \textit{scenario} constructs a scenario and validates that all couplings of the system.
-It ensures that all inputs are coupled and that no input has two sources.
-
-The equation \textit{tarjan} checks for algebraic loops in the scenario by searching for non-trivial strongly connected components in the graph constructed by the rules described in \cite{Gomes2019c}.  
-The equation \textit{getSUIDsOfScenario} gets the set identifiers represented in the scenario.
-The last equation \textit{calculateSNSet} checks if step negotiation should be applied in the simulation of the scenario.
-
-We can, from a scenario, synthesize its co-simulation algorithms and simulate it in Maude.
-The orchestrator responsible for the synthesizing and simulation is described in the following section.  
+\noindent The function \texttt{validScenario} checks whether all inputs are coupled and that no input has two sources.   
+The function \texttt{tarjan} returns (a possibly empty) set  of algebraic loops in the scenario by searching for non-trivial strongly connected components in
+the graph constructed using the rules  in \cite{Gomes2019c}.   
+The function \texttt{getSUIDsOfScenario} returns  the set of all SU
+identifiers. Finally, \texttt{calculateSNSet} checks if step negotiation 
+should be applied in the simulation of the scenario, and generates a
+global initial state with orchestration objects that store information
+about the discovered algebraic loops and whether step negotiation is
+needed.

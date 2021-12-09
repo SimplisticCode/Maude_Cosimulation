@@ -2,7 +2,7 @@
 \section{Synthesize of instrumentations and Parameters}\label{sc:DSE}
 Using Maude's integrated LTL model checker, the Maude framework enables different kinds of design space exploration.
 Design space exploration allows the co-simulation practitioner to explore how different model parameters/designs change the behavior of the system/simulation result.
-The framework enables a co-simulation practitioner to experiment with different valuations of the scenario's instrumentation and model parameters.
+The framework enables a co-simulation practitioner to experiment with different valuations of the scenario's instrumentation and parameters of the SUs.
 We describe the two independently even though they can be combined.
 
 
@@ -10,47 +10,50 @@ We describe the two independently even though they can be combined.
 The instrumentation of the input ports is used to achieve more accurate co-simulation results as shown in \cite{Gomes2019,Oakes2021,hansen_verification_2021}.
 However, finding the instrumentation that results in the most accurate simulation can be challenging since none of the existing tools to export FMUs/SUs provide this information.
 
-To ease the transition, we use Maude's model checker to explore the consequences of using different instrumentations of a scenario.
+We show that one can use Maude's model checker to explore the consequences of the different instrumentations of a scenario.
 
-To explore different instrumentations of a scenario, we define the contract: \emph{noContract}.
-The contract can be used if the user does not know the input's contract.
-A scenario where at least one of the input's contracts are annotated with \emph{noContract} is called \emph{uninstrumented}.
-A scenario is \emph{instrumented} if no input in the scenario has a contract defined to be \emph{noContract}.
+To explore the different instrumentations of a scenario, we define the contract of an input \texttt{noContract}, which can be used when the user does not know the input's instrumentation.
+A scenario is \emph{instrumented} if none of the inputs are annotated with the contract \texttt{noContract}, otherwise the scenario is \emph{uninstrumented}.
 
-A scenario can only be simulated if it is instrumented since the rewrite rules only cover inputs with \emph{delayed} or \emph{reactive} contracts.
+The execution of an algorithm described in \cref{sc:synthesize} is only defined for instrumented scenarios.
+% since the rewrite rules only cover inputs with \emph{delayed} or \emph{reactive} contracts.
 
-This allows Maude to play with different instrumentations of the scenario such that for each input with the contract \textit{noContract} Maude tries to perform a simulation where the input is delayed and a simulation where the input is reactive.
-The rewriting rules for this is given below:
+Defining a contract to be \texttt{noContract} means that we can define a rewrite rule that non-deterministically assigns the input port to be either delayed or reactive:
+\scriptsize
 \begin{alltt}
-  \small
 rl [instr-delayed]: 
-findInstr(< SU1 : SU | inputs : (< I : Input | contract : noContract > IS) > C)
-=>
-findInstr(< SU1 : SU | inputs : (< I : Input | contract : delayed > IS) > C) .
+  findInstr(< SU1 : SU | inputs : (< I : Input | contract : noContract > IS) > C)
+  =>
+  findInstr(< SU1 : SU | inputs : (< I : Input | contract : delayed > IS) > C) .
 
 rl [instr-reactive]: 
-findInstr(< SU1 : SU | inputs : (< I : Input | contract : noContract > IS) > C)
-=>
-findInstr(< SU1 : SU | inputs : (< I : Input | contract : reactive > IS) > C) .
+  findInstr(< SU1 : SU | inputs : (< I : Input | contract :   noContract > IS) > C)
+  =>
+  findInstr(< SU1 : SU | inputs : (< I : Input | contract : reactive > IS) > C) .
 
 crl [remove-findInstr]: findInstr(CONF) => CONF 
-  if allConstraintsDefined(CONF) .
+  if scenarioInstrumented(CONF) .
 \end{alltt}
+\normalsize
+The rule applies if the scenario has been wrapped inside the constructor \texttt{findInstr}.
+The rule find an input \texttt{I} of an SU \texttt{SU1} with the contract \texttt{noContract} and makes the input either \texttt{delayed} or \texttt{reactive}.
+Maude keeps instrumenting the scenario until the scenario is instrumented and satisfies the equational predicate \texttt{scenarioInstrumented}, where the rule \texttt{remove-findInstr} .
 
-The co-simulation practitioner can use the rewriting rule below to experiment with different instrumentations of the scenario.
+The different instrumentation of an uninstrumented scenario can be explored using the rule:
 
+\small
 \begin{alltt}
-  \small
-  crl [findInstrumentation]: findContacts(INIT) => CONF
-      if findInstr(INIT) => CONF
-      \(\land\) empty == tarjan(CONF) *** No loops
-      \(\land\) runAnyAlgorithm CONF => run: ORC on: FINAL with: SIMDATA
-      \(\land\) shouldSatisfy(FINAL) .
-  \end{alltt}
-
+crl [findInstrumentation]: findContacts(INIT) => CONF
+    if findInstr(INIT) => CONF
+    \(\land\) empty == tarjan(CONF) *** No loops
+    \(\land\) runAnyAlgorithm CONF => run: ORC on: FINAL with: SIMDATA
+    \(\land\) shouldSatisfy(FINAL) .
+\end{alltt}
+\normalsize
 The rule generates all the different instrumentations of the scenario that satisfy specific properties.
 It does so by first instrumenting the scenario to generate the instrumented scenario ``CONF''.
 Hereafter it simulates the instrumented scenario ``CONF'' to check the resulting simulation.
+
 The user can limit the explored instrumentations in desired ways by defining specific properties of the instrumentation.
 For example, in the rule above, it is specified that none of the instrumentations must generate a complex scenario with algebraic loops.
 

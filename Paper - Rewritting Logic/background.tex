@@ -78,10 +78,10 @@ However, feed-through and instrumentation are extensions of the standard, introd
 
 \begin{figure}[htb]
   \centering
-  \includegraphics[width=0.7\textwidth]{images/simple_example.pdf}
+  \includegraphics[width=0.5\textwidth]{images/simple_example.pdf}
   \caption{A co-simulation scenario with two SUs $a$ and $b$. 
   The dashed arrows denote feed-through connections, the ports are represented as small squares, the instrumentation of an input port is denoted by the letters $r$ (reactive) or $d$ (delayed).
-  The solid arrows $f$ and $g$ are the coupling.}
+  The solid arrows $f$ and $g$ represent couplings.}
   \label{fig:simpleexample}  
 \end{figure}
 
@@ -331,8 +331,25 @@ The following section introduces a particular class of co-simulation scenarios s
 
 \subsection{Complex Scenarios}
 Complex scenarios are subject to algebraic loops~\cite{Kubler2000} or step rejections~\cite{thrane2021}.
+\cref{fig:step_finding_scenario,fig:algebraic_example} shows the two different kinds of complex scenarios.
 A complex scenario is simulated using an iterative orchestration algorithm.
-\simon{Add scenario /figure}
+
+\begin{figure}[htb]
+  \begin{subfigure}{0.48\textwidth}
+    \centering
+    \centering
+    \includegraphics[width=0.9\textwidth]{images/scenario_algebraic.pdf}
+    \caption{A scenario with an algebraic loop.}
+    \label{fig:algebraic_example}
+  \end{subfigure}
+  \begin{subfigure}{.48\textwidth}
+    \centering
+    \includegraphics[width=0.95\textwidth]{images/step_negotiation_scenario.pdf}
+    \caption{A scenario where one of the SUs can reject a step. We denote by the letter \emph{M} in the top right corner of the SU that an SU can reject a step.}
+    \label{fig:step_finding_scenario}
+    \end{subfigure} 
+    \caption{Complex co-simulation scenarios.}
+  \end{figure}
 
 The algorithm is iterative because the orchestrator needs to adapt to the behavior of the SUs to satisfy the constraints associated with each SU, account for possible step rejections, and solve algebraic loops. 
 The orchestrator achieves this by finding a correct valuation of all inputs and outputs in the scenario~\cite{thrane2021}.

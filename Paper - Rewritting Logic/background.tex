@@ -241,7 +241,7 @@ We base our semantics on \cite{Gomes2019a,hansen_verification_2021} to which we 
 \end{definition}
 
 \begin{definition}[Set Action]\label{def:setin}
-  Setting a value $\tuple{t_{v}, x}$ on the input port $\inputvar{}$ of an SU using $\fset{}(\stateafter{}{t}, \inputvar{}, \tuple{t_{v}, x})$ transforms the abstract state of the SU according to:
+  Setting a value $\tuple{t_{v}, x}$ on the input port $\inputvar{}$ of an SU using $\fset{}(\stateafter{}{t}, \inputvar{}, \tuple{t_{v}, x})$ updates the time and value of the input port $\inputvar{}$ such that it matches $\tuple{t_{v}, x}$, formally:
   \begin{align*}
     \runstate{} 
     \xrightarrow[\text{}]{\fset{}(\stateafter{}{t}, \inputvar{}, \tuple{t_{v}, x})} 
@@ -260,10 +260,9 @@ We base our semantics on \cite{Gomes2019a,hansen_verification_2021} to which we 
       ((\allreactivity(\inputvar{c}) \land \runstate{\inputs{}}(\inputvar{}) = t) 
       \lor (\neg\allreactivity(\inputvar{c}) \land \runstate{\inputs{}}(\inputvar{}) < t))
     \end{align*}
-    The precondition says that the input must not have been assigned a new value since the SU was stepped.
+    The precondition says that the input must not have been assigned a new value since the SU was stepped, formally $\runstate{\inputs{}}(\inputvar{}) < t_{v}$.
     Furthermore, it requires that the value $\tuple{t_{v},x}$ respects the instrumentation of the input.
-    The postcondition (defined below) ensures the value of the input $\inputvar{}$ is updated. 
-    In addition, the timestamp of the input is updated.
+    The postcondition (below) ensures the value and time of the input $\inputvar{}$ is updated so it matches the value assigned on the input. 
     \begin{align*}
       &\fpostset{}(\inputvar{}, \tuple{t_{v},x}, \tuple{t,\runstate{\inputs{}}, \runstate{\outputs{}}, \runstate{V}}, 
       \tuple{t, \after{\runstate{\inputs{}}} \runstate{\outputs{}}, \after{\runstate{V}}}) \triangleq 
@@ -278,7 +277,7 @@ We base our semantics on \cite{Gomes2019a,hansen_verification_2021} to which we 
   \end{definition}
 
   \begin{definition}[Step Computation]\label{def:step}
-    To step an SU using $\fdoStep{}(\stateafter{}{t}, H)$ changes the abstract state as:
+    To step an SU using $\fdoStep{}(\stateafter{}{t}, H)$ advances the state of the SU by $H$, formally:
     \begin{align*}
       \runstate{} 
       \xrightarrow[\text{}]{\fdoStep{}(\stateafter{}{t}, H)} 

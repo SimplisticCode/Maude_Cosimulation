@@ -82,7 +82,7 @@ eq simulationUnitsNotInstrumented =
 eq simulationUnitsNotInitialized =  
   (< "tank" : SU | path : "", parameters : ("flow" |-> choose((< 1 >,< 2 >,< 30 >))), localState : ( "waterlevel" |-> < 0 > ) , time : 0, inputs : (< "valveState" : Input | value : < 0 >, type : integer, time : 0, contract : delayed, status : Undef  >), outputs : (< "waterlevel" : Output | value : < 0 >, type : integer, time : 0, status : Undef, dependsOn : empty >), fmistate : Instantiated, canReject : false >)
 
-  (< "ctrl" : SU | path : "", parameters : (("high" |-> choose((< 100 >,< 5 >))) , ("low" |-> < 0 >)), localState : ( "valve" |-> < false >), time : 0, inputs : (< "waterlevel" : Input | value : < 0 >, type : integer, time : 0, contract : delayed, status : Undef  >), outputs : (< "valveState" : Output | value : < 0 >, type : integer, time : 0, status : Undef, dependsOn : empty >), fmistate : Instantiated, canReject : false >) .
+  (< "ctrl" : SU | path : "", parameters : (("high" |-> choose((< 20 >))) , ("low" |-> < 0 >)), localState : ( "valve" |-> < false >), time : 0, inputs : (< "waterlevel" : Input | value : < 0 >, type : integer, time : 0, contract : delayed, status : Undef  >), outputs : (< "valveState" : Output | value : < 0 >, type : integer, time : 0, status : Undef, dependsOn : empty >), fmistate : Instantiated, canReject : false >) .
 
 *** COULD be Stream lined
 *** Todo make Dostep for the different SUs

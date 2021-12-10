@@ -326,12 +326,11 @@ On the other hand, \cref{alg:algorithm_2} is not a tailored algorithm since it v
 The $\fdoStep{A}$ operation on line 2 is not enabled  since the precondition $\fpredoStep{A}$ is not respect by the state $\runstate{A} = \tuple{0,\{\inputvar{g} \to 0 \}, \{\outputvar{f} \to 0 \}, \dontcare}$ that does not contain $\{\inputvar{g} \to H \}$.
 Intuitively, we step SU $A$ without having provided it with a value on the reactive input $\inputvar{g}$; this is an apparent violation of $\fpredoStep{A}$.
   
-The following section introduces a particular class of co-simulation scenarios subject to algebraic loops or step rejection.
+The following section introduces complex co-simulation scenarios that are subject to algebraic loops or step rejection.
 
 \subsection{Complex Scenarios}
 Complex scenarios are subject to algebraic loops~\cite{Kubler2000} or step rejections~\cite{thrane2021}.
 \cref{fig:step_finding_scenario,fig:algebraic_example} shows the two different kinds of complex scenarios.
-A complex scenario is simulated using an iterative orchestration algorithm.
 
 \begin{figure}[htb]
   \begin{subfigure}{0.48\textwidth}
@@ -350,6 +349,13 @@ A complex scenario is simulated using an iterative orchestration algorithm.
     \caption{Complex co-simulation scenarios.}
   \end{figure}
 
+An algebraic loop states that the value of a port depends on itself. 
+Real-world examples include the correct initialization of a suspension system of a car~\cite{thranefmi-based2020}.
+Algebraic loops can be detected as a non-trivial strongly connected component of the graph constructed using the rules \cite[Definition 15]{Gomes2019c}.
+
+Step rejections are addressed by step negotiation; they need special attention because they can result in a co-simulation step where the SUs do not move in lockstep.
+
+A complex scenario is simulated using an iterative co-simulation algorithm.
 The algorithm is iterative because the orchestrator needs to adapt to the behavior of the SUs to satisfy the constraints associated with each SU, account for possible step rejections, and solve algebraic loops. 
 The orchestrator achieves this by finding a correct valuation of all inputs and outputs in the scenario~\cite{thrane2021}.
 The valuation defines the step duration and the current attempt to solve the scenario's algebraic loops. 
@@ -362,6 +368,17 @@ The process for finding a correct valuation is due to space limitations not cove
 
 \subsection{Design Space Exploration}
 Design space exploration is a technique for evaluating how different combinations of parameters (designs) affect the system's performance to determine which parameter combinations are ``optimal''~\cite{kang_approach_2011}.
-The process contains two phases a search and a design evaluation.
+The parameters of an SU are constants that configures the SU's behavior, an example is the desired the parameter \texttt{flow} described in \cref{ex:simulationunits}.
+Design space exploration can roughly be divided into two phases a search and a design evaluation.
 The search finds the different combinations of parameters (designs) while the design evaluation evaluates them.
 Design space exploration is often used in the context of co-simulation and digital twins, where it provides a cheap way to explore the consequence of different design decisions~\cite{gamble_design_2014,dse}.
+
+
+\subsection{Problem Statement}
+The two key problems in co-simulation that we addresses in this paper (in addition to the formalization of a co-simulation) are:
+\begin{compactenum}
+  \item Given a scenario $\scenario$ synthesize an implementation-aware co-simulation algorithm $P$ for $\scenario$.
+  That is, find the sequence of SU actions $P$ so that running $P$ on $\scenario$ satisfies \cref{def:correctalgo}.
+  This includes solving possible algebraic loops and performing step negotiation to ensure that all SUs move in lockstep.
+  \item Given a \emph{parametric} or \emph{partially instrumented} scenario $\scenario$, where some SU parameters are unknown and where the instrumentation is incomplete i.e., not all input ports have been declared ether \emph{reactive} or \emph{delayed}, find concrete values for the the parameters, and a concrete instrumentation of the input ports, such that the resulting \emph{instrumented} scenario can be simulated.
+\end{compactenum}

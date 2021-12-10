@@ -10,8 +10,8 @@ model.
 The entire model, including the synthesis and execution of co-simulation
 algorithms (\cref{sc:synthesize}) and the synthesis of
 instrumentations and parameters (\cref{sc:DSE})  is
-available at \url{URL-HERE} \simon{create link} and consists of around 
-\simon{find out} LOC. 
+available at \url{https://github.com/SimplisticCode/Co-simulation_WRLA} and consists of around 
+1400 LOC. 
 
 We formalize  co-simulation scenarios in an object-oriented style. The
  state is a term
@@ -21,11 +21,11 @@ We formalize  co-simulation scenarios in an object-oriented style. The
 $\mathit{connections}$ denote the port couplings, and
 $\mathit{orchObjects}$ are two additional (orchestration) objects used
 during synthesis and execution of co-simulation algorithms (see
-Section~\ref{sec:executing-alg}). 
+\Cref{sc:synthesize}). 
 
 We illustrate our  framework using a system where a
 \emph{controller} 
-controls the water level of a \emph{water tank} with  constant inflow
+controls the water level of a \emph{water tank} with constant inflow
 of water,  by opening and closing a valve
 at the bottom of the tank. 
 The system can be modeled using  one SU for the tank and one for
@@ -92,8 +92,8 @@ The initial state of the tank in our  example is modeled as an object
 \normalsize
 
 \noindent The \texttt{tank} has one delayed input port and one output
-port, and the local state indicates that the tank  is empty.  
-The parameter \texttt{flow} defines the amount of  water that  flows
+port, and the local state indicates that the tank is empty.  
+The parameter \texttt{flow} defines the amount of water that flows
 into the tank per time unit.
 \end{example}
 
@@ -157,10 +157,9 @@ eq step(< "tank" : SU | time : T, parameters : ("flow" |-> <\,FLOW\,>),
 %A scenario is a collection of SUs composed using a set of couplings/connections.
 A connection/coupling connecting the output port $o$ of SU $\mathit{su}_1$ to
 the input port $i$ of SU $\mathit{su}_2$ is represented by the term
-\texttt{'}$\mathit{su}_1\,\,$\texttt{!} \texttt{'}$o$ \texttt{==>}
-\texttt{'}$\mathit{su}_2\,\,$\texttt{!} \texttt{'}$i$ of a subsort
-\texttt{Connection} of sort \texttt{Configuration}.  \peter{why not
-  use the object names are they are???}
+\texttt{"}$\mathit{su}_1$\texttt{"} \texttt{!} \texttt{"}$o$\texttt{"} \texttt{==>}
+\texttt{"}$\mathit{su}_2$\texttt{"} \texttt{!} \texttt{"}$i$\texttt{"} of a subsort
+\texttt{Connection} of sort \texttt{Configuration}.
 
 
 % ports connects an output with an input:

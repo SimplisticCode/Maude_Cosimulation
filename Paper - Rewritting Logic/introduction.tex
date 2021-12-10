@@ -75,45 +75,40 @@
 %   \end{itemize}
 
 % Motivation for co-simulation
-A CPS embodies physical processes controlled by digital devices.
-CPSs are omnipresent and control more and more critical functions in our daily life.
-Such systems are becoming increasingly complex~\cite{4519604}, which leads to the desire for techniques to assist in the development of dependable CPS.
-Traditional modelling and simulation techniques, where a solver algorithm describes a model, are no longer sufficient to cope with the integrated development processes of a heterogeneous system such as a CPS~\cite{FMI2014}.
-A CPS is typically developed in a distributed fashion using different tools and techniques. 
+Cyber-physical systems (CPSs) are omnipresent and a part of the critical infrastructure of the modern society.
+A CPS is a hybrid system that embodies physical processes controlled by digital devices. Examples include everything from an incubator and autonomous vehicle\simon{make}.
+CPSs are due to technical advancements becoming increasingly complex~\cite{4519604}, which leads to the desire for techniques to assist in the development of dependable CPS.
+Traditional modeling and simulation techniques, where a solver algorithm describes a model, are no longer sufficient to cope with the integrated development processes of such systems~\cite{FMI2014}.
+A CPS consists of heterogenous subsystems, which typically are developed by different teams and using different tools and techniques~\cite{Monti_2021}. 
 % Why and what is co-simulation
-Co-simulation allows distributed development and is a promising solution to complex development processes.
-Co-simulation allows iterative integration of constituents to explore the global system behavior without violating the constituents' Intellectual Property. 
+Co-simulation solves the shortcomings of the traditional modeling techniques by letting the user operate in a domain-speciﬁc environment where the subsystems can be integrated to explore the global system behavior without violating the constituents' Intellectual Property\cite{Gomes2018}. 
 Co-simulation is the study of how to coordinate multiple black-box simulation units (SUs) developed using different tools and formalisms.
-An SU represents a sub-system and is responsible for calculating the sub-system's behavioral trace.
-The co-simulation combines all the SU's behavioral traces to produce the global behavior of the system as a discrete trace (see, e.g., \cite{Kubler2000,Gomes2018}).
+An SU represents a subsystem and calculates the subsystem's behavioral trace.
+The co-simulation combines all the SU's behavioral traces to produce the global system behavior as a discrete trace (see, e.g., \cite{Kubler2000}).
 
-The SUs are coupled by an orchestration algorithm that interacts with each SU via its interface.
-An example of such an SU is a Functional Mock-up Unit (FMU) defined by the Functional Mock-up Interface Standard~\cite{FMI2014} (FMI), which inspires the notion of an SU in this paper. FMI is a widely adopted standard used commercially and supported by many tools~\cite{Tools_FMI}.
+Multiple SUs are composed using an orchestration algorithm that interacts with each SU via its interface.
+An example of such an SU is a Functional Mock-up Unit (FMU) defined by the Functional Mock-up Interface Standard~\cite{FMI2014} (FMI), which inspires the notion of an SU in this paper. 
+FMI is a widely adopted standard used commercially and supported by many tools~\cite{Tools_FMI}.
 
 %How to test and verify an OA - need for correct by construction algorithm
-The challenge of co-simulation is ensuring trustworthy simulation results~\cite{Gomes2018}. 
-A trustworthy result requires, among others, an implementation-aware orchestration algorithm~\cite{Gomes2019,Oakes2021,Gomes2018f,Schweizer2015c,hansen_verification_2021}.
-The algorithm must respect the SUs' input approximation functions.
+The overarching challenge of co-simulation is ensuring accurate simulation results due to the many potential error sources of such a simulation~\cite{Gomes2018}.
+The overarching challenge of co-simulation is ensuring accurate simulation results due to the many potential error sources of such a simulation~\cite{Gomes2018}.
+The simulation result depends not only on the SUs but also on the co-simulation algorithm used to run the co-simulation, which is often overlooked~\cite{Gomes2019,Oakes2021,Gomes2018f,Schweizer2015c,hansen_verification_2021}.
+The co-simulation algorithm must specifically tailored to scenario that is respect the SUs' input approximation functions.
 
-Not considering such details can lead to inaccurate co-simulation results.
-The nature of co-simulation allows iterative cooperation. 
-However, it also makes it extremely difficult to debug and find the cause of an inaccurate co-simulation result.
-This problem was partly in \cite{Gomes2019,Oakes2021}.
-They showed how to construct requirements on how the orchestrator can interact with the SUs during a simulation. 
-Respecting the requirements leads to a substantial reduction of the co-simulation error.
+Not considering such details can lead to inaccurate co-simulation results, something that can be extremely difficult to debug and fix in practice.
+The papers \cite{Gomes2019,Oakes2021,thrane2021} describe how to synthesize tailored co-simulation algorithms to substantial reduce the co-simulation error. by using contracts to define the .
 
-An even more challenging class of scenarios to simulate is complex scenarios.
-They are subject to either algebraic loops or step rejections. 
-Complex scenarios are simulated using an iterative algorithm that adapts to the behavior of the SUs~\cite{thrane2021}. 
-This enables the orchestrator to solve the algebraic loop (cyclic dependencies between the SUs) and to ensure that all SUs agree on a step; the latter is called step negotiation. 
-Step negotiation is a technique for simulating scenarios with SUs refusing specific future state evaluations because they implement error estimation.
-Step negotiation minimizes the simulation error while ensuring that the SUs move in lockstep.
+Co-simulation also creates an environment where different system designs can be explored to find the optimal design~\cite{dse,gamble_design_2014}; the process is called design space exploration.
 
-We propose a model checking approach using rewriting logic in Maude that
-allows a co-simulation practitioner to synthesize and verify co-simulation algorithms of simple and complex scenarios.
-Furthermore, the approach enables various analyses such as design space exploration of the orchestration, scenario and co-simulation.
-The design space exploration lets a co-simulation practitioner explore the consequences of changing the contracts and simulation parameters.
-Moreover, the co-simulation practitioner can use their domain knowledge and, in Maude, place constraints on the co-simulation to let Maude find the parameters that lead to simulation with specific desirable properties. 
+We propose an approach/framework in Maude where a co-simulation practitioner can synthesize and execute tailored co-simulation algorithms while exploring different system designs.
+The approach works for both simple and complex scenarios.
+Complex scenarios are subject to algebraic loops denoting cyclic dependencies between the SUs or step rejections, where an  SU refuses specific future state evaluations because it implements error estimation.
+Complex scenarios are, in general, more challenging to simulate since the co-simulation algorithm needs to adapt to the behavior of the SUs~\cite{thrane2021} to solve the algebraic loop and ensure that all SUs move in lockstep; the latter is called step negotiation. 
+
+The approach enables design space exploration of the co-simulation algorithm and the system's design.
+It lets a co-simulation practitioner explore the consequences of changing the contracts and simulation parameters.
+Moreover, the co-simulation practitioner can use their domain knowledge and, in Maude, place constraints on the co-simulation to let Maude find the parameters and contracts that result in a co-simulation with specific desirable properties. 
 
 \textit{Contribution:}
 % \begin{itemize}

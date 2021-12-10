@@ -51,10 +51,10 @@ The orchestrator in Maude has the following two objectives.
   \item Execute the co-simulation algorithm.
 \end{compactenum}
 
-\subsection{Synthesizing Co-simulation Algorithms}
+\subsection{Synthesis of Co-simulation Algorithms}
 The framework synthesizes co-simulation algorithms of a scenario $\scenario$ by rewriting its \texttt{GlobalState} while it tracks the chosen rewritings.
 
-The \texttt{GlobalState} is rewritten by a collection of rewrite rules that defines the different SU actions.
+The \texttt{GlobalState} is rewritten by a collection of conditional rewrite rules that represents the different SU actions.
 A rewrite rule of an action is only enabled if the \texttt{GlobalState} satisfies the precondition of the action.
 
 The rule below describes a rewriting of using $\fget{}$ operation:
@@ -108,19 +108,150 @@ The equation \texttt{allSUsinUnloaded} ensures that all SUs have been properly s
 The equation \emph{getOrchestrator} extracts the synthesized co-simulation algorithm from the final state.
 
 \begin{example}
-  Extracting an algorithm for the scenario described by \cref{ex:simulationunits} yields the algorithm:
-  \small
-  \begin{alltt}
-  crl [getAlgortihm]: \{ INIT \} => \{ getOrchestrator(FINALSTATE) \}
-  if isInitialState(INIT)
-    \(\land\) LOOPS := tarjan(INIT)
-    \(\land\) SUIDsNE := getSUIDsOfScenario(INIT)
-    \(\land\) SIMDATA := initialOrchestrationData(1,LOOPS,SUIDsNE)
-    \(\land\) CONF := calculateSNSet(INIT) SIMDATA initialAlgorithmData(1)
-    \(\land\) \{CONF\} => \{ FINALSTATE\} 
-    \(\land\) allSUsinUnloaded(SUIDsNE, FINALSTATE) .
-  \end{alltt}
-  \normalfont
+  Extracting an algorithm for the scenario described by \cref{ex:simulationunits} yields six different algorithms:
+\small
+\begin{alltt}
+Solution 1
+{< "Algorithm" : AlgorithmData | 
+CosimStep :
+  ((stepEvent: "tank" StepSize: 1);
+  (portEvent: Get SU: "tank" PId: "waterlevel");
+  (portEvent: Set SU: "ctrl" PId: "waterlevel");
+  (stepEvent: "ctrl" StepSize: 1);
+  (portEvent: Get SU: "ctrl" PId: "valveState");
+  portEvent: Set SU: "tank" PId: "valveState"),
+Initialization :
+  ((fmiEvent: CreateExp SUs:("ctrl", "tank"));(
+  fmiEvent: EnterInitialization SUs:("ctrl", "tank"));
+    (portEvent: Get SU: "ctrl" PId: "valveState");
+    (portEvent: Get SU: "tank" PId: "waterlevel");
+    (portEvent: Set SU: "ctrl" PId: "waterlevel");
+    (portEvent: Set SU: "tank" PId: "valveState");
+  fmiEvent: ExitInitialization SUs:("ctrl", "tank")),
+Termination :
+  ((fmiEvent: Terminate SUs:("ctrl", "tank"));
+  (fmiEvent: FreeInstance SUs:("ctrl", "tank"));
+  fmiEvent: Unload SUs:("ctrl", "tank")),
+endTime : 1 >}
+
+Solution 2
+{< "Algorithm" : AlgorithmData | 
+CosimStep :
+  ((stepEvent: "tank" StepSize: 1);
+  (portEvent: Get SU: "tank" PId: "waterlevel");
+  (portEvent: Set SU: "ctrl" PId: "waterlevel");
+  (stepEvent: "ctrl" StepSize: 1);
+  (portEvent: Get SU: "ctrl" PId: "valveState");
+  portEvent: Set SU: "tank" PId: "valveState"),
+Initialization :
+  ((fmiEvent: CreateExp SUs:("ctrl", "tank"));(
+  fmiEvent: EnterInitialization SUs:("ctrl", "tank"));
+    (portEvent: Get SU: "ctrl" PId: "valveState");
+    (portEvent: Get SU: "tank" PId: "waterlevel");
+    (portEvent: Set SU: "tank" PId: "valveState");
+    (portEvent: Set SU: "ctrl" PId: "waterlevel");
+  fmiEvent: ExitInitialization SUs:("ctrl", "tank")),
+Termination :
+  ((fmiEvent: Terminate SUs:("ctrl", "tank"));
+  (fmiEvent: FreeInstance SUs:("ctrl", "tank"));
+  fmiEvent: Unload SUs:("ctrl", "tank")),
+endTime : 1 >}
+
+
+Solution 3
+{< "Algorithm" : AlgorithmData | 
+CosimStep :
+  ((stepEvent: "tank" StepSize: 1);
+  (portEvent: Get SU: "tank" PId: "waterlevel");
+  (portEvent: Set SU: "ctrl" PId: "waterlevel");
+  (stepEvent: "ctrl" StepSize: 1);
+  (portEvent: Get SU: "ctrl" PId: "valveState");
+  portEvent: Set SU: "tank" PId: "valveState"),
+Initialization :
+  ((fmiEvent: CreateExp SUs:("ctrl", "tank"));(
+  fmiEvent: EnterInitialization SUs:("ctrl", "tank"));
+    (portEvent: Get SU: "ctrl" PId: "valveState");
+    (portEvent: Set SU: "tank" PId: "valveState");
+    (portEvent: Get SU: "tank" PId: "waterlevel");
+    (portEvent: Set SU: "ctrl" PId: "waterlevel");
+  fmiEvent: ExitInitialization SUs:("ctrl", "tank")),
+Termination :
+  ((fmiEvent: Terminate SUs:("ctrl", "tank"));
+  (fmiEvent: FreeInstance SUs:("ctrl", "tank"));
+  fmiEvent: Unload SUs:("ctrl", "tank")),
+endTime : 1 >}
+
+Solution 4
+{< "Algorithm" : AlgorithmData | 
+CosimStep :
+  ((stepEvent: "tank" StepSize: 1);
+  (portEvent: Get SU: "tank" PId: "waterlevel");
+  (portEvent: Set SU: "ctrl" PId: "waterlevel");
+  (stepEvent: "ctrl" StepSize: 1);
+  (portEvent: Get SU: "ctrl" PId: "valveState");
+  portEvent: Set SU: "tank" PId: "valveState"),
+Initialization :
+  ((fmiEvent: CreateExp SUs:("ctrl", "tank"));(
+  fmiEvent: EnterInitialization SUs:("ctrl", "tank"));
+    (portEvent: Get SU: "tank" PId: "waterlevel");
+    (portEvent: Get SU: "ctrl" PId: "valveState");
+    (portEvent: Set SU: "ctrl" PId: "waterlevel");
+    (portEvent: Set SU: "tank" PId: "valveState")
+  fmiEvent: ExitInitialization SUs:("ctrl", "tank")),
+Termination :
+  ((fmiEvent: Terminate SUs:("ctrl", "tank"));
+  (fmiEvent: FreeInstance SUs:("ctrl", "tank"));
+  fmiEvent: Unload SUs:("ctrl", "tank")),
+endTime : 1 >}
+
+Solution 5
+{< "Algorithm" : AlgorithmData | 
+CosimStep :
+  ((stepEvent: "tank" StepSize: 1);
+  (portEvent: Get SU: "tank" PId: "waterlevel");
+  (portEvent: Set SU: "ctrl" PId: "waterlevel");
+  (stepEvent: "ctrl" StepSize: 1);
+  (portEvent: Get SU: "ctrl" PId: "valveState");
+  portEvent: Set SU: "tank" PId: "valveState"),
+Initialization :
+  ((fmiEvent: CreateExp SUs:("ctrl", "tank"));(
+  fmiEvent: EnterInitialization SUs:("ctrl", "tank"));
+    (portEvent: Get SU: "tank" PId: "waterlevel");
+    (portEvent: Get SU: "ctrl" PId: "valveState");
+    (portEvent: Set SU: "tank" PId: "valveState");
+    (portEvent: Set SU: "ctrl" PId: "waterlevel");
+  fmiEvent: ExitInitialization SUs:("ctrl", "tank")),
+Termination :
+  ((fmiEvent: Terminate SUs:("ctrl", "tank"));
+  (fmiEvent: FreeInstance SUs:("ctrl", "tank"));
+  fmiEvent: Unload SUs:("ctrl", "tank")),
+endTime : 1 >}
+
+Solution 6
+{< "Algorithm" : AlgorithmData | 
+CosimStep :
+  ((stepEvent: "tank" StepSize: 1);
+  (portEvent: Get SU: "tank" PId: "waterlevel");
+  (portEvent: Set SU: "ctrl" PId: "waterlevel");
+  (stepEvent: "ctrl" StepSize: 1);
+  (portEvent: Get SU: "ctrl" PId: "valveState");
+  portEvent: Set SU: "tank" PId: "valveState"),
+Initialization :
+  ((fmiEvent: CreateExp SUs:("ctrl", "tank"));(
+  fmiEvent: EnterInitialization SUs:("ctrl", "tank"));
+  (portEvent: Get SU: "tank" PId: "waterlevel");
+  (portEvent: Set SU: "ctrl" PId: "waterlevel");
+  (portEvent: Get SU: "ctrl" PId: "valveState");
+  (portEvent: Set SU: "tank" PId: "valveState");
+  fmiEvent: ExitInitialization SUs:("ctrl", "tank")),
+Termination :
+  ((fmiEvent: Terminate SUs:("ctrl", "tank"));
+  (fmiEvent: FreeInstance SUs:("ctrl", "tank"));
+  fmiEvent: Unload SUs:("ctrl", "tank")),
+endTime : 1 >}
+\end{alltt}
+\normalsize
+We can see that all the synthesized algorithms have the same co-simulation step that is similar to \cref{alg:algorithm_3}.
 \end{example}
 
 The rewriting rules support co-simulation algorithms' synthesis for both simple and complex co-simulation scenarios; however, we cannot detail the synthesis of complex co-simulation algorithms due to space limitations.
@@ -129,8 +260,8 @@ Multiple rewrite rules can be simultaneously enabled, which means that multiple 
 
 Once an algorithm has been synthesized, it can be executed in Maude to simulate a scenario.
 
-\subsection{Execution of an algorithm}
-This section describes how we run simulations using the generated algorithms on the scenario.
+\subsection{Execution of Co-Simulation Algorithms}
+This section describes how we run simulations using the generated algorithms on the scenario in Maude.
 
 The execution of an algorithm rewrites a \emph{SimState}:
 \small
@@ -238,9 +369,9 @@ Instead, we can perform the check on case to case basis.
   We can check that all synthesized algorithms of a scenario \texttt{Scenario} are confluent by the following search command:
   \small
   \begin{alltt}
-search (runAnyAlgorithm SCENARIO)  =>! S:SimState . 
+  search (runAnyAlgorithm SCENARIO)  =>! S:SimState . 
   \end{alltt}
-  \normalsize
+\normalsize
 The search exhaustively synthesizes all co-simulation algorithms of the scenario \texttt{SCENARIO}. 
 Afterwards, it rewrites the scenario using the algorithm until it reaches a final state \texttt{S} that cannot be rewritten any further.
 If \texttt{SCENARIO} was the scenario described by \cref{ex:simulationunits} the search would result in an single result similar to the result of \cref{ex:algoexecution}, which means that all algorithms are confluent.
@@ -249,5 +380,5 @@ If \texttt{SCENARIO} was the scenario described by \cref{ex:simulationunits} the
 Confluence of the synthesized co-simulation algorithms is essential; it ensures that all correct algorithms lead to the same simulation result.
 
 Even though two algorithms are confluent, they can still possess different properties, such as memory overhead and execution time. 
-The framework does currently not allow us to explore this aspect.
-Nevertheless, we believe that this would be possible in a future version.
+The framework does currently not allow us to explore this aspect since this relies on concrete SUs of the system.
+Nevertheless, we believe this aspect could be explored in an extension of the tool using Maude's capability to communicate with external objects of a socket connection.

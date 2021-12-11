@@ -1,8 +1,9 @@
 \section{Synthesizing and Executing Co-simulation Algorithms}\label{sc:synthesize}
-This section describes how co-simulation algorithms for a given scenario can be synthesized and when executed in in Maude.
+This section describes how co-simulation algorithms for a given scenario can be synthesized and then executed in in Maude.
 
-\subsection{Orchestrator}
-The orchestrator is responsible for the simulation of a scenario.
+\subsection{The Orchestration of a Co-simulation}
+The orchestration is responsible for orchestrating the behavior of the scenario. 
+%is responsible for the simulation of a scenario.
 The simulation requires a co-simulation algorithm to be synthesized and executed.
 The orchestration of a scenario requires that we keep track of the co-simulation algorithm and additional data about the current execution of the algorithm.
 
@@ -24,7 +25,7 @@ The attributes \texttt{actualStepSize} and \texttt{defaultStepSize} are equal if
 The attributes \texttt{unsolvedSCC} and \texttt{solvedSCC} respectively denote the solved and unsolved algebraic loops.
 The attribute \texttt{guessOn} is the set of ports, which is used to solve algebraic loops using the reduction technique described in \cite{thrane2021}; \texttt{values} is a map linking an input port with a value. 
 The orchestration uses \texttt{values} to track which values it has obtained but not set on an input port. 
-The attribute \texttt{simulationTime} describes the current global time of the simulation, and \texttt{suids} denotes the identifiers of the SUs.
+The attribute \texttt{simulationTime} describes the current time of the simulation, and \texttt{suids} denotes the identifiers of the SUs.
 
 \small
 \begin{alltt}
@@ -58,37 +59,38 @@ We have omitted the actions to handle complex scenarios.
 
 \subsection{Synthesis of Co-simulation Algorithms}
 The framework synthesizes co-simulation algorithms for a scenario $\scenario$ by (1) performing and recording all possible SU actions and (2) when searching for consistent reachable final states.
-Any sequence sequence of SU actions leading to such a state gives us a co-simulation algorithm.
+Any sequence of SU actions leading to such a state gives us a co-simulation algorithm.
 
 A number of rewrite rules model the different SU actions.
-
-For example, the following describes a $\fget{}$ operation:\simon{Align this better}
+For example, the following rewrite rule describes a $\fget{}$ operation:
 \small
 \begin{alltt}
 crl [get-syn] :
-< SU1 : SU | fmistate : Simulation, inputs : IS, 
-             outputs : (< O : Output | time : T, status : Undef, 
-                                       value : V, dependsOn : FT > OS) > 
-(SU1 ! O ==> SU2 ! I)
-< OCH : SimData | values : PV > 
-< ALG : AlgoData | CoSimStep : ALGO >
-=> getAction(< SU1 : SU | >, SU1 ! O)
-   (SU1 ! O ==> SU2 ! I)
-   < OCH : SimData | values : insert((SU2 ! I), < T ; V >, PV) >  
-   < ALG : AlgoData | CoSimStep : (ALGO ; EVENT) >
-if feedthroughSatisfied(FT, IS, T)
-/\char92 EVENT := portEvent: Get SU: SU1 PId: O . 
+    < SU1 : SU | fmistate : Simulation, inputs : IS, 
+                  outputs : (< O : Output | time : T, status : Undef, 
+                                            value : V, dependsOn : FT > OS) > 
+    (SU1 ! O ==> SU2 ! I)
+    < OCH : SimData | values : PV > 
+    < ALG : AlgoData | CoSimStep : ALGO >
+    => 
+    getAction(< SU1 : SU | >, SU1 ! O)
+    (SU1 ! O ==> SU2 ! I)
+    < OCH : SimData | values : insert((SU2 ! I), < T ; V >, PV) >  
+    < ALG : AlgoData | CoSimStep : (ALGO ; EVENT) >
+  if feedthroughSatisfied(FT, IS, T) 
+    /\char92 EVENT := portEvent: Get SU: SU1 PId: O . 
 \end{alltt}
 \normalsize
-A value \texttt{V} can be obtained from the output \texttt{O} of SU \texttt{SU1} if the current state satisfy all the feed-through constraints \texttt{FT} of the output \texttt{O}, which is checked by the function \texttt{feedthroughSatisfied}.
-The rule updates the output \texttt{O} using the operation \texttt{getAction} and inserts the output's value and time \texttt{<T ;V >} in the map \texttt{values}.
+
+A value \texttt{V} can be obtained from the output \texttt{O} of an SU \texttt{SU1} if the current state satisfy all the feed-through constraints \texttt{FT} of the output \texttt{O}, which is checked by the function \texttt{feedthroughSatisfied}.
+The rule updates the output \texttt{O} using the operation \texttt{getAction} and inserts the output's value and time \texttt{< T ; V >} in the map \texttt{values}.
 Finally, it adds the performed action \texttt{portEvent: Get SU: SU1 PId: O} to its record of performed actions \texttt{CoSimStep}.
 
 All such ``synthesis'' rules in our model follow the same pattern.
 They rewrite the scenario while remembering how they did it.
 
 We can synthesize a co-simulation algorithm by starting from a consistent initial state and explore how a consistent final state can be established.
-An algorithm for a given scenario is, therefore, synthesized using the following rule:
+An algorithm for a given scenario is, therefore, synthesized using the following rewrite rule:
 
 \small
 \begin{alltt}
@@ -104,13 +106,13 @@ if isInitialState(INIT)
 \normalsize
 
 The rule \texttt{getAlgorithm} checks if the scenario \texttt{INIT} is in a suitable initial state using the predicate \texttt{isInitialState}.
-Then we construct an initial simulation configuration \texttt{CONF} as in section 3.
-It rewrites the GlobalState \texttt{CONF} to \texttt{FINALSTATE} using the nested rewriting rule 
+Then we construct an initial simulation configuration \texttt{CONF} as in \cref{sec:model}.
+It rewrites the state \texttt{\{CONF\}} to \texttt{\{FINALSTATE\}} using the nested rewriting rule 
 The key condition that does all the work is the rewrite condition \texttt{\{CONF\} => \{FINALSTATE\}}, which searches all states reachable from \texttt{CONF} until it finds one such state \texttt{FINALSTATE} that satisfies the property \texttt{allSUsinUnloaded}, which ensures that all SUs have been properly simulated and unloaded.
 The function \texttt{getOrchestrator} extracts the synthesized co-simulation algorithm from this final state.
 
 \begin{example}
-  Extracting an algorithm for the scenario described by \cref{ex:simulationunits} yields six different algorithms is performed using the search command below:
+  Extracting an algorithm for the scenario described by \cref{ex:simulationunits} yields six different algorithms and is performed using the command:
 
   \small
   \begin{alltt}
@@ -260,54 +262,55 @@ The function \texttt{getOrchestrator} extracts the synthesized co-simulation alg
 % endTime : 1 >}
 % \end{alltt}
 % \normalsize
-We can see that all the synthesized algorithms have the same co-simulation step that is similar to \cref{alg:algorithm_3}.
+%We can see that all the synthesized algorithms have the same co-simulation step that is similar to \cref{alg:algorithm_3}.
 \end{example}
 
-Our framework also supports synthesizing co-simulation algorithms synthesis for complex co-simulation scenarios see online model for details.
+Our framework also supports synthesizing co-simulation algorithms for complex co-simulation scenarios see the online model for details.
 
-Many SU actions can happen at the same time , which means that multiple correct algorithms can be synthesized for the same scenario.
+Many SU actions can happen at the same time, which means that multiple correct algorithms often can be synthesized for the same scenario.
 
 For example, there exists six different algorithms to simulate the water tank example.
 
-\subsection{Execution of Co-Simulation Algorithms}
-This section describes how we run simulations using the generated algorithms on the scenario in Maude.
+\subsection{Executing Co-Simulation Algorithms}
+This section describes how we can execute the generated co-simulation algorithms.
 
-The execution of an algorithm rewrites a \emph{SimState}:
+The state of such an execution is a term: \texttt{run:} \emph{algorithm} \texttt{on:} \emph{scenario} \texttt{with:} \emph{simulationData} with the constructor:
+
 \small
 \begin{alltt}
 op run:_on:_with:_ : Object Configuration Object -> SimState [ctor]. 
 \end{alltt}
 \normalsize
-The first component of type \texttt{Object} is the co-simulation algorithm, the second component of type \texttt{Configuration} is the co-simulation scenario, and the third component denotes the simulation data of type \texttt{SimState}.
 
-A co-simulation algorithm is executed by sequentially performing the actions of the co-simulation algorithm.
-We start by performing all actions in the \texttt{Initialization}, secondly we perform all actions of the \texttt{CoSimStep} before we finally execute all actions of the \texttt{Termination}. 
+A co-simulation algorithm is executed by sequentially performing its actions, by starting with performing all actions in the \texttt{Initialization}, then performing all actions of the \texttt{CosimStep} before executing all the actions of the \texttt{Termination}. 
 
-The rewrite rule below shows an execution of the $\fget{}$ action.
+For example, the following rules shows the execution of the first action \texttt{(action: Get SU: SU1 PId: O)} in the list \texttt{CosimStep}:
+
 \scriptsize
 \begin{alltt}
 crl [get-exec] : 
-  run: < ALG : AlgoData | CosimStep : ((action: Get SU: SU1 PId: O) ; ALGO) >
-  on: CONF
+    run: < ALG : AlgoData | CosimStep : \emph{(action: Get SU: SU1 PId: O)} ; ALGO >
+    on: CONF
       < SU1 : SU | inputs : IS,
-                  outputs : (< O : Output | time : T, value : V, dependsOn : FT > OS) > 
+                   outputs : (< O : Output | time : T, value : V, dependsOn : FT > OS) > 
       ( SU1 ! O ==> SU2 ! INPUT)
-  with: < OCH : SimData | values : PV >
-  => 
-  run: < ALG : AlgoData | CosimStep : ALGO >
-  on: CONF getAction(< SU1 : SU | >, SU1 ! O) ( SU1 ! O ==> SU2 ! INPUT)
-  with: < OCH : SimData | values : insert((SU2 ! INPUT), < T ; V >, PV) > 
-if feedthroughSatisfied(FT, IS, T) .
+    with: < OCH : SimData | values : PV >
+    => 
+    run: < ALG : AlgoData | CosimStep : ALGO >
+    on: CONF getAction(< SU1 : SU | >, SU1 ! O) ( SU1 ! O ==> SU2 ! INPUT)
+    with: < OCH : SimData | values : insert((SU2 ! INPUT), < T ; V >, PV) > 
+ if feedthroughSatisfied(FT, IS, T) .
 \end{alltt}
 \normalsize
-The rule performs the first action (\texttt{(action: Get SU: SU1 PId: O)}) in the list \texttt{CosimStep}.
-The action state that we should get the value of output \texttt{O} of SU \texttt{SU1}.
-The rule ensures that all feed-through requirements are satisfied.
-The result of the rule is that the value \texttt{V} is saved in the map \texttt{values}, the output is updated, and that the performed action is removed from the list of actions defined by the \texttt{CoSimStep}.
+%The rule performs the first action \texttt{(action: Get SU: SU1 PId: O)} .
+%The action state that we should get the value of output \texttt{O} of SU \texttt{SU1}.
+%The rule ensures that all feed-through requirements are satisfied.
+%The result of the rule is that the value \texttt{V} is saved in the map \texttt{values}, the output is updated, and that the performed action is removed from the list of actions defined by the \texttt{CoSimStep}.
 
-The simulation finishes when all the actions have been exhausted, and no more rewritings can occur.
+%The simulation finishes when all the actions have been exhausted, and no more rewritings can occur.
 
-A simulation of a scenario is performed using the rule:
+We can combine algorithm synthesis and execution into the following rewrite rule, so that rewriting the term \texttt{runAnyAlgorithm} \emph{scenario} synthesizes \emph{and} executes a co-simulation algorithm the for co-simulation scenario \emph{scenario}:
+
 \small
 \begin{alltt}
 crl [runAlg] : runAnyAlgorithm INIT => run: ORC on: INIT with: SIMDATA
@@ -321,39 +324,41 @@ crl [runAlg] : runAnyAlgorithm INIT => run: ORC on: INIT with: SIMDATA
   /\char92 allSUsinUnloaded(SUIDsNE, FINALSTATE) .
 \end{alltt}
 \normalsize
-The rule first instantiates a scenario \texttt{CONF} from the initial state of the scenario \texttt{INIT} as previously described.
-The scenario is rewriting using the nested rewrite rule \texttt{\{CONF\} => \{ FINALSTATE \}}. 
-The nested rule rewrites the initial state \texttt{CONF} to the final state \texttt{FINALSTATE}, which satisfies the predicate \texttt{allSUsinUnloaded}.
-The algorithm \texttt{ORC} to reach the final state is extracted using \texttt{getOrchestrator}.
-The scenario is simulated using rewriting of the object \texttt{run: ORC on: INIT with: SIMDATA}.
-The rewriting runs the simulation on the scenario \texttt{INIT} using the simulation data of the scenario that is generated by the equation \texttt{initialOrchestrationData}.
+
+This rule is similar to the rule \texttt{getAlgortihm}, and also extracts the resulting algorithm \texttt{ORC} and simulation data \texttt{SIMDATA}.
 
 \begin{example}\label{ex:algoexecution}
-The scenario described in \cref{ex:simulationunits} (\texttt{SCENARIO} below) can be simulated by rewriting it using the rule \texttt{runAlg}:
+The water tank scenario described in \cref{ex:simulationunits} (\texttt{waterTankScenario} below) can be simulated by rewriting the term:
 \small
 \begin{alltt}
-  frew (runAnyAlgorithm SCENARIO).
+  frew (runAnyAlgorithm waterTankScenario).
 \end{alltt}
 \normalsize
-The rewriting returns the final simulation state:
+The command returns the final simulation state:
+
 \scriptsize
 \begin{alltt}
-run: < "Algorithm" : AlgorithmData | CosimStep : emptyList, Initialization : emptyList,
+run: < "Algorithm" : AlgorithmData | CosimStep : \emph{emptyList}, Initialization : emptyList,
                                      Termination : emptyList, endTime : 1 > 
 on: CONNECTIONS
-    < "ctrl" : SU | canReject : false, fmistate : Unloaded, localState : "valve" |-> < true >,
+    < "ctrl" : SU | canReject : false, fmistate : Unloaded, time : 1,
                     inputs : < "waterlevel" : Input | contract : reactive, status : Def, 
-                                                      time : 1,
-                                  type : integer, value : < 100 > >,
-outputs : < "valveState" : Output | dependsOn : empty, status : Def, time : 1,
-                                    type : integer, value : < 1 > >,
-parameters :("high" |-> < 5 >, "low" |-> < 0 >), time : 1 > 
-< "tank" : SU | canReject : false, fmistate : Unloaded, localState : "waterlevel" |-> < 100 >,
-inputs : < "valveState" : Input | contract : delayed,status : Def,
-                                  time : 1, type : integer, value : < 1 > >,
-outputs : < "waterlevel" : Output | dependsOn : empty, status : Def,time : 1,
-                                    type : integer,value : < 100 > >,
-parameters : "flow" |-> < 100 >,time : 1 > 
+                                                      time : 1, type : integer, 
+                                                      value : < 100 > >,
+                    outputs : < "valveState" : Output | dependsOn : empty, status : Def, 
+                                                        time : 1, type : integer, 
+                                                        value : < 1 > >,
+                    localState : "valve" |-> < true >,    
+                    parameters :"high" |-> < 5 >, "low" |-> < 0 >  > 
+    < "tank" : SU | canReject : false, fmistate : Unloaded, time : 1,
+                    inputs : < "valveState" : Input | contract : delayed, status : Def,
+                                                      time : 1, type : integer, 
+                                                      value : < 1 > >,
+                    outputs : < "waterlevel" : Output | dependsOn : empty, status : Def,
+                                                        time : 1, type : integer, 
+                                                        value : < 100 > >,
+                    localState : \emph{"waterlevel" |-> < 100 >},
+                    parameters : "flow" |-> < 100 > > 
 with: < "Orchestrator" : SimulationData | SNSet : empty,       actualStepSize : 1, 
                                           defaultStepSize : 1, guessOn : empty,
                                           simulationTime : 1,  solvedSCC : empty, 
@@ -361,36 +366,36 @@ with: < "Orchestrator" : SimulationData | SNSet : empty,       actualStepSize : 
                                           suids :("ctrl", "tank") >
 \end{alltt}
 \normalsize
-The connections are conntained in the \texttt{CONNECTIONS}.
+
+The connections of the scenario are contained in the \texttt{CONNECTIONS}.
 \end{example}
 
-The execution of an algorithm in Maude enables different kinds of analyses described in the following sections.
 
 \subsection{Ensuring Confluent Co-simulation Algorithms}
-All the generated algorithms of the same scenario should result in the same simulation result; otherwise, the co-simulation practitioner's faith is in the hand of Maude.
-The co-simulation practitioner would be in trouble if the simulation result depended on the algorithm that an arbitrary rewriting of the scenario produced.
+All valid co-simulation algorithms for the same scenario should result in the same simulation result.
 
-To show that all algorithms lead to the same simulation, we use Maude to show that all generated co-simulation algorithms of a scenario result in the same co-simulation result such that co-simulation cannot detect any difference between the synthesized algorithms.
-We say that a co-simulation practitioner cannot detect any differences between two co-simulations that has the same initial and final state.
-For example, we two algorithms $P_1$ and $P_2$ are indistinguishable if $s \xrightarrow[\text{}]{P_1} s' \land s \xrightarrow[\text{}]{P_2} s'$ or any other words $P_1$ and $P_2$ are confluent.
+We can use Maude to check whether all generated co-simulation algorithms for a given scenario result in the same final state. 
+%such that co-simulation cannot detect any difference between the synthesized algorithms.
+%We say that a co-simulation practitioner cannot detect any differences between two co-simulations that has the same initial and final state.
+%For example, we two algorithms $P_1$ and $P_2$ are indistinguishable if $s \xrightarrow[\text{}]{P_1} s' \land s \xrightarrow[\text{}]{P_2} s'$ or any other words $P_1$ and $P_2$ are confluent.
 
-The can unfortunately not prove in Maude that all the synthesized algorithms of an arbitrary scenario are confluent.
-Instead, we can perform the check on case to case basis.  
+%The can unfortunately not prove in Maude that all the synthesized algorithms of an arbitrary scenario are confluent.
+%Instead, we can perform the check on case to case basis.  
 
-\begin{example}
-  We can check that all synthesized algorithms of a scenario \texttt{Scenario} are confluent by the following search command:
-  \small
-  \begin{alltt}
-  search (runAnyAlgorithm SCENARIO)  =>! S:SimState . 
+We can check that all synthesized algorithms of a given scenario \texttt{scenario} are confluent using the following search command:
+
+\small
+\begin{alltt}
+  search (runAnyAlgorithm \emph{scenario})  =>! S:SimState . 
   \end{alltt}
 \normalsize
-The search exhaustively synthesizes all co-simulation algorithms of the scenario \texttt{SCENARIO}. 
-Afterwards, it rewrites the scenario using the algorithm until it reaches a final state \texttt{S} that cannot be rewritten any further.
-If \texttt{SCENARIO} was the scenario described by \cref{ex:simulationunits} the search would result in an single result similar to the result of \cref{ex:algoexecution}, which means that all algorithms are confluent.
-\end{example}
 
-Confluence of the synthesized co-simulation algorithms is essential; it ensures that all correct algorithms lead to the same simulation result.
+The search command synthesizes and then executes all co-simulation algorithms for the scenario \texttt{scenario}. 
+%Afterwards, it rewrites the scenario using the algorithm until it reaches a final state \texttt{S} that cannot be rewritten any further.
+If the term \texttt{scenario} was the water tank scenario in \cref{ex:simulationunits}, the search results in an single result, which means that all synthesized algorithms give the same result.
 
-Even though two algorithms are confluent, they can still possess different properties, such as memory overhead and execution time. 
-The framework does currently not allow us to explore this aspect since this relies on concrete SUs of the system.
-Nevertheless, we believe this aspect could be explored in an extension of the tool using Maude's capability to communicate with external objects of a socket connection.
+%Confluence of the synthesized co-simulation algorithms is essential; it ensures that all correct algorithms lead to the same simulation result.
+
+Even though two algorithms give the same final result, they can still possess different properties, such as memory overhead and execution time. 
+Our framework currently does not allow us to explore this aspect, since this relies on concrete SUs of the system.
+Nevertheless, we believe that this aspect could be explored in an extension of the tool using Maude's capability to communicate with \emph{external objects} see the Maude manual\simon{Make citation}.

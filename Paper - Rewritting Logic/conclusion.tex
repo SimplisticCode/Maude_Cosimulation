@@ -1,11 +1,13 @@
 \section{Concluding Remarks}\label{sc:summary}
-This work proposed how rewriting logic can describe and synthesize correct-by-construction implementation-aware orchestration algorithms.
+This work proposed how rewriting logic can be used to formalize co-simulation semantics such that correct-by-construction co-simulation algorithms can be synthesized and executed.
 The approach can handle complex co-simulation scenarios subject to algebraic loops and step rejections.
 
-We demonstrated using LTL-model checking that all implementation-aware algorithms of a scenario lead to the same co-simulation result.
-Furthermore, we presented how a co-simulation practitioner can integrate Maude into the development process to check and extract contracts of the SUs.
+We demonstrated using model checking that all implementation-aware algorithms of a scenario result in the same co-simulation result.
+Furthermore, we presented how a co-simulation practitioner can integrate Maude into the development cycle to explore different system designs and find the optimal parameters and instrumentation of the system.
 
-Future work will look at parallel co-simulation in the Maude framework and use Maude to explore and formalize the FMI 3.0 standard.
+A future research agenda could look into how this formalization in Maude could be connected with orchestration engines such that the synthesized algorithms could be executed on real-world simulation units described by the FMI standard.
+Future work also includes formalizing the FMI 3.0 standard, which is still under development.
+We will use our experience from this work to interact with the FMI steering committee and show them how different semantics affect the simulation result.
 
 \paragraph{Acknowledgements}
 We will like to thank Claudio Gomes, Peter Gorm Larsen, Jaco van de Pol, Stefan Hallerstede, and Jose Meseguer for their support and feedback on the work.

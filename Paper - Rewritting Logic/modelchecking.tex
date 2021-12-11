@@ -284,22 +284,23 @@ A co-simulation algorithm is executed by sequentially performing the actions of 
 We start by performing all actions in the \texttt{Initialization}, secondly we perform all actions of the \texttt{CoSimStep} before we finally execute all actions of the \texttt{Termination}. 
 
 The rewrite rule below shows an execution of the $\fget{}$ action.
-\small
+\scriptsize
 \begin{alltt}
-crl [get] : 
-run: < ALG : AlgoData | CosimStep : ((action: Get SU: SU1 PId: O) ; ALGO) >
-on: CONF
-< SU1 : SU | outputs : (< O : Output | time : T, value : V, 
-  dependsOn : FT > OS), inputs : IS > ( SU1 ! O ==> SU2 ! INPUT)
-with: < OCH : SimData | values : PV >
-=> 
-run: < ALG : AlgoData | CosimStep : ALGO >
-on: CONF getAction(< SU1 : SU | >, SU ! O) ( SU1 ! O ==> SU2 ! INPUT)
-with: < OCH : SimData | values : insert((SU2 ! INPUT), < T ; V >, PV) > 
+crl [get-exec] : 
+  run: < ALG : AlgoData | CosimStep : ((action: Get SU: SU1 PId: O) ; ALGO) >
+  on: CONF
+      < SU1 : SU | inputs : IS,
+                  outputs : (< O : Output | time : T, value : V, dependsOn : FT > OS) > 
+      ( SU1 ! O ==> SU2 ! INPUT)
+  with: < OCH : SimData | values : PV >
+  => 
+  run: < ALG : AlgoData | CosimStep : ALGO >
+  on: CONF getAction(< SU1 : SU | >, SU1 ! O) ( SU1 ! O ==> SU2 ! INPUT)
+  with: < OCH : SimData | values : insert((SU2 ! INPUT), < T ; V >, PV) > 
 if feedthroughSatisfied(FT, IS, T) .
 \end{alltt}
 \normalsize
-The rule performs the first action (\texttt{(action: Get SU: SU1 PId: O)}) of the list \texttt{CosimStep}.
+The rule performs the first action (\texttt{(action: Get SU: SU1 PId: O)}) in the list \texttt{CosimStep}.
 The action state that we should get the value of output \texttt{O} of SU \texttt{SU1}.
 The rule ensures that all feed-through requirements are satisfied.
 The result of the rule is that the value \texttt{V} is saved in the map \texttt{values}, the output is updated, and that the performed action is removed from the list of actions defined by the \texttt{CoSimStep}.
@@ -337,12 +338,12 @@ The scenario described in \cref{ex:simulationunits} (\texttt{SCENARIO} below) ca
 The rewriting returns the final simulation state:
 \scriptsize
 \begin{alltt}
-run: < "Algorithm" : AlgorithmData | CosimStep : emptyList,Initialization : emptyList,
-                                     Termination : emptyList,endTime : 1 > 
-on: ("ctrl" ! "valveState" ==> "tank" ! "valveState") 
-    ("tank" ! "waterlevel" ==> "ctrl" ! "waterlevel")
-< "ctrl" : SU | canReject : false, fmistate : Unloaded, localState : "valve" |-> < true >,
-inputs : < "waterlevel" : Input | contract : reactive, status : Def,time : 1,
+run: < "Algorithm" : AlgorithmData | CosimStep : emptyList, Initialization : emptyList,
+                                     Termination : emptyList, endTime : 1 > 
+on: CONNECTIONS
+    < "ctrl" : SU | canReject : false, fmistate : Unloaded, localState : "valve" |-> < true >,
+                    inputs : < "waterlevel" : Input | contract : reactive, status : Def, 
+                                                      time : 1,
                                   type : integer, value : < 100 > >,
 outputs : < "valveState" : Output | dependsOn : empty, status : Def, time : 1,
                                     type : integer, value : < 1 > >,
@@ -353,12 +354,14 @@ inputs : < "valveState" : Input | contract : delayed,status : Def,
 outputs : < "waterlevel" : Output | dependsOn : empty, status : Def,time : 1,
                                     type : integer,value : < 100 > >,
 parameters : "flow" |-> < 100 >,time : 1 > 
-with: < "Orchestrator" : SimulationData | 
-          SNSet : empty, actualStepSize : 1, defaultStepSize : 1, guessOn : empty,
-          simulationTime : 1, solvedSCC : empty, suids :("ctrl", "tank"), 
-          unsolvedSCC : empty, values : empty >
+with: < "Orchestrator" : SimulationData | SNSet : empty,       actualStepSize : 1, 
+                                          defaultStepSize : 1, guessOn : empty,
+                                          simulationTime : 1,  solvedSCC : empty, 
+                                          unsolvedSCC : empty, values : empty,
+                                          suids :("ctrl", "tank") >
 \end{alltt}
 \normalsize
+The connections are conntained in the \texttt{CONNECTIONS}.
 \end{example}
 
 The execution of an algorithm in Maude enables different kinds of analyses described in the following sections.

@@ -86,7 +86,7 @@ We use Maude to find all instrumentations of the partially instrumented scenario
 search findContracts(simulationUnitsNotInstrumented) =>! C:Configuration .
 \end{alltt}
 
-The search return the following three instrumentations:
+The search returns the following three instrumentations (we have moved the irrelevant parts of the result):
 
 \begin{alltt}
 Solution 1
@@ -107,7 +107,6 @@ C:Configuration --> (
 \end{alltt}
 \normalsize
 
-The search command returns a scenario; we have removed everything except the instrumentation of the inputs.
 \end{example}
 
 \subsection{Finding the SU Parameters}

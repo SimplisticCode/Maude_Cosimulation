@@ -1,20 +1,76 @@
 \section{Related Work}\label{sc:related}
-Semantics and verification of co-simulation algorithms have been the topic of multiple papers~\cite{Gomes2019c,Gomes2019a,Broman2013,thrane2021,sampaio_behavioural_2016}. 
-The papers \cite{thrane2021} placed several criteria on the co-simulation algorithm and showed how to synthesize implementation-aware algorithms.
-This paper extends the work by treating design space exploration as an integrated part of synthesizing implementation-aware algorithms. 
-Thule et al. \cite{Thule_2018} studied how to use the co-simulation scenario's characteristics to choose the correct simulation strategy for a given co-simulation algorithm.
-They explore different instrumentations using model checking, but they do not consider complex scenarios or design space exploration.
-Cavalcanti et al. \cite{sampaio_behavioural_2016} claim to provide the first behavioral semantics of FMI. 
-The paper shows how to prove essential properties of orchestration algorithms, like termination and determinism. 
-They also show that the algorithm provided in the FMI standard is not valid. 
 
-Formal methods have previously been used in the area of co-simulation \cite{Amalio2016,sampaio_behavioural_2016,cerone_formalising_2018,hansen_verification_2021}.
-Amálio et al. \cite{Amalio2016} investigate how different formal tools can detect algebraic loops to obtain a deterministic co-simulation result. 
-Zeyda et al. present in \cite{cerone_formalising_2018} a formalization of a co-simulation scenario in Isabelle/UTP, where they prove different properties of the scenario.
-Unlike ours, their approach does not cover complex scenarios or design space exploration.
+A number of papers,
+e.g.~\cite{Gomes2019c,Gomes2019a,Broman2013,thrane2021}, synthesize
+co-simulation algorithms for \emph{fixed} scenarios. In contrast to
+our paper,  this
+body of work does not provide \emph{formal models} of co-simulation,
+and therefore no formal analysis. We exploit Maude's formal analysis
+features to
+synthesize suitable instrumentations and SU parameters, which is not
+addressed by the mentioned related work.  
 
-Design space exploration of SU parameters using co-simulation is described in \cite{dse,gamble_design_2014}.
-These papers use genetics algorithms to find the optimal parameters values.
-However, they do not consider how different instrumentations can affect the different simulation results.
+Design space exploration of SU parameters  is described in \cite{dse,gamble_design_2014}.
+This work uses genetic algorithms to find  optimal parameters values.
+However, it does  not consider how different instrumentations can
+affect the   simulation result.
+
+
+
+% Semantics and verification of co-simulation algorithms have been the
+% topic of multiple
+% papers~\cite{Gomes2019c,Gomes2019a,Broman2013,thrane2021,sampaio_behavioural_2016}.  
+% The papers \cite{thrane2021} placed several criteria on the
+% co-simulation algorithm and showed how to synthesize
+% implementation-aware algorithms. 
+% This paper extends the work by treating design space exploration as an
+% integrated part of synthesizing implementation-aware algorithms.
+
+Formal methods have  been used for  co-simulation, e.g.,~\cite{Thule_2018,Amalio2016,sampaio_behavioural_2016,cerone_formalising_2018,hansen_verification_2021}. 
+%
+Thule et al. \cite{Thule_2018} formalize a given scenario and two
+given co-simulation algorithms for that scenario in {\sc Promela} and
+use the {\sc Spin} model checker to compare the two simulation
+algorithms, e.g., in terms of reachability.  In contrast, we provide a
+general formal framework for co-simulation, synthesize co-simulation
+algorithms for a given scenario, synthesize instrumentations and
+parameter values, and capture a broader class of co-simulation
+scenarios (e.g., including scenarios with algebraic loops and step
+rejection) than those in the case study in~\cite{Thule_2018}. 
+
+
+% Thule et al. \cite{Thule_2018} studied how to use the co-simulation
+% scenario's characteristics to choose the correct simulation strategy
+% for a given co-simulation  algorithm.
+% They explore different instrumentations using model checking, but they do not consider complex scenarios or design space exploration.
+Cavalcanti et al. \cite{sampaio_behavioural_2016} provide the
+first behavioral  semantics of FMI. 
+They show how to prove essential properties of co-simulation algorithms using
+CSP, and also show that the co-simulation algorithm provided in the
+FMI standard is  not consistent. We cover an extension of FMI
+scenarios, and also include feed-through, step rejection, and 
+input port instrumentation. Furthermore, as already mentioned, we
+also synthesize co-simulation algorithms and parameters. 
+
+
+Am\'alio et al. \cite{Amalio2016} show how  formal
+tools can detect  algebraic loops in a scenario. We not only detect
+such loops, but also solve them to synthesize co-simulation
+algorithms.  
+Zeyda et al.~\cite{cerone_formalising_2018}  formalize a co-simulation scenario in Isabelle/UTP, and   prove
+different properties--including behavioral properties--about the
+scenario.
+In contrast, we use automatic model checking  methods to both
+synthesize and analyze co-simulation algorithms, and also cover
+complex scenarios (algebraic loops, step rejection, etc.) not covered
+in~\cite{cerone_formalising_2018}. 
+%Unlike ours, their approach does not cover complex scenarios or
+%design space  %exploration.
+
+% Design space exploration of SU parameters using co-simulation is
+% described in \cite{dse,gamble_design_2014}. 
+% These papers use genetics algorithms to find the optimal parameters values.
+% However, they do not consider how different instrumentations can
+% affect the different simulation results. 
 
 %\simon{Maybe we need something with maude and cyber-physical systems}

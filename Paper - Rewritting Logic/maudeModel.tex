@@ -8,32 +8,32 @@ composition in a co-simulation scenario in Maude.
 Due to space limitations, we only provide fragments of our Maude
 model. 
 The entire model, including the synthesis and execution of co-simulation
-algorithms (\cref{sc:synthesize}) and the synthesis of
-instrumentations and parameters (\cref{sc:DSE})  is
+algorithms (\Cref{sc:synthesize}) and the synthesis of
+instrumentations and parameters (\Cref{sc:DSE})  is
 available at \url{https://github.com/SimplisticCode/Co-simulation_WRLA} and consists of around 
 1400 LOC. 
 
 We formalize  co-simulation scenarios in an object-oriented style. The
  state is a term
- \texttt{\char123}$\mathit{SUs}\;\mathit{connections}\;\mathit{orchObjects}$\texttt{\char125}, 
+ \texttt{\char123}$\mathit{SUs}\;\mathit{connections}\;\mathit{orchObjects}$\texttt{\char125}
  of sort \texttt{GlobalState}, 
  where $\mathit{SUs}$ is set of objects modeling simulation units,
 $\mathit{connections}$ denote the port couplings, and
-$\mathit{orchObjects}$ are two additional (orchestration) objects used
+$\mathit{orchObjects}$ are two additional objects used
 during synthesis and execution of co-simulation algorithms (see
 \Cref{sc:synthesize}). 
 
-We illustrate our  framework using a system where a
-\emph{controller} 
-controls the water level of a \emph{water tank} with constant inflow
-of water,  by opening and closing a valve
-at the bottom of the tank. 
-The system can be modeled using  one SU for the tank and one for
-the controller, and has the architecture shown in
-\cref{fig:simpleexample}.
+% We illustrate our  framework using a system where a
+% \emph{controller} 
+% controls the water level of a \emph{water tank} with constant inflow
+% of water,  by opening and closing a valve
+% at the bottom of the tank. 
+% The system can be modeled using  one SU for the tank and one for
+% the controller, and has the architecture shown in
+% \cref{fig:simpleexample}.
 
 %\subsection{Simulation Units}
-An simulation unit  is modeled as an object instance of the following
+A simulation unit  is modeled as an object instance of the following
 class: % a
                                 % subsystem with parameters, ports, a
 % state, and a time: 
@@ -69,17 +69,27 @@ subclasses Input Output < Port .
 \end{alltt}
 \normalsize
 
-\noindent The attributes \texttt{value} and \texttt{time} denote, respectively, the
+\noindent % The attributes
+\texttt{value} and \texttt{time} denote, respectively, the
 value of the port and the time of its last set/get operation; 
-\texttt{status} is \texttt{true}  if the port has been
+\texttt{status} is \texttt{true}  if the port was
 updated  at the current time;   \texttt{contract} denotes the
-input port's instrumentation/contract (\texttt{delayed} or
+input port's instrumentation (\texttt{delayed} or
 \texttt{reactive}); and 
 \texttt{dependsOn} denotes the set of inputs that feed
 through to the output port. 
 
 \begin{example}
-The initial state of the tank in our  example is modeled as an object
+  We illustrate our  framework using a system where a
+\emph{controller} 
+controls the water level of a \emph{water tank} with constant inflow
+of water,  by opening and closing a valve
+at the bottom of the tank. 
+The system can be modeled using  one SU for the tank and one for
+the controller, and has the architecture shown in
+\cref{fig:simpleexample}.
+%
+The water tank  (in its initial state)  is modeled as an object
   
 \scriptsize
 \begin{alltt}
@@ -97,7 +107,7 @@ The parameter \texttt{flow} defines the amount of water that flows
 into the tank per time unit.
 \end{example}
 
-To formalize the behaviors of an SU we formalize the functions
+To formalize the behaviors of an SU we formalize the operations
 \texttt{set}, \texttt{get}, and \texttt{step} in
 \cref{def:fmu}. 
 For example, the $\fget{}$ operation that updates the \texttt{time}
@@ -132,7 +142,7 @@ function:
 \begin{example}
 The following definition of the \texttt{step} function in our running
 example says that  the water level of the tank changes according to
-step \emph{duration} \texttt{STEP}, the parameter \texttt{flow}, and the
+step duration \texttt{STEP}, the parameter \texttt{flow}, and the
 state (\texttt{value}) of the input \texttt{valve}:
 
 \scriptsize
@@ -157,9 +167,9 @@ eq step(< "tank" : SU | time : T, parameters : ("flow" |-> <\,FLOW\,>),
 %A scenario is a collection of SUs composed using a set of couplings/connections.
 A connection/coupling connecting the output port $o$ of SU $\mathit{su}_1$ to
 the input port $i$ of SU $\mathit{su}_2$ is represented by the term
-\texttt{"}$\mathit{su}_1$\texttt{"} \texttt{!} \texttt{"}$o$\texttt{"} \texttt{==>}
-\texttt{"}$\mathit{su}_2$\texttt{"} \texttt{!} \texttt{"}$i$\texttt{"} of a subsort
-\texttt{Connection} of sort \texttt{Configuration}.
+$\mathit{su}_1$ \texttt{!} $o$ \texttt{==>}
+$\mathit{su}_2$ \texttt{!} $i$.   %  of a subsort
+% \texttt{Connection} of sort \texttt{Configuration}.
 
 
 % ports connects an output with an input:
@@ -186,7 +196,6 @@ eq simulationUnits =
                                                       contract : delayed, status : Undef >), 
                    outputs : (< "waterlevel" : Output | value : <\,0\,>, type : integer, time : 0,
                                                         status : Undef, dependsOn : empty >) >
-
    < "ctrl" : SU | parameters : (("high" |-> <\,5\,>) , ("low" |-> <\,0\,>)), canReject : false, 
                    localState : ("valve" |-> <\,false\,>), fmistate : Instantiated, time : 0, 
                    inputs : (< "waterlevel" : Input | value : <\,0\,>, type : integer, time : 0,

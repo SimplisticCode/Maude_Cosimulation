@@ -49,7 +49,7 @@ op _;_ : ActionList ActionList -> ActionList [ctor assoc id: emptyList] .
 \end{alltt}
 \normalsize
 
-We have omitted the actions to handle complex scenarios.
+\noindent We have omitted the actions to handle complex scenarios.
 
 % The orchestrator in Maude has the following two objectives.
 % \begin{compactenum}
@@ -116,7 +116,7 @@ The function \texttt{getOrchestrator} extracts the synthesized co-simulation alg
 
   \small
   \begin{alltt}
-    search scenario => FINALSTATE::GlobalState .
+Maude> \emph{search scenario => FINALSTATE::GlobalState .}
   \end{alltt}
   \normalsize
 
@@ -328,14 +328,13 @@ crl [runAlg] : runAnyAlgorithm INIT => run: ORC on: INIT with: SIMDATA
 This rule is similar to the rule \texttt{getAlgortihm}, and also extracts the resulting algorithm \texttt{ORC} and simulation data \texttt{SIMDATA}.
 
 \begin{example}\label{ex:algoexecution}
-The water tank scenario described in \cref{ex:simulationunits} (\texttt{waterTankScenario} below) can be simulated by rewriting the term:
+The water tank scenario described in \cref{ex:simulationunits} (\texttt{waterTankScenario} below) can be simulated by rewriting the term below:
 \small
 \begin{alltt}
-  frew (runAnyAlgorithm waterTankScenario).
+Maude> \emph{frew (runAnyAlgorithm waterTankScenario) .}
 \end{alltt}
 \normalsize
 The command returns the final simulation state:
-\simon{Make inline using \,}
 \scriptsize
 \begin{alltt}
 run: < "Algorithm" : AlgorithmData | CosimStep : \emph{emptyList}, Initialization : emptyList,
@@ -344,19 +343,16 @@ on: ("tank" ! "waterlevel" ==> "ctrl" ! "waterlevel")
     ("ctrl" ! "valveState" ==> "tank" ! "valveState")
     < "ctrl" : SU | canReject : false, fmistate : Unloaded, time : 1,
                     inputs : < "waterlevel" : Input | contract : reactive, status : Def, 
-                                                      time : 1, type : integer, 
-                                                      value : < 100 > >,
+                                                      time : 1, type : integer,\,value\,:\,<\,100\,>\,>,
                     outputs : < "valveState" : Output | dependsOn : empty, status : Def, 
-                                                        time : 1, type : integer, 
-                                                        value : < 1 > >,
+                                                        time : 1, type\,:\,integer,\,value\,:\,<\,1\,>\,>,
                     localState : "valve" |-> < true >,    
                     parameters :"high" |-> < 5 >, "low" |-> < 0 >  > 
     < "tank" : SU | canReject : false, fmistate : Unloaded, time : 1,
                     inputs : < "valveState" : Input | contract : delayed, status : Def,
-                                                      time : 1, type : integer, value : < 1 > >,
+                                                      time : 1, type : integer,\,value : <\,1\,>\,>,
                     outputs : < "waterlevel" : Output | dependsOn : empty, status : Def,
-                                                        time : 1, type : integer, 
-                                                        value : < 100 > >,
+                                                        time : 1, type\,:\,integer,\,value\,:\,<\,100\,>\,>,
                     localState : \emph{"waterlevel" |-> < 100 >},
                     parameters : "flow" |-> < 100 > > 
 with: < "Orchestrator" : SimulationData | SNSet : empty,       actualStepSize : 1, 
@@ -366,9 +362,7 @@ with: < "Orchestrator" : SimulationData | SNSet : empty,       actualStepSize : 
                                           suids :("ctrl", "tank") >
 \end{alltt}
 \normalsize
-
 \end{example}
-
 
 \subsection{Checking Confluence of Synthesized Co-simulation Algorithms}
 All valid co-simulation algorithms for the same scenario should give the same simulation result.
@@ -376,8 +370,8 @@ We can use Maude to check whether all generated co-simulation algorithms for a g
 
 \small
 \begin{alltt}
-  search (runAnyAlgorithm \emph{scenario})  =>! S:SimState . 
-  \end{alltt}
+Maude> \emph{search (runAnyAlgorithm scenario)  =>! S:SimState} . 
+\end{alltt}
 \normalsize
 
 This search command synthesizes and then executes all co-simulation algorithms for the scenario \emph{scenario}. 

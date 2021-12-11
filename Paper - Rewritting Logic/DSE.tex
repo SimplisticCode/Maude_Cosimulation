@@ -1,19 +1,19 @@
 
-\section{Synthesize of Instrumentations and SU Parameters}\label{sc:DSE}
-Using Maude's integrated LTL model checker, the Maude framework enables different kinds of design space exploration.
-Design space exploration allows the co-simulation practitioner to explore how different model parameters/designs change the behavior of the system/simulation result.
+\section{Synthesis of Instrumentations and SU Parameters}\label{sc:DSE}
+The framework enables different kinds of design space exploration.
+Design space exploration allows the co-simulation practitioner to explore how different model parameters/designs change the behavior of the system, which can be affected in the simulation result.
 The framework enables a co-simulation practitioner to experiment with different valuations of the scenario's instrumentation and parameters of the SUs.
-We describe the two independently even though they can be combined.
+We describe the two searches independently even though they can be combined.
 
 \subsection{Instrumentation of a Scenario}
 The instrumentation of the input ports is used to achieve more accurate co-simulation results as shown in \cite{Gomes2019,Oakes2021,hansen_verification_2021}.
 However, finding the instrumentation that results in the most accurate simulation can be challenging since none of the existing tools to export FMUs/SUs provide this information.
 
-We show that one can use Maude's model checker to explore the consequences of the different instrumentations of a scenario.
+We can use model checking to explore the consequences of different instrumentations of a scenario to find the instrumentation that yields the most accurate simulation result.
 
-To explore the different instrumentations of a scenario, we define the contract of an input \texttt{noContract}, which can be used when the user does not know the input's instrumentation.
-A scenario is \emph{instrumented} if none of the inputs are annotated with the contract \texttt{noContract}, otherwise the scenario is \emph{partially instrumented}.
-The scenario in \cref{ex:simulationunits} is instrumented, while the scenario below is partially instrumented:
+To explore different instrumentations of a \emph{partially instrumented} scenario, we declare the contract of all the inputs, which contract is unknown, to be \texttt{noContract}.
+A scenario is \emph{instrumented} if none of the inputs are annotated with the contract \texttt{noContract}, otherwise the scenario is partially instrumented.
+The scenario in \cref{ex:simulationunits} is instrumented, while the scenario described below is partially instrumented:
 \scriptsize
 \begin{alltt}
 eq simulationUnitsNotInstrumented = 
@@ -34,10 +34,9 @@ eq simulationUnitsNotInstrumented =
 \end{alltt}
 \normalsize
 
+An algorithm can only be synthesized and executed for an instrumented scenario. We therefore have created a rule that instruments a partially instrumented scenario.
+The rule non-deterministically assigns all non-instrumented input ports to be either \texttt{delayed} or \texttt{reactive}:
 
-The execution of an algorithm described in \cref{sc:synthesize} is only defined for instrumented scenarios.
-
-Defining a contract to be \texttt{noContract} means that we can define a rewrite rule that non-deterministically assigns the input port to be either \texttt{delayed} or \texttt{reactive}:
 \scriptsize
 \begin{alltt}
 rl [instr-delayed]: 
@@ -52,6 +51,7 @@ crl [remove-findInstr]: findInstr(CONF) => CONF
   if scenarioInstrumented(CONF) .
 \end{alltt}
 \normalsize
+
 The rule applies if the scenario has been wrapped inside the constructor \texttt{findInstr}.
 The rule find an input \texttt{I} of an SU \texttt{SU1} with the contract \texttt{noContract} and makes the input either \texttt{delayed} or \texttt{reactive}.
 Maude keeps instrumenting the scenario until the scenario is instrumented and satisfies the equational predicate \texttt{scenarioInstrumented}, where the rule \texttt{remove-findInstr} free the instrumented scenario from the constructor \texttt{findInstr} such the the other rewrite rules can start rewriting it.
@@ -67,6 +67,7 @@ crl [findInstrumentation]: findContacts(INIT) => CONF
     /\char92 shouldSatisfy(FINAL) .
 \end{alltt}
 \normalsize
+
 The rule \texttt{findInstrumentation} generates an instrumented scenario \texttt{CONF} from the partially instrumented scenario \texttt{INIT}.
 The instrumented scenario \texttt{CONF} is simulated using the rule \texttt{runAnyAlgorithm} to explore its simulation result.
 
@@ -78,6 +79,7 @@ This is done in the above rule, where we have stated that the simulation above m
 
 \begin{example}
 We use Maude to find all instrumentations of the presented partially instrumented scenario that satisfies criteria above using the search command: 
+
 \small
 \begin{alltt}
 search findContracts(simulationUnitsNotInstrumented) =>! C:Configuration .
@@ -101,6 +103,7 @@ C:Configuration --> (
 
 \end{alltt}
 \normalsize
+
 The search command returns a scenario; we have removed everything except the instrumentation of the inputs.
 \end{example}
 
@@ -114,20 +117,25 @@ The \texttt{choose}-operator non-deterministically selects an element in the set
 
 \begin{example}\label{ex:dse}.
   Assuming that we want find the parameter \texttt{flow} of the water tank example such that the final state satisfies the predicate below:
+
   \scriptsize
   \begin{alltt}
 op above10 : Configuration -> Bool .
 eq above10(CONF < "tank" : SU | localState : ( "waterlevel" |-> < V >) >) = V > 10 .  
   \end{alltt}
   \normalsize
+
 This predicate says the water level should be higher than 10.
 We want to explore the following valuations of the parameter \texttt{flow}: 1, 2 and 30:
+
 \small
 \begin{alltt}
 < "tank" : SU | parameters : ("flow" |-> choose((< 1 >,< 2 >,< 30 >))) >
 \end{alltt}
 \normalsize
+
 We use the rule below to select different parameter valuations to see if they result in a simulation that satisfies the predicate \texttt{above10}:
+
 \small
 \begin{alltt}
   crl [dse] : selectParams(UNITIALIZEDCONF) => CONF 
@@ -140,21 +148,26 @@ We use the rule below to select different parameter valuations to see if they re
   /\char92 above10(FINALSTATE) .
 \end{alltt}
 \normalsize
+
 \texttt{selectParams} is a constructor to ensure that no other rewrite rules can rewrite \texttt{UNITIALIZEDCONF}.
 The different valuations are explored using the search command:
+
 \small
 \begin{alltt}
   search selectParams(ScenarioDSE)  =>! C:Configuration .
 \end{alltt}
 \normalsize
+
 Where \texttt{ScenarioDSE} is the scenario from \cref{ex:simulationunits} where the parameter \texttt{flow} is defined using the \texttt{choose}-operator as shown above.
 The search exhaustively checks all valuations and returns the valuations that satisfy the predicate \texttt{above10}:
+
 \small
 \begin{alltt}
 C:Configuration --> 
   < "tank" : SU | parameters : "flow" |-> < 30 > >
 \end{alltt}
 \normalsize
+
 The search again returns a whole scenario, but above we only show the selected valuation for the parameter \texttt{flow}.
 \end{example}
 
@@ -163,6 +176,7 @@ We can combine the two searches described above to simultaneously  experiment wi
 
 \begin{example}
   We can explore different instrumentations and parameters by defining a partially instrumented scenario with changeable parameters:
+
 \scriptsize
 \begin{alltt}
 eq simulationDSE =  
@@ -183,6 +197,7 @@ outputs : (< "valveState" : Output | value : < 0 >, type : integer, time : 0,
 fmistate : Instantiated, canReject : false > .
 \end{alltt}
 \normalsize
+
 The scenario can be explored using the search command from \cref{ex:dse}. 
 %The search finds that the following instrumentations and parameters satisfy 
 \end{example}

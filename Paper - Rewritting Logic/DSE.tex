@@ -1,19 +1,19 @@
 
 \section{Synthesis of Instrumentations and SU Parameters}\label{sc:DSE}
 The framework enables different kinds of design space exploration.
-Design space exploration allows the co-simulation practitioner to explore how different model parameters/designs change the behavior of the system, which can be affected in the simulation result.
-The framework enables a co-simulation practitioner to experiment with different valuations of the scenario's instrumentation and parameters of the SUs.
+Design space exploration allows the co-simulation practitioner to explore how different model parameters/designs change the behavior of the system/simulation result.
+The co-simulation practitioner can concretely experiment with different valuations of the scenario's instrumentation and parameters of the SUs.
 We describe the two searches independently even though they can be combined.
 
 \subsection{Instrumentation of a Scenario}
-The instrumentation of the input ports is used to achieve more accurate co-simulation results as shown in \cite{Gomes2019,Oakes2021,hansen_verification_2021}.
-However, finding the instrumentation that results in the most accurate simulation can be challenging since none of the existing tools to export FMUs/SUs provide this information.
+The instrumentation of the input ports is used to achieve more accurate co-simulation results as shown in \cite{Gomes2019,Oakes2021,hansen_verification_2021}, since they allow the orchestration to select optimal communication points.
+However, finding the instrumentation that results in the most accurate simulation can be challenging.% since none of the existing tools to export FMUs/SUs provide this information.
 
-We can use model checking to explore the consequences of different instrumentations of a scenario to find the instrumentation that yields the most accurate simulation result.
+We use model checking to explore the consequences of different instrumentations of a scenario to find the instrumentation that yields the most accurate simulation.
 
-To explore different instrumentations of a \emph{partially instrumented} scenario, we declare the contract of all the inputs, which contract is unknown, to be \texttt{noContract}.
-A scenario is \emph{instrumented} if none of the inputs are annotated with the contract \texttt{noContract}, otherwise the scenario is partially instrumented.
-The scenario in \cref{ex:simulationunits} is instrumented, while the scenario described below is partially instrumented:
+To explore different instrumentations of a scenario, we create a \emph{partially instrumented} scenario, where the some of the inputs have the contract \texttt{noContract}, which means they are not \texttt{reactive} or \texttt{delayed}.
+%A scenario is \emph{instrumented} if none its inputs are declared with the contract \texttt{noContract}, otherwise the scenario is partially instrumented.
+The scenario described below is partially instrumented, while the scenario in \cref{ex:simulationunits} is instrumented:
 \scriptsize
 \begin{alltt}
 eq simulationUnitsNotInstrumented = 
@@ -34,8 +34,9 @@ eq simulationUnitsNotInstrumented =
 \end{alltt}
 \normalsize
 
-An algorithm can only be synthesized and executed for an instrumented scenario. We therefore have created a rule that instruments a partially instrumented scenario.
-The rule non-deterministically assigns all non-instrumented input ports to be either \texttt{delayed} or \texttt{reactive}:
+An algorithm can only be synthesized and executed for an instrumented scenario. 
+We have, therefore, created some rule to instrument a partially instrumented scenario.
+The rules non-deterministically makes all non-instrumented input ports \texttt{delayed} or \texttt{reactive}:
 
 \scriptsize
 \begin{alltt}
@@ -52,11 +53,11 @@ crl [remove-findInstr]: findInstr(CONF) => CONF
 \end{alltt}
 \normalsize
 
-The rule applies if the scenario has been wrapped inside the constructor \texttt{findInstr}.
-The rule find an input \texttt{I} of an SU \texttt{SU1} with the contract \texttt{noContract} and makes the input either \texttt{delayed} or \texttt{reactive}.
-Maude keeps instrumenting the scenario until the scenario is instrumented and satisfies the equational predicate \texttt{scenarioInstrumented}, where the rule \texttt{remove-findInstr} free the instrumented scenario from the constructor \texttt{findInstr} such the the other rewrite rules can start rewriting it.
+The rule finds a non-instrumented input \texttt{I} of an SU \texttt{SU1} with the contract \texttt{noContract} of partially instrumented scenario wrapped inside the constructor \texttt{findInstr} and makes the input either \texttt{delayed} using the rule \texttt{instr-reactive} or \texttt{reactive} using the rule \texttt{instr-reactive}.
+The scenario \texttt{CONF} is freed from the constructor \texttt{findInstr} when it is fully instrumented, which is asserted using the predicate \texttt{scenarioInstrumented}.
+The constructor \texttt{findInstr} ensures that other rewrite rules cannot rewrite a partially instrumented scenario.
 
-The different instrumentations of a partially instrumented scenario is found and explored using the rule:
+The different instrumentations of a partially instrumented scenario are found and explored using the rule:
 
 \small
 \begin{alltt}
@@ -71,20 +72,22 @@ crl [findInstrumentation]: findContacts(INIT) => CONF
 The rule \texttt{findInstrumentation} generates an instrumented scenario \texttt{CONF} from the partially instrumented scenario \texttt{INIT}.
 The instrumented scenario \texttt{CONF} is simulated using the rule \texttt{runAnyAlgorithm} to explore its simulation result.
 
-The explored instrumentations can be configured in desired ways by defining specific properties that should satisfy.
-For example, in the rule above, it is specified using \texttt{empty == tarjan(CONF)} that none of the instrumentations must introduce any algebraic loops in the scenario.
+The explored instrumentations can restricted as desired by defining specific properties the instrumented version \texttt{CONF} of the partially instrumented scenario \texttt{INIT} must satisfy.
+For example, in the rule above, it is specified using the predicate \texttt{empty == tarjan(CONF)} that none of the instrumentations must introduce algebraic loops in the scenario.
 
-The instrumentations of interest can be selected based on the simulation it produces. 
-This is done in the above rule, where we have stated that the simulation above must satisfy the predicate \texttt{shouldSatisfy} that says the water level of the tank in the final state should be in a specific range.
+The instrumentations can be selected based on the simulation they produce. 
+For example, we have stated that the simulation above must satisfy the predicate \texttt{shouldSatisfy} that says the water level of the tank in the final state \texttt{FINAL} should be in a specific range.
 
 \begin{example}
-We use Maude to find all instrumentations of the presented partially instrumented scenario that satisfies criteria above using the search command: 
+We use Maude to find all instrumentations of the partially instrumented scenario that satisfies criteria above using the search command: 
 
 \small
 \begin{alltt}
 search findContracts(simulationUnitsNotInstrumented) =>! C:Configuration .
 \end{alltt}
-Returning the following three instrumentations:
+
+The search return the following three instrumentations:
+
 \begin{alltt}
 Solution 1
 C:Configuration --> (
@@ -168,14 +171,14 @@ C:Configuration -->
 \end{alltt}
 \normalsize
 
-The search again returns a whole scenario, but above we only show the selected valuation for the parameter \texttt{flow}.
+The search returns a whole scenario, we only show the selected valuation for the parameter \texttt{flow}.
 \end{example}
 
 \subsection{Combining Design Space Exploration of the Instrumentation and Parameters}
-We can combine the two searches described above to simultaneously  experiment with the instrumentation and the parameters of a scenario.
+We can combine the two searches described above to simultaneously experiment with the instrumentation and the parameters of a scenario.
 
 \begin{example}
-  We can explore different instrumentations and parameters by defining a partially instrumented scenario with changeable parameters:
+  We can explore different instrumentations and parameters by defining a partially instrumented scenario with configurable parameters:
 
 \scriptsize
 \begin{alltt}
@@ -196,6 +199,8 @@ outputs : (< "valveState" : Output | value : < 0 >, type : integer, time : 0,
                                      status : Undef, dependsOn : empty >), 
 fmistate : Instantiated, canReject : false > .
 \end{alltt}
+
+The parameters and instrumentations can now be explored using the search command 
 \normalsize
 
 The scenario can be explored using the search command from \cref{ex:dse}. 

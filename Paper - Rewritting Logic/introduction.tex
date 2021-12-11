@@ -1,90 +1,14 @@
-% \section{Introduction}\label{sc:introduction}
-% \begin{itemize}
-%     \item Motivation for co-simulation
-%     \begin{itemize}
-%       \item Industry 4.0
-%       \item Development of CPS
-%       \item The result of co-simulation
-%       \begin{itemize}
-%       \item How to test and verify an OA - need for correct by construction algorithm
-%       \item Design Space Exploration of the system - model checking 
-%       \item Testing the configurations of the systems - model checking the contracts.
-%       \item Dynamic observation of the system
-%       \item Satisfying the contracts
-%       \item Checking safety properties (possible to reach a bad state). - model checking might be needed because although each SU might have deterministic behavior, we might not know this - we have to consider a range of possible behaviors.
-%       \item General problem with writing sound SU.
-%       \item Time 
-%     \end{itemize}
-%     \end{itemize}
-%     \item Background
-%     \begin{itemize}
-%       \item Rewriting Logic
-%       \item Co-simulation
-%     \end{itemize}
-%     \item The Maude model
-%     \item Analyses
-%     \begin{itemize}
-%       \item Confluent and deterministic algorithm
-%       \item Verification of Algorithms
-%       \item Design Space Exploration
-%       \item Step negotiation (Non-deterministic behavior)
-%       \item Contracts
-%       \item Interaction with real-world SUs
-%     \end{itemize}
-%   \end{itemize}
-  
-%   Need for formal methods:
-%   \begin{itemize}
-%     \item Desireable to do model checking as run-time verification during the simulation.
-%     \item Communication to external objects - continuous Interaction between formal tool.
-%     \item Step negotiation
-%     \item Fixed-point iteration (Algebraic loop)
-%     \item Complex functions - Tarjan, fixed-point iteration.
-%   \end{itemize}
-  
-
-  
-%   Use of Maude:
-%   \begin{itemize}
-%     \item Addresses the challenges:
-%     \item Non-distributed components
-%     \item Supports functions and is very compressive
-%     \item Supports model-checking - lets the user explore all different initialization of all the simulation units
-%     \item Model checking allows one to explore that the SU does not reach a bad state
-%     \item Most importantly, Maude supports communication with external objects so, in each simulation iteration, we can check and verify (model check) the algorithm used to simulate the next system step.
-%   \end{itemize}
-  
-%   In this paper, we present a co-simulation Synthesizing engine and a Framework for performing various analyses in Maude of both the algorithm and the system of interest.
-%   \begin{itemize}
-%     \item Model checking approach is used to explore the system's instrumentation's design space - check all possible contracts to reach the best possible simulation result.
-%     \item Given a state of the co-simulation system, we synthesize all correct orchestration (one of the algorithms might actually be better than another) for the next step of the co-simulation algorithm.
-%     \item Model checking is used to show that all synthesized algorithms lead to a  
-%     \item By defining abstract models of the system in Maude, we can perform model checking to explore violations of safety properties - to 
-%     \item We then show have this framework can be used to run a co-simulation - to let Maude use as the orchestration engine.
-%   \end{itemize}
-  
-%   We illustrate our techniques with some examples.
-  
-%   Related work
-%   \begin{itemize}
-%     \item Not a lot of formal methods on co-simulation
-%     \begin{itemize}
-%       \item All do work on a symbolic version of the simulation units
-%       \item Generate only one algorithm
-%     \end{itemize}
-%   \end{itemize}
-
 % Motivation for co-simulation
-Cyber-physical systems (CPSs) are omnipresent and a part of the critical infrastructure of the modern society.
-A CPS is a hybrid system that embodies physical processes controlled by digital devices. Examples include everything from an incubator and autonomous vehicle\simon{make}.
+Cyber-physical systems (CPSs) are omnipresent and part of the critical infrastructure of the modern society.
+A CPS is a hybrid system that embodies physical processes controlled by digital devices. Examples include everything from a controller opening and closing a valve to regulate the water level of a tank to autonomous vehicle.
 CPSs are due to technical advancements becoming increasingly complex~\cite{4519604}, which leads to the desire for techniques to assist in the development of dependable CPS.
-Traditional modeling and simulation techniques, where a solver algorithm describes a model, are no longer sufficient to cope with the integrated development processes of such systems~\cite{FMI2014}.
-A CPS consists of heterogenous subsystems, which typically are developed by different teams and using different tools and techniques~\cite{Monti_2021}. 
+Traditional modeling and simulation techniques, where a solver algorithm describes a model, are no longer sufficient to cope with the integrated development processes of such systems~\cite{FMI2014}, which consists of heterogenous subsystems typically using different tools and techniques~\cite{Monti_2021}. 
+
 % Why and what is co-simulation
-Co-simulation solves the shortcomings of the traditional modeling techniques by letting the user operate in a domain-speciﬁc environment where the subsystems can be integrated to explore the global system behavior without violating the constituents' Intellectual Property\cite{Gomes2018}. 
+Co-simulation solves the shortcomings of the traditional modeling techniques by letting the user operate in an environment where the subsystems can be integrated to explore the global system behavior without violating the constituents' Intellectual Property\cite{Gomes2018}. 
 Co-simulation is the study of how to coordinate multiple black-box simulation units (SUs) developed using different tools and formalisms.
-An SU represents a subsystem and calculates the subsystem's behavioral trace.
-The co-simulation combines all the SU's behavioral traces to produce the global system behavior as a discrete trace (see, e.g., \cite{Kubler2000}).
+An SU represents a subsystem by calculating its behavioral trace using a dedicated solver.
+The co-simulation combines the SUs in a scenario to produce their global behavior as a discrete trace (see, e.g., \cite{Kubler2000}).
 
 Multiple SUs are composed using an orchestration algorithm that interacts with each SU via its interface.
 An example of such an SU is a Functional Mock-up Unit (FMU) defined by the Functional Mock-up Interface Standard~\cite{FMI2014} (FMI), which inspires the notion of an SU in this paper. 
@@ -92,16 +16,15 @@ FMI is a widely adopted standard used commercially and supported by many tools~\
 
 %How to test and verify an OA - need for correct by construction algorithm
 The overarching challenge of co-simulation is ensuring accurate simulation results due to the many potential error sources of such a simulation~\cite{Gomes2018}.
-The overarching challenge of co-simulation is ensuring accurate simulation results due to the many potential error sources of such a simulation~\cite{Gomes2018}.
-The simulation result depends not only on the SUs but also on the co-simulation algorithm used to run the co-simulation, which is often overlooked~\cite{Gomes2019,Oakes2021,Gomes2018f,Schweizer2015c,hansen_verification_2021}.
+The simulation result depends not only on the SUs but also on the co-simulation algorithm that composes them in simulation, which is often overlooked~\cite{Gomes2019,Oakes2021,Gomes2018f,Schweizer2015c,hansen_verification_2021}.
 The co-simulation algorithm must specifically tailored to scenario that is respect the SUs' input approximation functions.
 
 Not considering such details can lead to inaccurate co-simulation results, something that can be extremely difficult to debug and fix in practice.
 The papers \cite{Gomes2019,Oakes2021,thrane2021} describe how to synthesize tailored co-simulation algorithms to substantial reduce the co-simulation error. by using contracts to define the .
 
-Co-simulation also creates an environment where different system designs can be explored to find the optimal design~\cite{dse,gamble_design_2014}; the process is called design space exploration.
+Co-simulation creates an environment where different system designs can be explored to find the optimal design~\cite{dse,gamble_design_2014}; the process is called design space exploration.
 
-We propose an approach/framework in Maude where a co-simulation practitioner can synthesize and execute tailored co-simulation algorithms while exploring different system designs.
+We propose a framework in Maude where a co-simulation practitioner can synthesize and execute tailored co-simulation algorithms while exploring different system designs.
 The approach works for both simple and complex scenarios.
 Complex scenarios are subject to algebraic loops denoting cyclic dependencies between the SUs or step rejections, where an  SU refuses specific future state evaluations because it implements error estimation.
 Complex scenarios are, in general, more challenging to simulate since the co-simulation algorithm needs to adapt to the behavior of the SUs~\cite{thrane2021} to solve the algebraic loop and ensure that all SUs move in lockstep; the latter is called step negotiation. 
@@ -110,7 +33,7 @@ The approach enables design space exploration of the co-simulation algorithm and
 It lets a co-simulation practitioner explore the consequences of changing the contracts and simulation parameters.
 Moreover, the co-simulation practitioner can use their domain knowledge and, in Maude, place constraints on the co-simulation to let Maude find the parameters and contracts that result in a co-simulation with specific desirable properties. 
 
-\textit{Contribution:}
+\paragraph{Contribution:}
 % \begin{itemize}
 %   \item Address the problems - obtaining good co-simulation algorithm
 %   \item Perform co-simulation in Maude
@@ -118,12 +41,14 @@ Moreover, the co-simulation practitioner can use their domain knowledge and, in 
 %   \item Fixed-point iteration (Algebraic loop)
 %   \item Complex functions - Tarjan, fixed-point iteration.
 % \end{itemize}
-This paper describes an executable Maude formalization for synthesizing, verifying and executing co-simulation algorithms.
-The formalization can be used to explore the co-simulation algorithm effect on the co-simulation result.
+This paper describes an executable Maude framework for synthesizing and executing co-simulation algorithms for a given co-simulation scenario.
+The framework addresses both simple and complex scenario  exploration the co-simulation algorithm effect on the co-simulation result.
 The approach covers complex scenarios subject to algebraic loops and adaptive steps.
 Furthermore, the formalization enables multiple analyses of the generated algorithm and the system of interest, including various kinds of design space exploration using model checking. 
 
-\textit{Structure:}
-The paper starts with introducing rewriting logic, co-simulation and the verification challenge of co-simulation algorithms in \cref{sc:background}. 
-%Then, \Cref{sc:related} describes other approaches for obtaining reliable and deterministic co-simulation results. 
+\paragraph{Structure:}
+\cref{sc:background} introduces the preliminaries rewriting logic, co-simulation and design space exploration.
+Then, \cref{sec:model} describes the Maude model, before \cref{sc:synthesize} describes how co-simulation algorithms are synthesized and executed in Maude.
+
+Then, \cref{sc:related} describes other approaches for obtaining reliable and deterministic co-simulation results. 
 Finally, \cref{sc:summary} concludes and present future work.

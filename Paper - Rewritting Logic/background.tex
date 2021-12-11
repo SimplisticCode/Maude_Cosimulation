@@ -319,13 +319,12 @@ An algorithm $P$ must satisfy \cref{def:comsim_step} while respecting the define
 %     \end{align*}
 %   \end{definition}
 %An algorithm is tailored to the scenario if it respects the property above.
-This means that \cref{alg:algorithm_3} is correct, while \cref{alg:algorithm_2,alg:algorithm_1} are incorrect since they do not respect the SU semantics.
-For example, \cref{alg:algorithm_2} tries to perform a $\fdoStep{A}$ action in line 2 without respecting the input $\inputvar{g}$ since the state of SU $A$ $\runstate{A} = \tuple{0,\{\inputvar{g} \to 0 \}, \{\outputvar{f} \to 0 \}, \dontcare}$ does not contain $\{\inputvar{g} \to H \}$.
+This means that \cref{alg:algorithm_3} is correct, while \cref{alg:algorithm_2,alg:algorithm_1} are incorrect since they do not respect the semantics.
+For example, \cref{alg:algorithm_2} tries to perform a $\fdoStep{A}$ action in line 2 without respecting the reactive input $\inputvar{g}$ since the state of SU $A$ $\runstate{A} = \tuple{0,\{\inputvar{g} \to 0 \}, \{\outputvar{f} \to 0 \}, \dontcare}$ does not contain $\{\inputvar{g} \to H \}$.
 Intuitively, we try to step SU $A$ without having provided it with a value on the reactive input $\inputvar{g}$; this is an apparent violation of $\fpredoStep{A}$.
   
 \subsection{Complex Scenarios}
-Complex scenarios are subject to algebraic loops~\cite{Kubler2000} or step rejections~\cite{thrane2021}.
-\cref{fig:step_finding_scenario,fig:algebraic_example} shows the two different kinds of complex scenarios.
+Complex scenarios are subject to algebraic loops~\cite{Kubler2000} (\cref{fig:algebraic_example}) or step rejections~\cite{thrane2021} (\cref{fig:step_finding_scenario}).
 
 \begin{figure}[htb]
   \begin{subfigure}{0.48\textwidth}

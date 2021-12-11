@@ -39,14 +39,12 @@ Co-simulation practitioners can thereby use their domain knowledge to place cons
 %   \item Fixed-point iteration (Algebraic loop)
 %   \item Complex functions - Tarjan, fixed-point iteration.
 % \end{itemize}
-This paper describes an executable Maude framework for synthesizing and executing co-simulation algorithms for a given co-simulation scenario.
-The framework addresses both simple and complex scenario  exploration the co-simulation algorithm effect on the co-simulation result.
-The approach covers complex scenarios subject to algebraic loops and adaptive steps.
-Furthermore, the formalization enables multiple analyses of the generated algorithm and the system of interest, including various kinds of design space exploration using model checking. 
+This paper describes an executable Maude framework for synthesizing and executing co-simulation algorithms for a given co-simulation potentially complex co-simulation scenario.
+The framework enables synthesis of SU parameters and an instrumentation of given scenario such that the instrumented system/scenario have certain desirable properties.
 
 \paragraph{Structure:}
-\cref{sc:background} introduces the preliminaries rewriting logic, co-simulation and design space exploration.
+\cref{sc:background} introduces the preliminaries rewriting logic, co-simulation, and design space exploration.
 Then, \cref{sec:model} describes the Maude model, before \cref{sc:synthesize} describes how co-simulation algorithms are synthesized and executed in Maude.
-
-Then, \cref{sc:related} describes other approaches for obtaining reliable and deterministic co-simulation results. 
+\cref{sc:DSE} describes how our framework can be used to select the instrumentation and SU parameters of a scenario.
+\cref{sc:related} describes the related work. 
 Finally, \cref{sc:summary} concludes and present future work.

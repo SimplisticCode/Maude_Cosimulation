@@ -194,8 +194,8 @@ eq simulationUnits =
                    outputs : (< "valveState" : Output | value : <\,0\,>, type : integer, time : 0,
                                                         status : Undef, dependsOn : empty >) > .
 
-eq externalConnection = ('tank ! 'waterlevel ==> 'ctrl ! 'waterlevel) 
-                        ('ctrl ! 'valveState ==> 'tank ! 'valveState) .
+eq externalConnection = ("tank" ! "waterlevel" ==> "ctrl" ! "waterlevel") 
+                        ("ctrl" ! "valveState" ==> "tank" ! "valveState") .
 \end{alltt}
 \normalsize
 \end{example}

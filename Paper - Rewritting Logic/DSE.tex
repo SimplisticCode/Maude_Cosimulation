@@ -20,16 +20,16 @@ eq simulationUnitsNotInstrumented =
 < "tank" : SU | parameters : ("flow" |-> <\,100\,>),  localState : ("waterlevel" |-> <\,0\,>),
                 time : 0,  fmistate : Instantiated, canReject : false, 
                 inputs : (< "valveState" : Input | value : <\,0\,>, type : integer, time : 0,
-                                                    contract : noContract, status : Undef >), 
+                                                   contract : noContract, status : Undef >), 
                 outputs : (< "waterlevel" : Output | value : <\,0\,>, type : integer, time : 0,
-                                                      status : Undef, dependsOn : empty >) >
+                                                     status : Undef, dependsOn : empty >) >
 
 < "ctrl" : SU | parameters : (("high" |-> <\,5\,>) , ("low" |-> <\,0\,>)), canReject : false, 
                 localState : ("valve" |-> <\,false\,>), fmistate : Instantiated, time : 0, 
                 inputs : (< "waterlevel" : Input | value : <\,0\,>, type : integer, time : 0,
-                                                    contract : noContract, status : Undef >), 
+                                                   contract : noContract, status : Undef >), 
                 outputs : (< "valveState" : Output | value : <\,0\,>, type : integer, time : 0,
-                                                      status : Undef, dependsOn : empty >) > . 
+                                                     status : Undef, dependsOn : empty >) > . 
 
 \end{alltt}
 \normalsize
@@ -42,13 +42,11 @@ Defining a contract to be \texttt{noContract} means that we can define a rewrite
 \begin{alltt}
 rl [instr-delayed]: 
   findInstr(< SU1 : SU | inputs : (< I : Input | contract : noContract > IS) > C)
-  =>
-  findInstr(< SU1 : SU | inputs : (< I : Input | contract : delayed > IS) > C) .
+  => findInstr(< SU1 : SU | inputs : (< I : Input | contract : delayed > IS) > C) .
 
 rl [instr-reactive]: 
   findInstr(< SU1 : SU | inputs : (< I : Input | contract :   noContract > IS) > C)
-  =>
-  findInstr(< SU1 : SU | inputs : (< I : Input | contract : reactive > IS) > C) .
+  => findInstr(< SU1 : SU | inputs : (< I : Input | contract : reactive > IS) > C) .
 
 crl [remove-findInstr]: findInstr(CONF) => CONF 
   if scenarioInstrumented(CONF) .
@@ -64,9 +62,9 @@ The different instrumentations of a partially instrumented scenario is found and
 \begin{alltt}
 crl [findInstrumentation]: findContacts(INIT) => CONF
     if findInstr(INIT) => CONF
-    \(\land\) empty == tarjan(CONF) *** No Algebraic loops
-    \(\land\) runAnyAlgorithm CONF => run: ORC on: FINAL with: SIMDATA
-    \(\land\) shouldSatisfy(FINAL) .
+    /\char92 empty == tarjan(CONF) *** No Algebraic loops
+    /\char92 runAnyAlgorithm CONF => run: ORC on: FINAL with: SIMDATA
+    /\char92 shouldSatisfy(FINAL) .
 \end{alltt}
 \normalsize
 The rule \texttt{findInstrumentation} generates an instrumented scenario \texttt{CONF} from the partially instrumented scenario \texttt{INIT}.
@@ -134,12 +132,12 @@ We use the rule below to select different parameter valuations to see if they re
 \begin{alltt}
   crl [dse] : selectParams(UNITIALIZEDCONF) => CONF 
   if UNITIALIZEDCONF => CONF
-  \(\land\) runAnyAlgorithm CONF => 
+  /\char92 runAnyAlgorithm CONF => 
       run: < ALG : AlgData | Initialization : emptyList, 
       CosimStep : emptyList, Termination : emptyList > 
       on: FINALSTATE
       with: SIMULATIONDATA
-  \(\land\) above10(FINALSTATE) .
+  /\char92 above10(FINALSTATE) .
 \end{alltt}
 \normalsize
 \texttt{selectParams} is a constructor to ensure that no other rewrite rules can rewrite \texttt{UNITIALIZEDCONF}.

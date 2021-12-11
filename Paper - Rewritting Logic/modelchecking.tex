@@ -335,12 +335,13 @@ The water tank scenario described in \cref{ex:simulationunits} (\texttt{waterTan
 \end{alltt}
 \normalsize
 The command returns the final simulation state:
-
+\simon{Make inline using \,}
 \scriptsize
 \begin{alltt}
 run: < "Algorithm" : AlgorithmData | CosimStep : \emph{emptyList}, Initialization : emptyList,
                                      Termination : emptyList, endTime : 1 > 
-on: CONNECTIONS
+on: ("tank" ! "waterlevel" ==> "ctrl" ! "waterlevel") 
+    ("ctrl" ! "valveState" ==> "tank" ! "valveState")
     < "ctrl" : SU | canReject : false, fmistate : Unloaded, time : 1,
                     inputs : < "waterlevel" : Input | contract : reactive, status : Def, 
                                                       time : 1, type : integer, 
@@ -352,8 +353,7 @@ on: CONNECTIONS
                     parameters :"high" |-> < 5 >, "low" |-> < 0 >  > 
     < "tank" : SU | canReject : false, fmistate : Unloaded, time : 1,
                     inputs : < "valveState" : Input | contract : delayed, status : Def,
-                                                      time : 1, type : integer, 
-                                                      value : < 1 > >,
+                                                      time : 1, type : integer, value : < 1 > >,
                     outputs : < "waterlevel" : Output | dependsOn : empty, status : Def,
                                                         time : 1, type : integer, 
                                                         value : < 100 > >,
@@ -367,22 +367,12 @@ with: < "Orchestrator" : SimulationData | SNSet : empty,       actualStepSize : 
 \end{alltt}
 \normalsize
 
-The connections of the scenario are contained in the \texttt{CONNECTIONS}.
 \end{example}
 
 
-\subsection{Ensuring Confluent Co-simulation Algorithms}
-All valid co-simulation algorithms for the same scenario should result in the same simulation result.
-
-We can use Maude to check whether all generated co-simulation algorithms for a given scenario result in the same final state. 
-%such that co-simulation cannot detect any difference between the synthesized algorithms.
-%We say that a co-simulation practitioner cannot detect any differences between two co-simulations that has the same initial and final state.
-%For example, we two algorithms $P_1$ and $P_2$ are indistinguishable if $s \xrightarrow[\text{}]{P_1} s' \land s \xrightarrow[\text{}]{P_2} s'$ or any other words $P_1$ and $P_2$ are confluent.
-
-%The can unfortunately not prove in Maude that all the synthesized algorithms of an arbitrary scenario are confluent.
-%Instead, we can perform the check on case to case basis.  
-
-We can check that all synthesized algorithms of a given scenario \texttt{scenario} are confluent using the following search command:
+\subsection{Checking Confluence of Synthesized Co-simulation Algorithms}
+All valid co-simulation algorithms for the same scenario should give the same simulation result.
+We can use Maude to check whether all generated co-simulation algorithms for a given scenario \emph{scenario} result in the same final state using the following search command:
 
 \small
 \begin{alltt}
@@ -390,12 +380,12 @@ We can check that all synthesized algorithms of a given scenario \texttt{scenari
   \end{alltt}
 \normalsize
 
-The search command synthesizes and then executes all co-simulation algorithms for the scenario \texttt{scenario}. 
+This search command synthesizes and then executes all co-simulation algorithms for the scenario \emph{scenario}. 
 %Afterwards, it rewrites the scenario using the algorithm until it reaches a final state \texttt{S} that cannot be rewritten any further.
-If the term \texttt{scenario} was the water tank scenario in \cref{ex:simulationunits}, the search results in an single result, which means that all synthesized algorithms give the same result.
+For the water tank scenario in \cref{ex:simulationunits}, the search produces an single result, which means that all synthesized algorithms give the same result.
 
 %Confluence of the synthesized co-simulation algorithms is essential; it ensures that all correct algorithms lead to the same simulation result.
 
-Even though two algorithms give the same final result, they can still possess different properties, such as memory overhead and execution time. 
+Even though different algorithms give the same final result, they can still have different properties, such as memory overhead and execution time. 
 Our framework currently does not allow us to explore this aspect, since this relies on concrete SUs of the system.
-Nevertheless, we believe that this aspect could be explored in an extension of the tool using Maude's capability to communicate with \emph{external objects} see the Maude manual\simon{Make citation}.
+Nevertheless, we believe that this aspect could be explored in an extension of the tool using Maude's capability to communicate with \emph{external objects} (see \cite[Section 9]{}).

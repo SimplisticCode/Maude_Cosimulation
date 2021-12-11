@@ -1,19 +1,20 @@
 \section{Related Work}\label{sc:related}
-Semantics and verification of co-simulation algorithms have been the topic of multiple papers~\cite{Gomes2019c,Gomes2019a,Broman2013,thrane2021}. 
-The papers \cite{Gomes2019c,thrane2021} placed several criteria on the co-simulation algorithm and showed how to synthesize implementation-aware algorithms.
+Semantics and verification of co-simulation algorithms have been the topic of multiple papers~\cite{Gomes2019c,Gomes2019a,Broman2013,thrane2021,sampaio_behavioural_2016}. 
+The papers \cite{thrane2021} placed several criteria on the co-simulation algorithm and showed how to synthesize implementation-aware algorithms.
 This paper extends the work by treating design space exploration as an integrated part of synthesizing implementation-aware algorithms. 
-
-Thule et al. \cite{Thule_2018} studied how to use the co-simulation scenario's characteristics to choose the correct simulation strategy for a given co-simulation algorithm. 
-Nevertheless, we do not make 
-
-Broman et al. describe in \cite{Broman2013} propose a generic master algorithm for handling step negotiation. 
-However, their algorithms do not respect feedthrough and reactivity or treat algebraic loops. 
-This paper deals with all these constraints.
-
-Formal methods have previously been used in the area of co-simulation \cite{Amalio2016,sampaio_behavioural_2016,cerone_formalising_2018,hansen_verification_2021}.
-Amálio et al. \cite{Amalio2016} investigate how different formal tools can detect algebraic loops to obtain a deterministic co-simulation result. 
+Thule et al. \cite{Thule_2018} studied how to use the co-simulation scenario's characteristics to choose the correct simulation strategy for a given co-simulation algorithm.
+They explore different instrumentations using model checking, but they do not consider complex scenarios or design space exploration.
 Cavalcanti et al. \cite{sampaio_behavioural_2016} claim to provide the first behavioral semantics of FMI. 
 The paper shows how to prove essential properties of orchestration algorithms, like termination and determinism. 
 They also show that the algorithm provided in the FMI standard is not valid. 
+
+Formal methods have previously been used in the area of co-simulation \cite{Amalio2016,sampaio_behavioural_2016,cerone_formalising_2018,hansen_verification_2021}.
+Amálio et al. \cite{Amalio2016} investigate how different formal tools can detect algebraic loops to obtain a deterministic co-simulation result. 
 Zeyda et al. present in \cite{cerone_formalising_2018}  a formalization of a co-simulation scenario in Isabelle/UTP, where they prove different properties of the scenario.
 Unlike ours, their approach does not cover complex scenarios or design space exploration.
+
+Design space exploration of SU parameters using co-simulation is described in \cite{dse,gamble_design_2014}.
+These papers use genetics algorithms to find the optimal parameters values.
+However, they do not consider how different instrumentations can land to different simulation results.
+
+\simon{Maybe we need something with maude and cyber-physical systems}

@@ -1,138 +1,134 @@
 
-\section{Synthesis of Instrumentations and SU Parameters}\label{sc:DSE}
-The framework enables different kinds of design space exploration.
-Design space exploration allows the co-simulation practitioner to explore how different model parameters/designs change the behavior of the system/simulation result.
-The co-simulation practitioner can concretely experiment with different valuations of the scenario's instrumentation and parameters of the SUs.
-We describe the two searches independently even though they can be combined.
+\section{Synthesizing Instrumentations and SU Parameters}\label{sc:DSE}
+Our framework enables different kinds of design space exploration to allows the co-simulation practitioner to explore how different model parameters/designs change the behavior of the system.
+The co-simulation practitioner can experiment with different instrumentations and values of the SU parameters.
 
 \subsection{Instrumentation of a Scenario}
-The instrumentation of the input ports is used to achieve more accurate co-simulation results as shown in \cite{Gomes2019,Oakes2021,hansen_verification_2021}, since they allow the orchestration to select optimal communication points.
+Finding a good instrumentation of the input ports (i.e. deciding whether an input port should be \texttt{reactive} or \texttt{delayed}) is important not only to achieve accurate co-simulation results as shown in \cite{Gomes2019,Oakes2021,hansen_verification_2021}, but also because some instrumentations of a scenario can lead to algebraic loop where other instrumentations do not.
+
 However, finding the instrumentation that results in the most accurate simulation can be challenging.% since none of the existing tools to export FMUs/SUs provide this information.
 
-We use model checking to explore the consequences of different instrumentations of a scenario to find the instrumentation that yields the most accurate simulation.
-
+We use reachability analysis to explore the consequences of different instrumentations of a scenario to find the instrumentation that yields the most accurate simulation.
 To explore different instrumentations of a scenario, we create a \emph{partially instrumented} scenario, where the some of the inputs have the contract \texttt{noContract}, which means they are not \texttt{reactive} or \texttt{delayed}.
 %A scenario is \emph{instrumented} if none its inputs are declared with the contract \texttt{noContract}, otherwise the scenario is partially instrumented.
-The scenario described below is partially instrumented, while the scenario in \cref{ex:simulationunits} is instrumented:
+\begin{example}
+  The following water tank scenario is partially instrumented:
 \scriptsize
 \begin{alltt}
 eq simulationUnitsNotInstrumented = 
 < "tank" : SU | parameters : ("flow" |-> <\,100\,>),  localState : ("waterlevel" |-> <\,0\,>),
                 time : 0,  fmistate : Instantiated, canReject : false, 
                 inputs : (< "valveState" : Input | value : <\,0\,>, type : integer, time : 0,
-                                                   contract : noContract, status : Undef >), 
+                                                   contract : \emph{noContract}, status : Undef >), 
                 outputs : (< "waterlevel" : Output | value : <\,0\,>, type : integer, time : 0,
                                                      status : Undef, dependsOn : empty >) >
 
 < "ctrl" : SU | parameters : (("high" |-> <\,5\,>) , ("low" |-> <\,0\,>)), canReject : false, 
                 localState : ("valve" |-> <\,false\,>), fmistate : Instantiated, time : 0, 
                 inputs : (< "waterlevel" : Input | value : <\,0\,>, type : integer, time : 0,
-                                                   contract : noContract, status : Undef >), 
+                                                   contract : \emph{noContract}, status : Undef >), 
                 outputs : (< "valveState" : Output | value : <\,0\,>, type : integer, time : 0,
                                                      status : Undef, dependsOn : empty >) > . 
 
 \end{alltt}
 \normalsize
 
-An algorithm can only be synthesized and executed for an instrumented scenario. 
-We have, therefore, created some rule to instrument a partially instrumented scenario.
-The rules non-deterministically makes all non-instrumented input ports \texttt{delayed} or \texttt{reactive}:
+\end{example}
+
+A partially instrumented scenario has the form \texttt{findInstr}(\emph{scenario}) and becomes an ordinary scenario when all ports have been instrumented (rule \texttt{remove-findInstr}).
+The rules \texttt{instr-delayed} and \texttt{instr-reactive} set uninstrumented input ports to be either \texttt{delayed} or \texttt{reactive}:
 
 \scriptsize
 \begin{alltt}
 rl [instr-delayed]: 
-  findInstr(< SU1 : SU | inputs : (< I : Input | contract : noContract > IS) > C)
-  => findInstr(< SU1 : SU | inputs : (< I : Input | contract : delayed > IS) > C) .
+  findInstr(< SU1 : SU | inputs : (< I : Input | contract : \emph{noContract} > IS) > C)
+  => findInstr(< SU1 : SU | inputs : (< I : Input | contract : \emph{delayed}  > IS) > C) .
 
 rl [instr-reactive]: 
-  findInstr(< SU1 : SU | inputs : (< I : Input | contract :   noContract > IS) > C)
-  => findInstr(< SU1 : SU | inputs : (< I : Input | contract : reactive > IS) > C) .
+  findInstr(< SU1 : SU | inputs : (< I : Input | contract :   \emph{noContract}  > IS) > C)
+  => findInstr(< SU1 : SU | inputs : (< I : Input | contract : \emph{reactive}  > IS) > C) .
 
-crl [remove-findInstr]: findInstr(CONF) => CONF 
-  if scenarioInstrumented(CONF) .
+crl [remove-findInstr]: findInstr(CONF) => CONF if scenarioInstrumented(CONF) .
 \end{alltt}
 \normalsize
 
-The rule finds a non-instrumented input \texttt{I} of an SU \texttt{SU1} with the contract \texttt{noContract} of partially instrumented scenario wrapped inside the constructor \texttt{findInstr} and makes the input either \texttt{delayed} using the rule \texttt{instr-reactive} or \texttt{reactive} using the rule \texttt{instr-reactive}.
-The scenario \texttt{CONF} is freed from the constructor \texttt{findInstr} when it is fully instrumented, which is asserted using the predicate \texttt{scenarioInstrumented}.
-The constructor \texttt{findInstr} ensures that other rewrite rules cannot rewrite a partially instrumented scenario.
-
-The different instrumentations of a partially instrumented scenario are found and explored using the rule:
+The different instrumentations of a partially instrumented scenario are found and explored using the following rule:
 
 \small
 \begin{alltt}
-crl [findInstrumentation]: findContacts(INIT) => CONF
+crl [findInstrumentation]: findContracts(INIT) => CONF
     if findInstr(INIT) => CONF
-    /\char92 empty == tarjan(CONF) *** No Algebraic loops
+    /\char92 empty == tarjan(CONF)            *** \emph{no algebraic loops}
     /\char92 runAnyAlgorithm CONF => run: ORC on: FINAL with: SIMDATA
+    /\char92 simulationDone(ORC)
     /\char92 shouldSatisfy(FINAL) .
-\end{alltt}
+  \end{alltt}
 \normalsize
 
-The rule \texttt{findInstrumentation} generates an instrumented scenario \texttt{CONF} from the partially instrumented scenario \texttt{INIT}.
+\noindent The rule \texttt{findInstrumentation} generates an instrumented scenario \texttt{CONF} from the partially instrumented scenario \texttt{INIT}.
 The instrumented scenario \texttt{CONF} is simulated using the rule \texttt{runAnyAlgorithm} to explore its simulation result.
-
-The explored instrumentations can restricted as desired by defining specific properties the instrumented version \texttt{CONF} of the partially instrumented scenario \texttt{INIT} must satisfy.
-For example, in the rule above, it is specified using the predicate \texttt{empty == tarjan(CONF)} that none of the instrumentations must introduce algebraic loops in the scenario.
+The explored instrumentations can be restricted as desired by defining specific properties the instrumented version \texttt{CONF} of the partially instrumented scenario \texttt{INIT} must satisfy.
+For example, in the rule above, the condition \texttt{empty == tarjan(CONF)} specifies that none of the instrumentations must introduce algebraic loops in the scenario.
 
 The instrumentations can be selected based on the simulation they produce. 
-For example, we have stated that the simulation above must satisfy the predicate \texttt{shouldSatisfy} that says the water level of the tank in the final state \texttt{FINAL} should be in a specific range.
+For example, we have stated that the simulation above must satisfy the condition \texttt{shouldSatisfy} that says the water level of the tank in the final state \texttt{FINAL} should be in a specific range.
 
 \begin{example}
-We use Maude to find all instrumentations of the partially instrumented scenario that satisfies criteria above using the search command: 
+  The following Maude command finds all instrumentations of the partially instrumented scenario that satisfies criteria above: 
 
 \small
 \begin{alltt}
 search findContracts(simulationUnitsNotInstrumented) =>! C:Configuration .
 \end{alltt}
+\normalsize
 
-The search returns the following three instrumentations (we have moved the irrelevant parts of the result):
+The search returns the following three instrumentations (with parts replaced by `\texttt{...}'):
 
+\scriptsize
 \begin{alltt}
 Solution 1
-C:Configuration --> (
-< "ctrl" : SU | inputs : < "waterlevel" : Input | contract : delayed > >
-< "tank" : SU | inputs : < "valveState" : Input | contract : reactive > >
+C:Configuration --> `...'
+< "ctrl" : SU | inputs : < "waterlevel" : Input | contract : delayed > `...' >
+< "tank" : SU | inputs : < "valveState" : Input | contract : reactive > `...' >
 
 Solution 2
-C:Configuration --> (
-< "ctrl" : SU | inputs : < "waterlevel" : Input | contract : reactive > >
-< "tank" : SU | inputs : < "valveState" : Input | contract : delayed > >
+C:Configuration --> `...'
+< "ctrl" : SU | inputs : < "waterlevel" : Input | contract : reactive > `...' >
+< "tank" : SU | inputs : < "valveState" : Input | contract : delayed > `...' >
 
 Solution 3
-C:Configuration --> (
-< "ctrl" : SU | inputs : < "waterlevel" : Input | contract : delayed > >
-< "tank" : SU | inputs : < "valveState" : Input | contract : delayed > >
+C:Configuration --> `...'
+< "ctrl" : SU | inputs : < "waterlevel" : Input | contract : delayed > `...' >
+< "tank" : SU | inputs : < "valveState" : Input | contract : delayed > `...' >
 
 \end{alltt}
 \normalsize
 
 \end{example}
 
-\subsection{Finding the SU Parameters}
-An SU may have different parameters affecting its behavior.
-This means that different parameters potentially lead to different simulation results.
-Design space exploration explores how different valuations of the parameters affect the co-simulation result to find the optimal design of the system. 
+\subsection{Synthesizing SU Parameters}
+An SU may have different parameters.
+%This means that different parameters potentially lead to different simulation results.
+Design space exploration explores how different values of the parameters affect the co-simulation result in order to find the optimal design of the system. 
 
-The Maude framework allows design space exploration by letting the user specify the valuation of a parameter as a set of possible valuations inside the \texttt{choose}-operator.
-The \texttt{choose}-operator non-deterministically selects an element in the set.
+Our Maude framework allows design space exploration by letting the user specify a finite set possible values of a parameter using the \texttt{choose} operator, non deterministically selects an element in the set using a rule \texttt{choose(v, vs) => v}.
 
-\begin{example}\label{ex:dse}.
-  Assuming that we want find the parameter \texttt{flow} of the water tank example such that the final state satisfies the predicate below:
+\begin{example}\label{ex:dse}
+  We want find the parameter \texttt{flow} of the water tank example such that the final state satisfies the predicate below:
 
-  \scriptsize
+  \small
   \begin{alltt}
 op above10 : Configuration -> Bool .
-eq above10(CONF < "tank" : SU | localState : ( "waterlevel" |-> < V >) >) = V > 10 .  
+eq above10(CONF\,< "tank" : SU\,|\,localState\,:\,"waterlevel" |-> <\,V\,> >) = V\,>\,10\,.  
   \end{alltt}
   \normalsize
 
-This predicate says the water level should be higher than 10.
-We want to explore the following valuations of the parameter \texttt{flow}: 1, 2 and 30:
+  \noindent This predicate says that the water level should be higher than 10.
+We would like to select a value for the parameter \texttt{flow} from set: 1, 2 and 30 such that the simulation satisfies the desired property:
 
 \small
 \begin{alltt}
-< "tank" : SU | parameters : ("flow" |-> choose((< 1 >,< 2 >,< 30 >))) >
+< "tank" : SU | parameters : "flow" |-> choose(< 1 >,< 2 >,< 30 >) >
 \end{alltt}
 \normalsize
 
@@ -143,16 +139,16 @@ We use the rule below to select different parameter valuations to see if they re
   crl [dse] : selectParams(UNITIALIZEDCONF) => CONF 
   if UNITIALIZEDCONF => CONF
   /\char92 runAnyAlgorithm CONF => 
-      run: < ALG : AlgData | Initialization : emptyList, 
-      CosimStep : emptyList, Termination : emptyList > 
-      on: FINALSTATE
-      with: SIMULATIONDATA
+           run: < ALG : AlgData | Initialization : emptyList, 
+                                  CosimStep : \emph{emptyList}, 
+                                  Termination : emptyList > 
+           on: FINALSTATE with: SIMULATIONDATA
   /\char92 above10(FINALSTATE) .
 \end{alltt}
 \normalsize
 
-\texttt{selectParams} is a constructor to ensure that no other rewrite rules can rewrite \texttt{UNITIALIZEDCONF}.
-The different valuations are explored using the search command:
+%\texttt{selectParams} is a constructor to ensure that no other rewrite rules can rewrite \texttt{UNITIALIZEDCONF}.
+\noindent The different valuations are explored using the command:
 
 \small
 \begin{alltt}
@@ -160,51 +156,51 @@ The different valuations are explored using the search command:
 \end{alltt}
 \normalsize
 
-Where \texttt{ScenarioDSE} is the scenario from \cref{ex:simulationunits} where the parameter \texttt{flow} is defined using the \texttt{choose}-operator as shown above.
-The search exhaustively checks all valuations and returns the valuations that satisfy the predicate \texttt{above10}:
-
+\texttt{ScenarioDSE} is our water tank scenario where the parameter \texttt{flow} is defined using the \texttt{choose}-operator as shown above.
+The search returns all valuations whose simulations lead to a final state that satisfy the predicate \texttt{above10}.
 \small
 \begin{alltt}
-C:Configuration --> 
+C:Configuration --> `...'
   < "tank" : SU | parameters : "flow" |-> < 30 > >
 \end{alltt}
 \normalsize
 
-The search returns a whole scenario, we only show the selected valuation for the parameter \texttt{flow}.
 \end{example}
 
-\subsection{Combining Design Space Exploration of the Instrumentation and Parameters}
-We can combine the two searches described above to simultaneously experiment with the instrumentation and the parameters of a scenario.
+By having \texttt{noContract} ports and \texttt{choose}(\emph{...}) we can also \emph{simultaneously} synthesize desired instrumentations and parameter values.
 
-\begin{example}
-  We can explore different instrumentations and parameters by defining a partially instrumented scenario with configurable parameters:
+% \subsection{Combining Design Space Exploration of the Instrumentation and Parameters}
+% We can combine the two searches described above to simultaneously experiment with the instrumentation and the parameters of a scenario.
 
-\scriptsize
-\begin{alltt}
-eq simulationDSE =  
-< "tank" : SU | parameters : ("flow" |-> choose((< 1 >,< 2 >,< 30 >))), 
-localState : ( "waterlevel" |-> < 0 > ) , time : 0, 
-inputs : (< "valveState" : Input | value : < 0 >, type : integer, time : 0, 
-                                   contract : noContract, status : Undef  >), 
-outputs : (< "waterlevel" : Output | value : < 0 >, type : integer, time : 0, 
-                                     status : Undef, dependsOn : empty >), 
-fmistate : Instantiated, canReject : false >
+% \begin{example}
+%   We can explore different instrumentations and parameters by defining a partially instrumented scenario with configurable parameters:
 
-< "ctrl" : SU | parameters : (("high" |-> < 20 >) , ("low" |-> < 0 >)), 
-localState : ( "valve" |-> < false >), time : 0, 
-inputs : (< "waterlevel" : Input | value : < 0 >, type : integer, time : 0, 
-                                   contract : noContract, status : Undef  >), 
-outputs : (< "valveState" : Output | value : < 0 >, type : integer, time : 0, 
-                                     status : Undef, dependsOn : empty >), 
-fmistate : Instantiated, canReject : false > .
-\end{alltt}
+% \scriptsize
+% \begin{alltt}
+% eq simulationDSE =  
+% < "tank" : SU | parameters : ("flow" |-> choose((< 1 >,< 2 >,< 30 >))), 
+% localState : ( "waterlevel" |-> < 0 > ) , time : 0, 
+% inputs : (< "valveState" : Input | value : < 0 >, type : integer, time : 0, 
+%                                    contract : noContract, status : Undef  >), 
+% outputs : (< "waterlevel" : Output | value : < 0 >, type : integer, time : 0, 
+%                                      status : Undef, dependsOn : empty >), 
+% fmistate : Instantiated, canReject : false >
 
-The parameters and instrumentations can now be explored using the search command 
-\normalsize
+% < "ctrl" : SU | parameters : (("high" |-> < 20 >) , ("low" |-> < 0 >)), 
+% localState : ( "valve" |-> < false >), time : 0, 
+% inputs : (< "waterlevel" : Input | value : < 0 >, type : integer, time : 0, 
+%                                    contract : noContract, status : Undef  >), 
+% outputs : (< "valveState" : Output | value : < 0 >, type : integer, time : 0, 
+%                                      status : Undef, dependsOn : empty >), 
+% fmistate : Instantiated, canReject : false > .
+% \end{alltt}
 
-The scenario can be explored using the search command from \cref{ex:dse}. 
-%The search finds that the following instrumentations and parameters satisfy 
-\end{example}
+% The parameters and instrumentations can now be explored using the search command 
+% \normalsize
+
+% The scenario can be explored using the search command from \cref{ex:dse}. 
+% %The search finds that the following instrumentations and parameters satisfy 
+% \end{example}
 
 
 % \subsection{Limitation of the approach}

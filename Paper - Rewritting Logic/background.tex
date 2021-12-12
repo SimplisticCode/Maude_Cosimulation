@@ -307,49 +307,28 @@ We base our semantics on \cite{Gomes2019a,hansen_verification_2021} to which we 
 
 An algorithm $P$ must satisfy \cref{def:comsim_step} while respecting the defined semantics.
 This means that \cref{alg:algorithm_3} is correct, while \cref{alg:algorithm_2,alg:algorithm_1} are incorrect since they do not respect the semantics.
-For example, \cref{alg:algorithm_2} tries to perform a $\fdoStep{A}$ action in line 2 without respecting the reactive input $\inputvar{g}$ since the state of SU $A$ $\runstate{A} = \tuple{0,\{\inputvar{g} \to 0 \}, \{\outputvar{f} \to 0 \}, \dontcare}$ does not contain $\{\inputvar{g} \to H \}$.
-Intuitively, we try to step SU $A$ without having provided it with a value on the reactive input $\inputvar{g}$; this is an apparent violation of $\fpredoStep{A}$.
+%For example, \cref{alg:algorithm_2} tries to perform a $\fdoStep{A}$ action in line 2 without respecting the reactive input $\inputvar{g}$ since the state of SU $A$ $\runstate{A} = \tuple{0,\{\inputvar{g} \to 0 \}, \{\outputvar{f} \to 0 \}, \dontcare}$ does not contain $\{\inputvar{g} \to H \}$.
+%Intuitively, we try to step SU $A$ without having provided it with a value on the reactive input $\inputvar{g}$; this is an apparent violation of $\fpredoStep{A}$.
   
 \subsection{Complex Co-simulation Scenarios}
-Complex co-simulation scenarios are subject to algebraic loops~\cite{Kubler2000} (\cref{fig:algebraic_example}) or step rejections~\cite{thrane2021} (\cref{fig:step_finding_scenario}).
-
-\begin{figure}[htb]
-  \begin{subfigure}{0.48\textwidth}
-    \centering
-    \centering
-    \includegraphics[width=0.9\textwidth]{images/scenario_algebraic.pdf}
-    \caption{A scenario with an algebraic loop.}
-    \label{fig:algebraic_example}
-  \end{subfigure}
-  \begin{subfigure}{.48\textwidth}
-    \centering
-    \includegraphics[width=0.95\textwidth]{images/step_negotiation_scenario.pdf}
-    \caption{A scenario where one of the SUs can reject a step. We denote by the letter \emph{M} in the top right corner of the SU that an SU can reject a step.}
-    \label{fig:step_finding_scenario}
-    \end{subfigure} 
-    \caption{Complex co-simulation scenarios.}
-  \end{figure}
-
-An algebraic loop states that the value of a port depends on itself. 
-Real-world examples include the correct initialization of a suspension system of a car~\cite{thranefmi-based2020}.
-Algebraic loops can be detected as a non-trivial strongly connected component of the graph constructed using the rules \cite[Definition 15]{Gomes2019c}.
-
+Complex co-simulation scenarios are subject to algebraic loops or step rejections~\cite{thrane2021,Kubler2000,Oakes2021}.
+An algebraic loop denotes a cyclic dependency between the SUs; real-world examples include the suspension system of a car~\cite{thranefmi-based2020}.
+% Algebraic loops can be detected as a non-trivial strongly connected component of the graph constructed using the rules \cite[Definition 15]{Gomes2019c}.
 Step rejections, triggered by error estimation inside the SU, need special attention because they can result in a co-simulation step where the SUs do not move in lockstep.
 
-A complex scenario is simulated using an iterative co-simulation algorithm.
-The algorithm is iterative because the orchestrator needs to adapt to the behavior of the SUs to satisfy the constraints associated with each SU, account for possible step rejections, and solve algebraic loops. 
-The orchestrator achieves this by finding a correct valuation of all inputs and outputs in the scenario~\cite{thrane2021}.
-The valuation defines the step duration and the current attempt to solve the scenario's algebraic loops. 
-A correct valuation ensures that all SUs agree on the step duration and solves all algebraic loops by finding a fixed point.
-A complex co-simulation scenario can only be correctly simulated using a correct valuation.
+A complex scenario is simulated using an iterative co-simulation algorithm that adapts to the behavior of the SUs to satisfy the constraints associated with each SU, account for possible step rejections, and solve algebraic loops. 
+%The orchestrator achieves this by finding a correct valuation of all inputs and outputs in the scenario~\cite{thrane2021}.
+%The valuation defines the step duration and the current attempt to solve the scenario's algebraic loops. 
+%A correct valuation ensures that all SUs agree on the step duration and solves all algebraic loops by finding a fixed point.
+%A complex co-simulation scenario can only be correctly simulated using a correct valuation.
 
-The orchestrator must find a correct valuation in every co-simulation step because it depends on the current internal state of the SUs, which varies from one co-simulation step to the next.
+%The orchestrator must find a correct valuation in every co-simulation step because it depends on the current internal state of the SUs, which varies from one co-simulation step to the next.
 
-The process for finding a correct valuation is due to space limitations not covered here; we refer interested readers to \cite{thrane2021,Kubler2000}.
+%The process for finding a correct valuation is due to space limitations not covered here; we refer interested readers to \cite{thrane2021,Kubler2000}.
 
 \subsection{Design Space Exploration}
 Design space exploration is a technique for evaluating how different combinations of parameters (designs) affect the system's performance to determine which parameter combinations are ``optimal''~\cite{kang_approach_2011}.
-The parameters of an SU are constants that configures the SU's behavior, an example is the desired the parameter \texttt{flow} described in \cref{ex:simulationunits}.
+The parameters of an SU are constants that configure the SU's behavior; an example is the parameter \texttt{flow} described in \cref{ex:simulationunits}.
 Design space exploration can roughly be divided into two phases a search and a design evaluation.
 The search finds the different combinations of parameters (designs) while the design evaluation evaluates them.
 Design space exploration can be used in the context of co-simulation and digital twins, where it provides a cheap way to explore the consequence of different design decisions~\cite{gamble_design_2014,dse}.
@@ -361,5 +340,5 @@ The two key problems in co-simulation that we addresses in this paper (in additi
   \item Given a scenario $\scenario$ synthesize an implementation-aware co-simulation algorithm $P$ for $\scenario$.
   That is, find the sequence of SU actions $P$ so that running $P$ on $\scenario$ satisfies \cref{def:comsim_step} while respecting the semantics.
   This includes solving possible algebraic loops and performing step negotiation to ensure that all SUs move in lockstep.
-  \item Given a \emph{parametric} or \emph{partially instrumented} scenario $\scenario$, where some SU parameters are unknown and where the instrumentation is incomplete i.e., not all input ports have been declared ether \emph{reactive} or \emph{delayed}, find concrete values for the the parameters, and a concrete instrumentation of the input ports, such that the resulting \emph{instrumented} scenario represent a system with desirable properties.
+  \item Given a \emph{parametric} or \emph{partially instrumented} scenario $\scenario$, where some SU parameters are unknown and where the instrumentation is incomplete, i.e., not all input ports have been declared ether \emph{reactive} or \emph{delayed}, find concrete values for the parameters, and concrete instrumentation of the input ports, such that the resulting \emph{instrumented} scenario represents a system with desirable properties.
 \end{compactenum}

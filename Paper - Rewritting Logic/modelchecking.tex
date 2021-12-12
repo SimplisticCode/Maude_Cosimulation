@@ -68,7 +68,7 @@ For example, the following rewrite rule describes a $\fget{}$ operation:
 crl [get-syn] :
     < SU1 : SU | fmistate : Simulation, inputs : IS, 
                   outputs : (< O : Output | time : T, status : Undef, 
-                                            value : V, dependsOn : FT > OS) > 
+                                            value\,:\,V,\,dependsOn\,:\,FT\,>\,OS)\,> 
     (SU1 ! O ==> SU2 ! I)
     < OCH : SimData | values : PV > 
     < ALG : AlgoData | CoSimStep : ALGO >
@@ -376,7 +376,7 @@ Maude> \emph{search (runAnyAlgorithm scenario)  =>! S:SimState} .
 
 This search command synthesizes and then executes all co-simulation algorithms for the scenario \emph{scenario}. 
 %Afterwards, it rewrites the scenario using the algorithm until it reaches a final state \texttt{S} that cannot be rewritten any further.
-For the water tank scenario in \cref{ex:simulationunits}, the search produces an single result, which means that all synthesized algorithms give the same result.
+For the water tank scenario in \cref{ex:simulationunits}, the search produces a single result, which means that all synthesized algorithms give the same result.
 
 %Confluence of the synthesized co-simulation algorithms is essential; it ensures that all correct algorithms lead to the same simulation result.
 

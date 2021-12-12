@@ -1,14 +1,30 @@
 \begin{abstract}
-Simulation-based analyses of cyber-physical systems are vital in the era of Industry 4.0. 
-Co-simulation enables the coupling of specialized simulation tools through an orchestration algorithm. 
-The orchestrator dictates how each simulation tool should simulate its corresponding subsystem.
-Obtaining correct simulation results requires an implementation-aware orchestration algorithm tailored to the specific scenario, without the orchestrator knowing each simulation tool's implementation. 
-The orchestrator should stabilize algebraic loops, perform time step negotiation, and adhere to each simulation tool's implementation.
-This paper describes an approach and implementation for generating orchestration algorithms that respect all simulation units' implementation contracts by construction using rewriting logic. 
-Furthermore, the approach enables various analyses of the orchestration algorithm and system itself, among other various kinds of design space exploration.
-     
-\keywords{Co-Simulation \and Rewriting Logic \and Model-checking \and Cyber-Physical Systems}
-\end{abstract}
-
-
-
+    Simulation-based analysis of cyber-physical systems are vital in the
+    era of Industry 4.0.  
+    Co-simulation enables  composing  specialized simulation tools
+    via a co-simulation algorithm.
+    In this paper we provide a formal model in Maude of co-simulation for
+    complex scenarios involving algebraic loops and step negotiation.
+    We show not only how Maude can formally analyze
+    co-simulations, but also how Maude can be used to synthesize
+    co-simulation algorithms, port instrumentations, and parameter values
+    such that the resulting co-simulation satisfies desired properties.
+    % The orchestrator dictates how each simulation tool should simulate
+    % its corresponding  subsystem.
+    % Obtaining correct simulation results requires an
+    % implementation-aware orchestration  algorithm tailored to the
+    % specific scenario,  without the orchestrator knowing each simulation tool's implementation. 
+    % The orchestrator should stabilize algebraic loops, perform time step
+    % negotiation, and  adhere to each simulation tool's implementation.
+    % This paper describes an approach and implementation for generating
+    % orchestration algorithms that respect all simulation units'
+    % implementation contracts by construction  using rewriting logic. 
+    % Furthermore, the approach enables various analyses of the
+    % orchestration algorithm  and system itself, among other various kinds of design space exploration. 
+    %
+    % \keywords{Co-Simulation \and Rewriting Logic \and Model-checking \and Cyber-Physical Systems}
+    \end{abstract}
+    
+    
+    
+    

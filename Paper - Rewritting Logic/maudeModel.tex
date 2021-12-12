@@ -62,7 +62,7 @@ classes:
 
 \small
 \begin{alltt}
-class Port | value\,:\,\,FMIValue, time\,:\,\,Nat, status\,:\,\,PortStatus, type\,:\,\,FMIType\,. 
+class Port | value\,:\,\,FMIValue,\,time\,:\,\,Nat,\,status\,:\,\,PortStatus,\,type\,:\,\,FMIType\,. 
 class Input | contract : Contract .
 class Output | dependsOn : OidSet .     
 subclasses Input Output < Port .
@@ -94,7 +94,7 @@ The water tank  (in its initial state)  is modeled as an object
 \scriptsize
 \begin{alltt}
 < "tank" : SU | parameters : ("flow" |-> <\,5\,>),  localState : ("waterlevel" |-> <\,0\,>),
-                inputs : (< "valveState" : Input | value\,\,:\,\,<\,0\,>, time\,\,:\,\,0, contract\,\,:\,\,delayed >),
+                inputs : (< "valveState" : Input |\,value\,\,:\,\,<\,0\,>, time\,\,:\,\,0,\,contract\,\,:\,\,delayed >),
                 outputs : (< "waterlevel" : Output | value : <\,0\,>, time : 0,
                                                      status : Undef, dependsOn : empty >)
                 time : 0,  canReject : false >
@@ -194,14 +194,14 @@ eq simulationUnits =
                    time : 0,  fmistate : Instantiated, canReject : false, 
                    inputs : (< "valveState" : Input | value : <\,0\,>, type : integer, time : 0,
                                                       contract : delayed, status : Undef >), 
-                   outputs : (< "waterlevel" : Output | value : <\,0\,>, type : integer, time : 0,
-                                                        status : Undef, dependsOn : empty >) >
+                   outputs : (< "waterlevel" : Output | value : <\,0\,>, type\,:\,integer, time\,:\,0,
+                                                        status : Undef, dependsOn : empty >)\,>
    < "ctrl" : SU | parameters : (("high" |-> <\,5\,>) , ("low" |-> <\,0\,>)), canReject : false, 
                    localState : ("valve" |-> <\,false\,>), fmistate : Instantiated, time : 0, 
                    inputs : (< "waterlevel" : Input | value : <\,0\,>, type : integer, time : 0,
                                                       contract : reactive, status : Undef >), 
-                   outputs : (< "valveState" : Output | value : <\,0\,>, type : integer, time : 0,
-                                                        status : Undef, dependsOn : empty >) > .
+                   outputs : (< "valveState" : Output | value : <\,0\,>, type\,:\,integer, time\,:\,0,
+                                                        status : Undef,\,dependsOn : empty\,>)\,>\,.
 
 eq externalConnection = ("tank" ! "waterlevel" ==> "ctrl" ! "waterlevel") 
                         ("ctrl" ! "valveState" ==> "tank" ! "valveState") .

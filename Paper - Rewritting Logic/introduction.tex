@@ -1,49 +1,181 @@
-% Motivation for co-simulation
-Cyber-physical systems (CPSs) are omnipresent and part of the critical infrastructure.
-A CPS is a hybrid system that embodies physical processes controlled by digital devices. Examples include everything from a controller opening and closing a valve to regulate the water level in a tank to autonomous vehicles.
-CPSs are becoming increasingly complex and critical~\cite{4519604}, which leads to the desire for techniques to assist in their development.
-Traditional modeling and simulation techniques, where a solver algorithm describes a model, are no longer sufficient to cope with the integrated development processes of such systems~\cite{FMI2014}, which consists of heterogeneous subsystems typically developed using different tools and formalisms~\cite{Paris19}. 
+% % Motivation for co-simulation
+% Cyber-physical systems (CPSs) are omnipresent and part of the critical infrastructure.
+% A CPS is a hybrid system that embodies physical processes controlled
+% by digital devices. Examples include everything from a controller
+% opening and closing a valve to regulate the water level in a tank to
+% autonomous vehicles. 
+% CPSs are becoming increasingly complex and critical~\cite{4519604},
+% which leads to the desire for techniques to assist in their
+% development. 
+% Traditional modeling and simulation techniques, where a solver
+% algorithm describes a model, are no longer sufficient to cope with
+% the integrated development processes of such systems~\cite{FMI2014},
+% which consists of heterogeneous subsystems typically developed using
+% different tools and formalisms  
+%
+% % Why and what is co-simulation
+% %Co-simulation is the study of how to coordinate multiple black-box
+% simulation units (SUs) developed using different tools and
+% formalisms. 
+% Co-simulation solves the shortcomings of the traditional modeling
+% techniques by letting the user explore the behavior of a system
+% described as a composition of black-box subsystems
+% (SUs)~\cite{Kubler2000,Gomes2018}. 
+%
+% An SU implements a well-defined interface and represents a subsystem
+% by calculating its behavioral trace using a dedicated solver. 
+% An example of such an SU is a Functional Mock-up Unit (FMU) defined
+% by the Functional Mock-up Interface Standard~\cite{FMI2014} (FMI),
+% which inspires the notion of an SU in this paper.  
+% FMI is widely adopted, supported by many tools~\cite{Tools_FMI}, and
+% used commercially. 
+%
+% %How to test and verify an OA - need for correct by construction algorithm
+% The overarching challenge of co-simulation is ensuring accurate
+% simulation results due to the many potential error
+% sources~\cite{Gomes2018}. 
+% The simulation result depends not only on the correctness of the
+% individual SUs but also on the co-simulation algorithm that composes
+% them, which is often
+% overlooked~\cite{Gomes2019,Gomes2018f,Schweizer2015c}. 
+% The co-simulation algorithm must be specifically tailored to the
+% instrumentation of the scenario to ensure an accurate simulation
+% result~\cite{hansen_verification_2021,Oakes2021}. 
+% Not considering the scenario's instrumentation can lead to
+% inaccurate co-simulation results, which can be extremely difficult
+% to debug and fix in practice. 
+% The challenge has partly been addressed by the papers
+% \cite{Gomes2019,Oakes2021,thrane2021} that show how to synthesize
+% tailored co-simulation algorithms. 
+% Nevertheless, the approaches do not consider scenarios where the
+% instrumentation is unknown or the SUs are parametric. 
+%
+% %Design space evaluation
+% Co-simulation creates an environment where SUs can be composed to
+% explore and analyze different system's design to find the optimal
+% design~\cite{dse,gamble_design_2014}; the process is called design
+% space exploration. 
+%
+% We propose a framework in Maude where a co-simulation practitioner
+% can synthesize  and execute tailored co-simulation algorithms while
+% exploring  different system designs for both simple and complex scenarios.
+% Complex scenarios are subject to algebraic loops denoting cyclic dependencies between the SUs or step rejections, where an SU refuses specific future state evaluations because it implements error estimation.
+% Complex scenarios are more challenging to simulate since the co-simulation algorithm needs to adapt to the behavior of the SUs~\cite{thrane2021} to solve algebraic loops and ensure that all SUs move in lockstep.
+%
+% Our framework enables a co-simulation practitioner to explore the consequences of changing the scenario's instrumentation and SU parameters. 
+% Co-simulation practitioners can thereby use their domain knowledge to place constraints on the co-simulation result to let Maude find the parameters and instrumentation that result in a co-simulation with desirable properties. 
+%
+%
+% =============================
 
-% Why and what is co-simulation
-%Co-simulation is the study of how to coordinate multiple black-box simulation units (SUs) developed using different tools and formalisms.
-Co-simulation solves the shortcomings of the traditional modeling techniques by letting the user explore the behavior of a system described as a composition of black-box subsystems (SUs)~\cite{Kubler2000,Gomes2018}.
+\section{Introduction}
 
-An SU implements a well-defined interface and represents a subsystem by calculating its behavioral trace using a dedicated solver.
-An example of such an SU is a Functional Mock-up Unit (FMU) defined by the Functional Mock-up Interface Standard~\cite{FMI2014} (FMI), which inspires the notion of an SU in this paper. 
-FMI is widely adopted; supported by many tools~\cite{Tools_FMI} and used commercially.
+Modern  cyber-physical systems (CPSs),  such as,  e.g.,  nuclear power
+plants, cars, and airplanes, consist of multiple
+heterogeneous subsystems that    are developed by different
+companies using different tools and formalisms~\cite{Paris19}.
+These companies will usually not share their models for commercial reasons.
+There is nevertheless  a need to determine   how
+these subsystems 
+interact and to  explore and analyze different design choices as early
+as possible~\cite{4519604}. 
+One way of addressing this need is to use, for each subsystem,  an
+interface that provides an abstraction of that subsystem. 
+\emph{Simulation
+units} (SUs) provide such abstractions and are widely used in
+industry. A class  of SUs are   described by
+the Functional  Mock-up Interface Standard~\cite{FMI2014} (FMI), which
+is used commercially and is  supported by many
+tools~\cite{Tools_FMI}. 
+An SU implements a well-defined interface and represents a subsystem
+by computing   its behavioral trace using a dedicated solver.
 
-%How to test and verify an OA - need for correct by construction algorithm
-The overarching challenge of co-simulation is ensuring accurate simulation results due to the many potential error sources~\cite{Gomes2018}.
-The simulation result depends not only on the correctness of the individual SUs but also on the co-simulation algorithm that composes them, which is often overlooked~\cite{Gomes2019,Gomes2018f,Schweizer2015c}.
-The co-simulation algorithm must be specifically tailored to the instrumentation of the scenario to ensure an accurate simulation result~\cite{hansen_verification_2021,Oakes2021}.
-Not considering the scenario's instrumentation can lead to inaccurate co-simulation results, which can be extremely difficult to debug and fix in practice.
-The challenge has partly been addressed by the papers \cite{Gomes2019,Oakes2021,thrane2021} that show how to synthesize tailored co-simulation algorithms.
-Nevertheless, the approaches do not consider scenarios where the instrumentation is unknown or the SUs are parametric.
+\emph{Co-simulation}~\cite{Kubler2000,Gomes2018} addresses the need to
+simulate a  CPS given as the
+composition of  such black-box SUs.
+Co-simulation transforms a continuous system to a discrete simulation
+with discrete  interactions between the different SUs.
+Furthermore, a \emph{digital twin} can be a co-simulation connected to
+a  physical  systems.
 
-%Design space evalution
-Co-simulation creates an environment where SUs can be composed to explore and analyze different system's design to find the optimal design~\cite{dse,gamble_design_2014}; the process is called design space exploration.
+The   objective of a
+co-simulation is to capture as accurately as possible   
+the behavior of  the modeled system. This is challenging,  due
+to discretization,  cyclic dependencies between the SUs,  and the fact
+that very few  assumptions be made about the SUs: an SU may, e.g., be
+unable to predict  its future state at the next desired point in time.
+A \emph{co-simulation algorithm} is responsible for orchestrating the
+interaction of the SUs:   it determines how and when the different SUs
+interact. 
 
-We propose a framework in Maude where a co-simulation practitioner can synthesize and execute tailored co-simulation algorithms while exploring different system designs for both simple and complex scenarios.
-Complex scenarios are subject to algebraic loops denoting cyclic dependencies between the SUs or step rejections, where an SU refuses specific future state evaluations because it implements error estimation.
-Complex scenarios are more challenging to simulate since the co-simulation algorithm needs to adapt to the behavior of the SUs~\cite{thrane2021} to solve algebraic loops and ensure that all SUs move in lockstep.
+Since the co-simulation algorithm should make   the virtual
+system correspond  to its physical
+counterpart,   the virtual system can be analyzed,
+and different design  choices can be explored,  to accurately predict
+the behavior of the  system to be built. 
+%  
+However, the FMI standard is only informally described, and has been
+shown to be inconsistent \cite{sampaio_behavioural_2016}.  For both of
+the above reasons,  there is
+ a need for 
+formal methods to provide a formal semantics for co-simulation and to
+provide early model-based formal analysis of the co-simulations.   
 
-Our framework enables a co-simulation practitioner to explore the consequences of changing the scenario's instrumentation and SU parameters. 
-Co-simulation practitioners can thereby use their domain knowledge to place constraints on the co-simulation result to let Maude find the parameters and instrumentation that result in a co-simulation with desirable properties. 
+However, providing a formal semantics to co-simulation is challenging,
+due to, e.g.,  the
+complex behavior of  the SUs, and the need to resolve cyclic
+dependencies between 
+the SUs by fixed-point computations and to  perform step negotiation
+to ensure that all SUs move in  lockstep.
+Rewriting logic~\cite{Mes92}, with its  modeling language and
+high-performance  analysis tool Maude~\cite{maude-book}, 
+ should be a suitable  formal method for co-simulation: 
+ Its expressiveness allows us to conveniently specify both  
+ complex dynamic behaviors and 
+sophisticated  functions  (e.g., for detecting and resolving cyclic
+dependencies), and 
+Maude  provides  automatic  formal analysis capabilities for
+correctness analysis and 
+design space  exploration.
+Maude also supports connections to \emph{external objects},
+which means  that  Maude   should be able to 
+ orchestrate  the composition of real  external components. 
 
-\paragraph{Contribution:}
-% \begin{itemize}
-%   \item Address the problems - obtaining good co-simulation algorithm
-%   \item Perform co-simulation in Maude
-%   \item Step negotiation
-%   \item Fixed-point iteration (Algebraic loop)
-%   \item Complex functions - Tarjan, fixed-point iteration.
-% \end{itemize}
-This paper describes an executable Maude framework for synthesizing and executing co-simulation algorithms for a given co-simulation potentially complex co-simulation scenario.
-The framework enables the synthesis of SU parameters and instrumentation of a given scenario such that the instrumented system/scenario has specific desirable properties.
+In this paper we present a formal framework for representing
+co-simulation in Maude. 
+We give a formal model for co-simulation beyond the FMI 2.0 standard, 
+also covering  feed-through constraints, input instrumentations, and
+step rejection.  
+We then use Maude to synthesize and execute suitable
+(scenario-specific) 
+co-simulation  algorithms, which enables the formal analysis of the
+resulting  co-simulation. 
+We also show how Maude can be used to synthesize
+instrumentations,  parameter values,  and co-simulation algorithms for
+such complex  scenarios so that the resulting system satisfies
+desired properties. 
+% 
+As discussed in \Cref{sc:related}, to the best of our
+knowledge this paper presents  the first formal
+framework that covers  design space exploration of complex
+co-simulation scenarios  with algebraic loops and step
+rejection,  and that also  synthesizes correct-by-construction
+co-simulation algorithms and  parameters for  such  scenarios.
 
-\paragraph{Structure:}
-\cref{sc:background} introduces the preliminaries rewriting logic, co-simulation, and design space exploration.
-Then, \cref{sec:model} describes the Maude model, before \cref{sc:synthesize} describes how co-simulation algorithms are synthesized and executed in Maude.
-\cref{sc:DSE} describes how our framework can be used to select the instrumentation and SU parameters of a scenario.
-\cref{sc:related} describes the related work. 
-Finally, \cref{sc:summary} concludes and presents future work.
+From a Maude perspective, we found that using rewrite conditions in
+ rules  allowed us to  easily and
+elegantly  solve quite   challenging problems in co-simulation.
+
+
+The rest of the paper is structured as follows.
+\Cref{sc:background} provides  necessary background to Maude and
+co-simulation. 
+\Cref{sec:model} presents a Maude model of co-simulation
+scenarios and SU  behaviors.
+\Cref{sc:synthesize} shows how correct-by-construction co-simulation
+algorithms can be  synthesized and executed in Maude.
+\Cref{sc:DSE} describes how to synthesize instrumentation and
+parameter values such  that resulting co-simulation satisfies desired
+properties. 
+\Cref{sc:related} discusses related work and \Cref{sc:summary} gives some
+concluding  remarks.

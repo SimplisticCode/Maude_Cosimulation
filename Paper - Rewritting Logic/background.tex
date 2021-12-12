@@ -57,7 +57,7 @@ A collection of coupled SUs forms a scenario:
     \item $\mayReject \subseteq \fmus$ denotes the SUs that implement error estimation. 
     \item
     $\allreactivity : \allinputs \to \mathbb{B}$ is a predicate, which provides information about the SUs' input approximation functions.
-    $\allreactivity(\inputvar{c}) = \true$ means that the function $\fdoStep{c}$ assumes that the timestamp $t_{SU}$ of the SU of the $\inputvar{c}$ is smaller than the timestamp $t_v$ of the value $\tuple{t_v,v}$ set on the input $\inputvar{c}$.\simon{Check this}
+    $\allreactivity(\inputvar{}) = \true$ means that the function $\fdoStep{}$ assumes that the timestamp $t_{SU}$ of the SU of the $\inputvar{}$ is smaller than the timestamp $t_v$ of the timestamped value $\tuple{t_v,v}$ set on the input $\inputvar{}$.
     \item $\allfeedthroughs$ is a family of functions $\{\feedthrough{c} : \outputs{c} \to \mathcal{P}(\inputs{c})\}_{c \in \fmus}$.
     $\inputvar{c} \in \feedthrough{c}(\outputvar{c})$ means that the input $\inputvar{c}$ \emph{feeds through} to the output $\outputvar{c}$ of the same SU.
     It means that there exists $v_1, v_2 \in \valuesExchanged$ and $\state{c} \in \stateset{c}$, such that
@@ -66,7 +66,7 @@ A collection of coupled SUs forms a scenario:
 \end{definition}
 
 The function $\allreactivity$ represents the \emph{instrumentation} of the scenario.
-We call an input port $\inputvar{c}$ \emph{reactive} if $\allreactivity(\inputvar{c})$,{delayed} otherwise. 
+We call an input port $\inputvar{}$ \emph{reactive} if $\allreactivity(\inputvar{})$, and \emph{delayed} otherwise. 
 %The instrumentation describes the input approximation functions of the different SUs.
 %An example of the instrumentation function
 Changing the instrumentation of a scenario changes the algorithm used to simulate the scenario.
@@ -222,12 +222,12 @@ We base our semantics on \cite{Gomes2019a,hansen_verification_2021} to which we 
   Where:
   \begin{align*}
     &\fpreget{}(\outputvar{}, \tuple{t,\runstate{\inputs{}}, \runstate{\outputs{}}, \runstate{V}}) \triangleq
-    \runstate{\outputs{}}(\outputvar{}) < t 
+    \runstate{\outputs{}}(\outputvar{}) < t \land
     \forall \inputvar{} \in \allfeedthroughs(\outputvar{}) \cdot \runstate{\inputs{}}(\inputvar{}) = t 
   \end{align*}
-  The precondition (above) states that no value must have been obtained from the output $\outputvar{}$ since the SU was stepped.
-  Furthermore, it requires that all the inputs that feed through to $\outputvar{}$ have been updated.
-  The postcondition (below) ensures the advancement of time of the output $\outputvar{}$.
+  The precondition (above) states that no value must have been obtained from the output $\outputvar{}$ since the SU was stepped, formally described as $\runstate{\outputs{}}(\outputvar{}) < t$.
+  Furthermore, it requires that all the inputs that feed through to $\outputvar{}$ have been updated, so they are at time $t$.
+  The postcondition (below) ensures that the output is advanced time $t$.
   \begin{align*}
     &\fpostget{}(\outputvar{}, \tuple{t,\runstate{\inputs{}}, \runstate{\outputs{}}, \runstate{V}}, 
     \tuple{t,\runstate{\inputs{}}, \after{\runstate{\outputs{}}}, \runstate{V}}, v) \triangleq 
@@ -301,24 +301,11 @@ We base our semantics on \cite{Gomes2019a,hansen_verification_2021} to which we 
     The precondition (above) states that all the SU's inputs have been updated according to their instrumentation.  
     The postcondition (below) ensures that the time of the SU advances by $H$.
     \begin{align*}
-      &\fpostdoStep{}(H, \tuple{t,\runstate{\inputs{}}, \runstate{\outputs{}}, \runstate{V}}, \tuple{t',\runstate{\inputs{c}}, \runstate{\outputs{}}, \after{\runstate{V_c}}}) \triangleq t + H = t'
+      &\fpostdoStep{}(H, \tuple{t,\runstate{\inputs{}}, \runstate{\outputs{}}, \runstate{V}}, \tuple{t',\runstate{\inputs{c}}, \runstate{\outputs{}}, \after{\runstate{V_c}}}) \triangleq t + h' = t' \land h' \leq H
     \end{align*}
   \end{definition}
 
 An algorithm $P$ must satisfy \cref{def:comsim_step} while respecting the defined semantics.
-% We use Dijkstra's weakest precondition calculus \cite{dijkstra_guarded_1975} to check if all actions of $P$ are enabled.
-% The weakest precondition calculus takes a predicate/postcondition defining the final state and a program that must terminate in a state satisfying the predicate.
-% The weakest precondition calculus uses backward reasoning and the semantics of the operations to calculate the weakest predicate/precondition that defines the initial state, such that all executions of the program from a state defined by the precondition results in a state defined by the postcondition.
-  
-% We use the weakest precondition calculus to define that an algorithm $P$ respects the semantics of \cref{def:getout,def:setin,def:step} and \cref{def:comsim_step}:
-
-%   \begin{definition}[Co-simulation Step]\label{def:correctalgo}
-%     A co-simulation step $P$ if it takes the co-simulation state from one consistent state to another using only allowed actions. Formally:
-%     \begin{align*}
-%       \fpreCoSimStep(\runstate{\scenario}) \implies wp(P,\fpreCoSimStep(\after{\runstate{\scenario}}) \land H > 0
-%     \end{align*}
-%   \end{definition}
-%An algorithm is tailored to the scenario if it respects the property above.
 This means that \cref{alg:algorithm_3} is correct, while \cref{alg:algorithm_2,alg:algorithm_1} are incorrect since they do not respect the semantics.
 For example, \cref{alg:algorithm_2} tries to perform a $\fdoStep{A}$ action in line 2 without respecting the reactive input $\inputvar{g}$ since the state of SU $A$ $\runstate{A} = \tuple{0,\{\inputvar{g} \to 0 \}, \{\outputvar{f} \to 0 \}, \dontcare}$ does not contain $\{\inputvar{g} \to H \}$.
 Intuitively, we try to step SU $A$ without having provided it with a value on the reactive input $\inputvar{g}$; this is an apparent violation of $\fpredoStep{A}$.

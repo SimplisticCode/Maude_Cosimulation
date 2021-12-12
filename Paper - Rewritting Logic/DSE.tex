@@ -120,7 +120,7 @@ lead to simulations which end in a desired water level:
 
 \small
 \begin{alltt}
-Maude> \emph{search findContracts(waterTankNotInstrumented) =>! C:Configuration\,.}
+Maude>\,\emph{search\,findContracts(waterTankNotInstrumented)\,=>! C:Configuration\,.}
 \end{alltt}
 \normalsize
 
@@ -172,7 +172,7 @@ simulation state. The following  predicate defines the desired water level:
 \small
 \begin{alltt}
 op above10 : Configuration -> Bool .
-eq above10(CONF\,< "tank"\,\,:\,\,SU\,\,|\,\,localState\,:\,"waterlevel" |-> <\,V\,> >) = V\,>\,10\,.  
+eq above10(CONF\,< "tank"\,\,:\,\,SU\,\,|\,\,localState\,:\,"waterlevel" |-> <\,V\,> >)\,=\,V\,>\,10\,.  
 \end{alltt}
 \normalsize
 

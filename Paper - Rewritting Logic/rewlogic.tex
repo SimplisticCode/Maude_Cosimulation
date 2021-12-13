@@ -1,0 +1,162 @@
+\subsection{Rewriting Logic and Maude}
+
+Maude~\cite{maude-book} is a rewriting-logic-based executable formal specification language and
+high-performance analysis tool for object-based distributed systems.
+% for concurrent, object-oriented systems. Maude specifications are
+% executable, 
+% and the tool provides
+% a variety of formal analysis methods,
+% including simulation,
+% reachability analysis,
+% and linear temporal logic (LTL) model checking.
+
+A Maude module specifies a 
+ \emph{rewrite theory} $(\Sigma, E\cup A,  R)$, where:
+\begin{itemize}
+\item $\Sigma$ is an algebraic \emph{signature}; i.e., a set of 
+\emph{sorts}, \emph{subsorts}, and \emph{function
+    symbols}.  
+\item $(\Sigma, E\cup A)$ is a \emph{membership equational
+logic}
+theory,  with  $E$ a set of possibly conditional 
+equations and membership axioms,  and
+$A$ a set of equational axioms such as 
+associativity, commutativity, and identity, so that equational
+deduction is performed \emph{modulo} the axioms $A$. 
+The theory $(\Sigma, E\cup A)$
+specifies
+the system's states as members of an algebraic data type.
+\item $R$
+is a collection of {\em labeled conditional rewrite rules\/} \( [l]:\,
+t\longrightarrow t'\,\mbox{ \bf if } \mathit{cond}\), specifying  
+the system's local transitions. 
+\end{itemize}
+A function $f$ is  declared \texttt{op} $f$ : \(s_1\ldots s_n\)
+\texttt{->} $s$.
+Equations and rewrite rules are introduced with, respectively,
+keywords {\tt eq}, or  {\tt ceq}  for 
+conditional equations, and 
+{\tt rl} and {\tt crl}.
+A conditional rewrite rule has the form \texttt{crl\,\,[}$l$\texttt{]\,:}
+$t\;$\texttt{=>}$\,\,t'\;$\texttt{if}$\;c_1\,$\texttt{/\char92} \ldots
+\texttt{/\char92} $c_n$, where the  conditions $c_1,
+\ldots, c_n$ are evaluated from left to right. A condition $c_i$ can be a
+Boolean term, an equation, a membership, or a
+\emph{matching equation} $u(x_1, \ldots, x_n)\,\,$\texttt{:=}$\,\,u'$
+with  variables $x_1, \ldots, x_n$ not appearing in $t$ and not
+instantiated in $c_1, \ldots, c_{i-1}$; these variables become
+instantiated by \emph{matching} $u(x_1, \ldots, x_n)$ to the normal
+form of the (appropriate  instance of) $u'$. $c_i$ can
+also be a \emph{rewrite condition} $u_i\,\,$\texttt{=>}$\,\,u_i'$,
+which holds if $u_i'$ can be reached in
+zero or more rewrite steps from  $u_i$. 
+Mathematical variables %in equations and rewrite rules 
+ are declared with the keywords {\tt var} and {\tt vars}, 
+ or can have the form $var\verb+:+sort$ and be introduced on the fly.
+ %Comments are preceded by `\texttt{----}'.
+% An equation $f(t_1, \ldots, t_n) = t$ 
+% with the \texttt{owise} (``otherwise'') attribute  can be applied to a subterm 
+% $f(\ldots)$ only if no other equation with left-hand side
+% $f(u_1, \ldots, u_n)$ can be applied. Maude also provides standard
+% parameterized data types (sets, maps, etc.) that can be
+% instantiated (and  renamed);  for example,
+% {\small \texttt{pr SET\char123Nat\char125{} * (sort Set\char123Nat\char125{} to
+%   Nats)}} defines  a sort {\small \texttt{Nats}} of \emph{sets} of natural numbers.
+
+
+
+A \emph{class} declaration \texttt{class \(C\) |
+  \(\mathit{att}_1\)\,\,:\,\,\(\mathit{s}_1\), \dots ,
+  \(\mathit{att}_n\)\,\,:\,\,\(\mathit{s}_n\)\,\,} 
+declares a class $C$ of objects with attributes $att_1$ to $att_n$ of
+sorts $s_1$ 
+to $s_n$. An {\em object instance\/} of class $C$  is
+represented as a term
+$\texttt{<}\: O : C \mid \mathit{att}_1: \mathit{val}_1, \dots , \mathit{att}_n: \mathit{val}_n\:\texttt{>}$,
+where $O$, of sort \texttt{Oid},  is the
+object's
+\emph{identifier}, and where $val_1$ to 
+$val_n$ are the current values of the attributes $att_1$ to
+$att_n$.
+% A \emph{message} is a term of sort \texttt{Msg}. 
+A system state
+ is modeled as a term of 
+the sort \texttt{Configuration}, and   has 
+the structure of a  \emph{multiset} made up of objects and messages
+(and \emph{connections} in our case). 
+
+The dynamic behavior of a
+ system is axiomatized by specifying each of its 
+transition patterns by a rewrite rule. For example, 
+  the rule (with label \texttt{l})
+
+\small
+\begin{alltt}
+  rl [l] :  < O : C | a1 : f(x, y), a2 : O', a3 : z >
+       =>   < O : C | a1 : x + z,   a2 : O', a3 : z > .
+\end{alltt}
+\normalsize
+
+\noindent  defines a family of transitions 
+in which the attribute \texttt{a1} of object \texttt{O} is updated to \texttt{x\,+\,z}. 
+Attributes whose values do not change and do not affect
+the next state,  
+ such as \texttt{a2} and the right-hand side occurrence of \texttt{a3}, need not be mentioned. % Note that in the above rule \texttt{O}, declared as either
+       % constant or variable of sort \texttt{Oid}, is the object's
+       % identifier that can also be a parameter of some function
+       % (e.g., the message function \texttt{m}). 
+  %
+% Maude also supports \emph{metaprogramming}
+% in the sense that a Maude specification $\mathit{M}$  
+% can be represented as a \emph{term} $\overline{M}$ (of sort
+% \texttt{Module}), so that a module transformation can be defined as a
+% Maude function
+% $f: \mathtt{Module} \rightarrow \mathtt{Module}$. 
+
+ \paragraph{Formal Analysis in Maude.} 
+Maude provides a number of  analysis methods,
+including rewriting for simulation purposes, reachability analysis,
+and linear temporal logic (LTL) model checking.
+The rewrite command \texttt{frew} $\mathit{init}$ simulates one
+behavior from the initial state/term $\mathit{init}$ by applying
+rewrite rules.  Given an initial state $\mathit{init}$, a state pattern
+ $\mathit{pattern}$ and an (optional) condition $\mathit{cond}$,
+ Maude's  \texttt{search}
+ command searches the  reachable state space from $\mathit{init}$ for
+ all (or optionally a given number of) states that match
+ $\mathit{pattern}$ such that 
+ $\mathit{cond}$ holds:   
+ 
+\small
+\begin{alltt}
+  search \(\mathit{init}\)  =>!  \(\mathit{pattern}\) such that \(\mathit{cond}\) .
+\end{alltt}
+\normalsize 
+
+\noindent The arrow  \texttt{=>!} means that Maude only searches for 
+ \emph{final} states (i.e., states that cannot be further rewritten)
+ that match $\mathit{pattern}$ and satisfies $\mathit{cond}$. If the
+ arrow  is  \texttt{=>*} then Maude searches for all
+ reachable states satisfying the search condition. 
+
+% \paragraph{Metaprogramming.} Maude supports metaprogramming
+% in the sense that a Maude specification $\mathit{M}$  
+% can be represented as a \emph{term} $\overline{M}$ (of sort
+% \texttt{Module}), so that a module transformation can be defined as a
+% Maude function
+% $f: \mathtt{Module} \rightarrow \mathtt{Module}$. 
+% in Maude. We can write a Maude metaprogram by importing the
+% \texttt{META-LEVEL} module into another module defining a function
+% $f$, which has $\overline{M}$ as its argument, and transforms it to
+% another Maude specification $\mathit{f(\overline{M})}$. In this paper
+% we use such a transformation technique for rewrite rule
+% instrumentation. Specifically, a user-provided Maude model of rewrite
+% rules is transformed to the one with monitoring objects attached,
+% which gather data from the original model for analysis purpose. The
+% transformation is transparent to the user, meaning that it should not
+% modify the original model's state or behavior. 
+
+
+%A metaprogram in Maude can take programs/modules as inputs and
+%performs some useful computation such as transforming one Maude
+%program/module into another. 

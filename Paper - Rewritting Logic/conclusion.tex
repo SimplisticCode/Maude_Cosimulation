@@ -1,15 +1,8 @@
 \section{Concluding Remarks}\label{sc:summary}
-This work proposed how rewriting logic can be used to formalize co-simulation semantics such that correct-by-construction co-simulation algorithms can be synthesized and executed.
-The approach can handle complex co-simulation scenarios subject to algebraic loops and step rejections.
+This work presented a formal model of co-simulation in Maude for complex scenarios with algebraic loops and step negotiation.
+Furthermore, we showed how Maude could be used to synthesize and execute co-simulation algorithms enabling synthesis of port instrumentations and parameter values, such that the resulting scenario possesses desirable properties.
 
-We demonstrated using model checking that all implementation-aware algorithms of a scenario result in the same co-simulation result.
-Furthermore, we presented how a co-simulation practitioner can integrate Maude into the development cycle to explore different system designs and find the optimal parameters and instrumentation of the system.
-
-A future research agenda could into how the formalization could be connected with orchestration engines such that the synthesized algorithms could be executed on real-world simulation units described by the FMI standard.
-The parameter search can potentially be explored symbolic.
-
-Future work also includes formalizing the FMI 3.0 standard, which is still under development.
-We will use our experience from this work to interact with the FMI steering committee and show them how different semantics affect the simulation result.
+Future work include more advanced case studies, integration with \emph{external} components, and symbolic methods to search for parameter values.
 
 \paragraph{Acknowledgements}
-We will like to thank Claudio Gomes, Peter Gorm Larsen, Jaco van de Pol, Stefan Hallerstede, and Jose Meseguer for their support and feedback on the work.
+We will like to thank Claudio Gomes, Jaco van de Pol, Stefan Hallerstede, and Jose Meseguer for their support and feedback on the work.

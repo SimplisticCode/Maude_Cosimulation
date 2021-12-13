@@ -12,14 +12,17 @@ Each SU can interact with its environment through input and output ports~\cite{G
 
 A set of SUs can be composed into a \emph{scenario} by \emph{coupling} the input ports to output ports. 
 A \emph{coupling} connects one input port of an SU to an output port of another SU.
-The \emph{coupling restriction} states that the value of an input and an output of a coupling must be the same at all times.
-However, in reality, the coupling restrictions can only be satisfied at specific points in time called \emph{communication points}. 
+The \emph{coupling restriction} states that the value of an input and an output of a coupling must be the same at all times in the continuous system.
+However, in is its discrete and virtual counterpart, the coupling restrictions can only be satisfied at specific points in time called \emph{communication points}. 
 Therefore, each SU makes its own assumptions about the evolution of its input values between the communication points, which can introduce errors in the co-simulation~\cite{Arnold2014}.
 
 \emph{The orchestrator} computes the behavior of a scenario as a discrete trace while it tries to satisfy the coupling restrictions by exchanging values between the coupled ports. 
-The orchestrator aims to find the communication points that minimize the co-simulation error while ensuring that the SUs move in lockstep. 
-The optimal communication points depend on the SUs~\cite{Gomes2019,Oakes2021,Gomes2018f,Schweizer2015c,Gomes2018a}.
-
+The orchestrator aims to find the communication points that minimize the co-simulation error while ensuring that the SUs move in lockstep by adapting to the behavior of the scenario.
+The optimal communication points depend on the SUs~\cite{Gomes2019,Oakes2021,Gomes2018f,Schweizer2015c,Gomes2018a}
+since an SU, implementing error estimation, may conclude that the desired simulation resolution is too low and, therefore, \emph{rejects} to compute a specific future state, something the orchestrator solves using \emph{step negotiation}~\cite{thrane2021}.
+Furthermore, a scenario can contain \emph{algebraic loops} (cyclic dependencies) between the SUs, which are resolved using fixed-point computations~\cite{Kubler2000,Oakes2021,thrane2021}.
+An algebraic loop is a consequence of the decomposition of a system into subsystems with couplings between SUs representing differential equations; examples include the suspension system of a car~\cite{thranefmi-based2020}.
+Scenarios with algebraic loops and step rejections are called \emph{complex scenarios}.
 The following definition of an SU is based on \cite{Broman2013,Gomes2019c,thrane2021}:
 
 \begin{definition}[Simulation Unit]\label{def:fmu}
@@ -40,11 +43,10 @@ The following definition of an SU is based on \cite{Broman2013,Gomes2019c,thrane
   \end{compactitem}
 \end{definition}
 
-The state of an SU at time $t$ is denoted $\stateafter{}{t}$.
-The function $\fdoStep{}$ returns a state and a step duration, since some SUs implement error estimation and may conclude that taking a step size $H$ will result in an intolerable error.
-Therefore, instead, the SU takes a smaller step $h$ than planned.
-
-A collection of coupled SUs forms a scenario:
+% The state of an SU at time $t$ is denoted $\stateafter{}{t}$.
+% The function $\fdoStep{}$ returns a state and a step duration, since some SUs implement error estimation and may conclude that taking a step size $H$ will result in an intolerable error.
+% Therefore, instead, the SU takes a smaller step $h$ than planned.
+%A collection of coupled SUs forms a scenario:
 
 \begin{definition}[Scenario]\label{def:cosim_scenario}
   A \emph{scenario} $\mathcal{S}$ is a tuple $\mathcal{S} \triangleq \tuple{\fmus, \{\mathcal{SU}_c\}_{c \in \fmus}, \coupling, \mayReject, \allreactivity, \allfeedthroughs}$,where 
@@ -67,8 +69,6 @@ A collection of coupled SUs forms a scenario:
 
 The function $\allreactivity$ represents the \emph{instrumentation} of the scenario.
 We call an input port $\inputvar{}$ \emph{reactive} if $\allreactivity(\inputvar{})$, and \emph{delayed} otherwise. 
-%The instrumentation describes the input approximation functions of the different SUs.
-%An example of the instrumentation function
 Changing the instrumentation of a scenario changes the algorithm used to simulate the scenario due to the semantics of the actions.
 We assume that the instrumentation of a scenario is constant through the simulation, which is the case for most commercially used SUs~\cite{Gomes2018a}.
 
@@ -83,6 +83,8 @@ We assume that the instrumentation of a scenario is constant through the simulat
   The solid arrows $f$ and $g$ represent couplings.}
   \label{fig:simpleexample}  
 \end{figure}
+
+%The instrumentation describes the input approximation functions of the different SUs.
 
 \subsection{Co-simulation Algorithms}\label{sc:cosimalgo}
 An \emph{orchestrator} simulates a scenario by executing a \emph{co-simulation algorithm}.
@@ -116,7 +118,7 @@ We use the abstract state $\runstate{c}$ of an SU $c$ instead of the internal st
 \end{definition}
 
 A co-simulation step $P$ is a sequence of operations that takes a co-simulation from one consistent state to another consistent state.
-We write $ s \xrightarrow[\text{}]{\text{P}} s'$ if executing the co-simulation step $P$ from the initial state $s$ results in the final state $s'$.
+We write $ s \xrightarrow[\text{}]{\text{P}} s'$ if executing the co-simulation step $P$ from the state $s$ results in the state $s'$.
 
 \begin{definition}[Co-simulation Step]\label{def:comsim_step}
   A \emph{co-simulation step} $P$ is a sequence of SU actions that takes a consistent co-simulation state to another consistent  co-simulation state. 
@@ -208,7 +210,7 @@ To differentiate between them, we need to consider the semantics of the differen
 We base our semantics on \cite{Gomes2019a,hansen_verification_2021} to which we refer for more information.
 
 \begin{definition}[Get Action]\label{def:getout}   
-  To obtain a value from an output port $\outputvar{}$ of an SU at times $t$ using the action $\fget{}(\stateafter{}{t},\outputvar{})$ changes the state of the SU according to:
+  To obtain a value from an output port $\outputvar{}$ of an SU at time $t$ using the action $\fget{}(\stateafter{}{t},\outputvar{})$ changes the state of the SU according to:
   \begin{align*}
     \runstate{} 
     \xrightarrow[\text{}]{\fget{}(\stateafter{}{t}, \outputvar{})} 
@@ -216,7 +218,7 @@ We base our semantics on \cite{Gomes2019a,hansen_verification_2021} to which we 
     \implies 
     \fpreget{}(\outputvar{}, \runstate{})
     \land
-    \fpreget{}(\outputvar{}, \runstate{}, \after{\runstate{}}, v)
+    \fpostget{}(\outputvar{}, \runstate{}, \after{\runstate{}}, v)
   \end{align*}
   Where:
   \begin{align*}
@@ -308,30 +310,24 @@ An algorithm $P$ must satisfy \cref{def:comsim_step} while respecting the define
 This means that \cref{alg:algorithm_3} is correct, while \cref{alg:algorithm_2,alg:algorithm_1} are incorrect since they do not respect the semantics.
 %For example, \cref{alg:algorithm_2} tries to perform a $\fdoStep{A}$ action in line 2 without respecting the reactive input $\inputvar{g}$ since the state of SU $A$ $\runstate{A} = \tuple{0,\{\inputvar{g} \to 0 \}, \{\outputvar{f} \to 0 \}, \dontcare}$ does not contain $\{\inputvar{g} \to H \}$.
 %Intuitively, we try to step SU $A$ without having provided it with a value on the reactive input $\inputvar{g}$; this is an apparent violation of $\fpredoStep{A}$.
-  
-\subsection{Complex Co-simulation Scenarios}
-Complex co-simulation scenarios are subject to algebraic loops or step rejections~\cite{thrane2021,Kubler2000,Oakes2021}.
-An algebraic loop denotes a cyclic dependency between the SUs; real-world examples include the suspension system of a car~\cite{thranefmi-based2020}.
-% Algebraic loops can be detected as a non-trivial strongly connected component of the graph constructed using the rules \cite[Definition 15]{Gomes2019c}.
-Step rejections, triggered by error estimation inside the SU, need special attention because they can result in a co-simulation step where the SUs do not move in lockstep.
-
-A complex scenario is simulated using an iterative co-simulation algorithm that adapts to the behavior of the SUs to satisfy the constraints associated with each SU, account for possible step rejections, and solve algebraic loops. 
+% \subsection{Complex Co-simulation Scenarios}
+% Complex co-simulation scenarios are subject to algebraic loops or step rejections~\cite{thrane2021,Kubler2000,Oakes2021}.
+% An algebraic loop denotes a cyclic dependency between the SUs; real-world examples include the suspension system of a car~\cite{thranefmi-based2020}.
+% % Algebraic loops can be detected as a non-trivial strongly connected component of the graph constructed using the rules \cite[Definition 15]{Gomes2019c}.
+% Step rejections, triggered by error estimation inside the SU, need special attention because they can result in a co-simulation step where the SUs do not move in lockstep.
+% A complex scenario is simulated using an iterative co-simulation algorithm that adapts to the behavior of the SUs to satisfy the constraints associated with each SU, account for possible step rejections, and solve algebraic loops. 
 %The orchestrator achieves this by finding a correct valuation of all inputs and outputs in the scenario~\cite{thrane2021}.
 %The valuation defines the step duration and the current attempt to solve the scenario's algebraic loops. 
 %A correct valuation ensures that all SUs agree on the step duration and solves all algebraic loops by finding a fixed point.
 %A complex co-simulation scenario can only be correctly simulated using a correct valuation.
-
 %The orchestrator must find a correct valuation in every co-simulation step because it depends on the current internal state of the SUs, which varies from one co-simulation step to the next.
-
 %The process for finding a correct valuation is due to space limitations not covered here; we refer interested readers to \cite{thrane2021,Kubler2000}.
-
-\subsection{Design Space Exploration}
-Design space exploration is a technique for evaluating how different combinations of parameters (designs) affect the system's performance to determine which parameter combinations are ``optimal''~\cite{kang_approach_2011}.
-The parameters of an SU are constants that configure the SU's behavior; an example is the parameter \texttt{flow} described in \cref{ex:simulationunits}.
-Design space exploration can roughly be divided into two phases a search and a design evaluation.
-The search finds the different combinations of parameters (designs) while the design evaluation evaluates them.
-Design space exploration can be used in the context of co-simulation and digital twins, where it provides a cheap way to explore the consequence of different design decisions~\cite{gamble_design_2014,dse}.
-
+% \subsection{Design Space Exploration}
+% Design space exploration is a technique for evaluating how different combinations of parameters (designs) affect the system's performance to determine which parameter combinations are ``optimal''~\cite{kang_approach_2011}.
+% The parameters of an SU are constants that configure the SU's behavior; an example is the parameter \texttt{flow} described in \cref{ex:simulationunits}.
+% Design space exploration can roughly be divided into two phases a search and a design evaluation.
+% The search finds the different combinations of parameters (designs) while the design evaluation evaluates them.
+% Design space exploration can be used in the context of co-simulation and digital twins, where it provides a cheap way to explore the consequence of different design decisions~\cite{gamble_design_2014,dse}.
 
 \subsection{Problem Statement}
 The two key problems in co-simulation that we addresses in this paper (in addition to the formalization of a co-simulation) are:

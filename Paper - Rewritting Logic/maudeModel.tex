@@ -10,7 +10,9 @@ model.
 The entire model, including the synthesis and execution of co-simulation
 algorithms (\Cref{sc:synthesize}) and the synthesis of
 instrumentations and parameters (\Cref{sc:DSE})  is
-available at \url{https://github.com/SimplisticCode/Co-simulation_WRLA} and consists of around 
+available at
+\url{https://github.com/SimplisticCode/Co-simulation_WRLA} and
+consists of around  
 1400 LOC. 
 
 We formalize  co-simulation scenarios in an object-oriented style. The
@@ -85,7 +87,7 @@ through to the output port.
 controls the water level of a \emph{water tank} with constant inflow
 of water,  by opening and closing a valve
 at the bottom of the tank. 
-The system can be modeled using  one SU for the tank and one for
+The system can be modeled using  one SU for the tank and one SU for
 the controller, and has the architecture shown in
 \cref{fig:simpleexample}.
 %
@@ -103,7 +105,7 @@ The water tank  (in its initial state)  is modeled as an object
 
 \noindent The \texttt{tank} has one delayed input port and one output
 port, and the local state indicates that the tank is empty.  
-The parameter \texttt{flow} defines the amount of water that flows
+The parameter \texttt{flow} denotes the amount of water that flows
 into the tank per time unit.
 \end{example}
 
@@ -136,12 +138,14 @@ of output ports is formalized as follows:\footnote{We do not show
 %The functions $\fget{}$ and $\fset{}$ are similar for all SUs
 %described in the framework. 
 
-The concrete behavior of an SU is given by defining its $\fdoStep{}$
+\noindent The application-specific behavior of an SU is given by
+defining its $\fdoStep{}$ 
 function:
 
 \begin{example}
 The following definition of the \texttt{step} function in our running
-example says that  the water level of the tank changes according to
+example  defines how the  water level of the tank changes as a
+function of the 
 step duration \texttt{STEP}, the parameter \texttt{flow}, and the
 state (\texttt{value}) of the input \texttt{valve}:
 
@@ -153,10 +157,10 @@ eq step(< "tank" : SU | time : T, parameters : ("flow" |-> <\,FLOW\,>),
                         localState : ("waterlevel" |-> <\,LEVEL\,>) >,
         STEP) = 
   if STATE == 1 then    \emph{--- valve is open}
-    < "tank" : SU | time : (T\,+\,STEP), localState : ("waterlevel" |-> <\,0\,>),
+    < "tank" : SU | time : (T\,+\,STEP), localState : (\emph{"waterlevel" |-> <\,0\,>}),
           outputs : < "waterlevel" : Output | value\,\,:\,\,<\,0\,>, time\,\,:\,\,(T\,+\,STEP), status\,\,:\,\,Undef > >
   else                  \emph{--- valve is closed}
-    < "tank" : SU | time : (T\,+\,STEP),  localState : ("waterlevel" |-> <\,LEVEL\,+\,(STEP\,*\,FLOW)\,>), 
+    < "tank" : SU | time : (T\,+\,STEP),  localState : (\emph{"waterlevel" |-> <\,LEVEL\,+\,(STEP\,*\,FLOW})\,>), 
                     outputs : < "waterlevel" : Output | value : < LEVEL + (STEP * FLOW) >, 
                                                         time : (T + STEP), status : Undef > > 
   fi .
@@ -184,7 +188,7 @@ and \texttt{externalConnection} that denote, resp.,  the
 simulation unit objects and  their connections. 
 
 \begin{example}\label{ex:simulationunits}
-The SUs and the couplings in our  example are defined as
+The SUs and their couplings in our  example are defined as
 follows:
 
 \scriptsize

@@ -69,11 +69,10 @@ The function $\allreactivity$ represents the \emph{instrumentation} of the scena
 We call an input port $\inputvar{}$ \emph{reactive} if $\allreactivity(\inputvar{})$, and \emph{delayed} otherwise. 
 %The instrumentation describes the input approximation functions of the different SUs.
 %An example of the instrumentation function
-Changing the instrumentation of a scenario changes the algorithm used to simulate the scenario.
+Changing the instrumentation of a scenario changes the algorithm used to simulate the scenario due to the semantics of the actions.
 We assume that the instrumentation of a scenario is constant through the simulation, which is the case for most commercially used SUs~\cite{Gomes2018a}.
 
-\cref{def:cosim_scenario} is based on the FMI 2.0 standard~\cite{FMI2014}. 
-However, feed-through and instrumentation are extensions of the standard, introduced to cover a broad class of co-simulation scenarios. 
+\cref{def:cosim_scenario} extends the FMI 2.0 standard~\cite{FMI2014} with feed-through and port instrumentation to cover a broader class of co-simulation scenarios. 
 \Cref{fig:simpleexample} shows a way to graphically present co-simulation scenarios.
 
 \begin{figure}[htb]

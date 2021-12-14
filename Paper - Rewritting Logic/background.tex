@@ -332,7 +332,7 @@ This means that \cref{alg:algorithm_3} is correct, while \cref{alg:algorithm_2,a
 \subsection{Problem Statement}
 The two key problems in co-simulation that we addresses in this paper (in addition to the formalization of a co-simulation) are:
 \begin{compactenum}
-  \item Given a scenario $\scenario$ synthesize an implementation-aware co-simulation algorithm $P$ for $\scenario$.
+  \item Given a scenario $\scenario$ synthesize a co-simulation algorithm $P$ for $\scenario$.
   That is, find the sequence of SU actions $P$ so that running $P$ on $\scenario$ satisfies \cref{def:comsim_step} while respecting the semantics.
   This includes solving possible algebraic loops and performing step negotiation to ensure that all SUs move in lockstep.
   \item Given a \emph{parametric} or \emph{partially instrumented} scenario $\scenario$, where some SU parameters are unknown and where the instrumentation is incomplete, i.e., not all input ports have been declared ether \emph{reactive} or \emph{delayed}, find concrete values for the parameters, and concrete instrumentation of the input ports, such that the resulting \emph{instrumented} scenario represents a system with desirable properties.

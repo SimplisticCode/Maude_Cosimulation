@@ -4,15 +4,15 @@ This section gives some background on Maude and co-simulation.
 \input{rewlogic}
 
 \subsection{Co-simulation}
-Complex CPS are typically composed of multiple communicating subsystems.
+Complex CPSs are typically composed of multiple communicating subsystems.
 For example, an autonomous car consists of multiple subsystems, including suspension, braking and collision avoidance systems. 
-\emph{Co-simulation} is a technique enabling the simulation of a complex CPS consisting of multiple black-box simulation units (SUs), where each SU represents a subsystem and can compute the behavior of that system.
-Each SU can interact with its environment through input and output ports~\cite{Gomes2019a,Kubler2000}.
+\emph{Co-simulation} is a technique enabling the simulation of a complex CPS consisting of multiple simulation units (SUs), where each SU represents a subsystem and can compute the behavior of that system.
+An SU interacts with its environment through its ports~\cite{Gomes2019a,Kubler2000}.
 
 A set of SUs can be composed into a \emph{scenario} by \emph{coupling} the input ports to output ports. 
 A \emph{coupling} connects one input port of an SU to an output port of another SU.
 The \emph{coupling restriction} states that the value of an input and an output of a coupling must be the same at all times in the continuous system.
-However, in is its discrete and virtual counterpart, the coupling restrictions can only be satisfied at specific points in time called \emph{communication points}. 
+However, in is its discrete counterpart, the coupling restrictions can only be satisfied at specific points in time called \emph{communication points}. 
 Therefore, each SU makes its own assumptions about the evolution of its input values between the communication points, which can introduce errors in the co-simulation~\cite{Arnold2014}.
 
 \emph{The orchestrator} computes the behavior of a scenario as a discrete trace while it tries to satisfy the coupling restrictions by exchanging values between the coupled ports. 
@@ -48,7 +48,8 @@ The following definition of an SU is based on \cite{Broman2013,Gomes2019c,thrane
 %A collection of coupled SUs forms a scenario:
 
 \begin{definition}[Scenario]\label{def:cosim_scenario}
-  A \emph{scenario} $\mathcal{S}$ is a tuple $\mathcal{S} \triangleq \tuple{\fmus, \{\mathcal{SU}_c\}_{c \in \fmus}, \coupling, \mayReject, \allreactivity, \allfeedthroughs}$,where 
+  A \emph{scenario} $\mathcal{S}$ is a tuple $$\mathcal{S} \triangleq \tuple{\fmus, \{\mathcal{SU}_c\}_{c \in \fmus}, \coupling, \mayReject, \allreactivity, \allfeedthroughs}$$
+  %,where 
   \begin{compactitem}
     \item $\fmus$ is a finite set (of SU identifiers). 
     \item $\{\mathcal{SU}_c\}_{c \in \fmus}$ is a set of SUs, where each $\mathcal{SU}_c = \tuple{\stateset{c}, \inputs{c}, \outputs{c}, \values, \fset{c}, \fget{c}, \fdoStep{c}}$.

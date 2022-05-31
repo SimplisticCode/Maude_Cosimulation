@@ -1,0 +1,158 @@
+load full-maude
+
+(fmod PORTID is
+ protecting STRING .
+ sort PortId .
+ subsorts String < PortId < Oid .
+endfm)
+
+(fmod SUID is
+ protecting PORTID .
+ sort SUID .
+ subsorts String < SUID < Oid .
+endfm)
+
+(fmod EPORTID is
+    protecting SUID .
+    sort EPortId .
+    op _!_ : SUID PortId -> EPortId [ctor] .
+endfm)
+
+(fmod FMIVALUE is
+  protecting NAT + BOOL + STRING + FLOAT .
+  sort FMIValue .
+  op <_> : Nat -> FMIValue [ctor] .
+  op <_> : Bool -> FMIValue [ctor] .
+  op <_> : String -> FMIValue [ctor] .
+  op <_> : Float -> FMIValue [ctor] .
+endfm)
+
+(view FMIVALUEAsTRIV from TRIV to FMIVALUE is
+  protecting FMIVALUE .
+  sort Elt to FMIValue .
+endv)
+
+(view OIdAsTRIV from TRIV to PORTID is
+  protecting PORTID .
+  sort Elt to PortId .
+endv)
+
+(view EPortIdAsTRIV from TRIV to EPORTID is
+  protecting EPORTID .
+  sort Elt to EPortId .
+endv)
+
+(fmod PORT-LIST is
+  protecting LIST{EPortIdAsTRIV} * (sort NeList{EPortIdAsTRIV} to NePortList, sort List{EPortIdAsTRIV} to PortList) .
+endfm)
+
+(fmod OID-SET is
+  protecting SET{OIdAsTRIV} * (sort NeSet{OIdAsTRIV} to NeOidSet, sort Set{OIdAsTRIV} to OidSet) .
+endfm)
+
+(fmod PORT-SET is
+  protecting SET{EPortIdAsTRIV} * (sort NeSet{EPortIdAsTRIV} to NePortSet, sort Set{EPortIdAsTRIV} to PortSet) .
+endfm)
+
+(fmod FMIVALUESET is
+  protecting SET{FMIVALUEAsTRIV} * (sort NeSet{FMIVALUEAsTRIV} to NeFMIValueSet, sort Set{FMIVALUEAsTRIV} to FMIValueSet) .
+endfm)
+
+(fmod PAIR{X :: TRIV, Y :: TRIV} is 
+    sort Pair{X, Y} . 
+    op <_;_> : X$Elt Y$Elt -> Pair{X, Y} . 
+    op 1st : Pair{X, Y} -> X$Elt . 
+    op 2nd : Pair{X, Y} -> Y$Elt . 
+    var A : X$Elt . 
+    var B : Y$Elt . 
+    eq 1st(< A ; B >) = A . 
+    eq 2nd(< A ; B >) = B . 
+endfm)
+
+(fmod PORTVALUE is
+    protecting PAIR{Nat, FMIVALUEAsTRIV} * (sort Pair{Nat, FMIVALUEAsTRIV} to PortValueAndTime) .
+endfm) 
+
+(fmod LOCALSTATE is
+    protecting MAP{String, FMIVALUEAsTRIV} * (sort Map{String, FMIVALUEAsTRIV} to LocalState) .
+endfm) 
+
+(view PortValueAndTimeAsTRIV from TRIV to PORTVALUE is
+  protecting PORTVALUE .
+  sort Elt to PortValueAndTime .
+endv)
+
+(fmod PORTVALUEMAP is
+    protecting MAP{EPortIdAsTRIV, PortValueAndTimeAsTRIV} * (sort Map{EPortIdAsTRIV, PortValueAndTimeAsTRIV} to PortValueMap) .
+endfm) 
+
+(fmod INDEX-MAP is
+    *** Tarjan
+    protecting MAP{EPortIdAsTRIV, Nat} * (sort Map{EPortIdAsTRIV, Nat} to IndexMap) .
+endfm) 
+
+
+(view PortListAsTRIV from TRIV to PORT-LIST is
+  protecting PORT-LIST .
+  sort Elt to PortList .
+endv)
+
+(view IndexMapAsTRIV from TRIV to PORT-LIST is
+  protecting INDEX-MAP .
+  sort Elt to IndexMap .
+endv)
+
+(fmod PORTLIST-PAIR is
+    protecting PAIR{PortListAsTRIV, PortListAsTRIV} * (sort Pair{PortListAsTRIV, PortListAsTRIV} to PortListPair) .
+endfm) 
+
+(fmod SCC-MAP is
+    protecting MAP{Nat ,PortListAsTRIV} * (sort Map{Nat, PortListAsTRIV} to SCCMap) .
+endfm) 
+
+(fmod ALGEBRAICLOOP is
+    protecting PORT-SET .
+    sort AlgebraicLoop LoopType .
+    ops feedthrough reactivity : -> LoopType [ctor] . 
+    op AlgebraicLoop:_Type:_ : PortSet LoopType -> AlgebraicLoop [ctor] . 
+endfm )
+
+(view ALGEBRAICLOOPAsTRIV from TRIV to ALGEBRAICLOOP is
+  protecting ALGEBRAICLOOP .
+  sort Elt to AlgebraicLoop .
+endv)
+
+(fmod ALGEBRAICLOOPSET is
+  protecting SET{ALGEBRAICLOOPAsTRIV} * (sort NeSet{ALGEBRAICLOOPAsTRIV} to NeALSet, sort Set{ALGEBRAICLOOPAsTRIV} to AlgebraicLoopSet) .
+endfm)
+
+(omod Ports is 
+ protecting PORT-LIST + OID-SET + PORT-SET + PORTVALUEMAP .
+ sorts Contract PortStatus Connection PortType .
+ op _==>_ : EPortId EPortId -> Connection [ctor format(niy! d d d)] .
+ subsort Connection < Configuration .
+
+ class Port | value : FMIValue, type : PortType, time : Nat, status : PortStatus . 
+ class Input | contract : Contract .
+ class Output | dependsOn : OidSet .
+ subclasses Input Output < Port . 
+ ops delayed reactive noContract : -> Contract [ctor] .   *** d = delayed, r = Reactive.
+ ops integer string real boolean : -> PortType [ctor] . 
+ ops Def Undef : -> PortStatus [ctor] .
+
+ op _in_ : Connection Configuration -> Bool . 
+ op elems : PortList PortSet -> PortSet .
+
+ var PORT  : EPortId .
+ var CONF : Configuration .
+ var CON : Connection .
+ var STACK : PortList .
+ var PORTSET : PortSet .
+
+ eq elems(nil, PORTSET) = PORTSET .
+ eq elems(PORT STACK, PORTSET) = elems(STACK, (PORT, PORTSET)) .
+
+ eq CON in CON CONF = true .
+ eq CON in CONF = false [owise] .
+
+endom)
